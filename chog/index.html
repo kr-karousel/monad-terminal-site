@@ -3052,28 +3052,34 @@ async function fetchTopHolders(){
   const provider = window.ethereum;
 
   try {
-    console.log('📡 Fetching holders via wallet RPC...');
+    console.log('📡 Fetching holders via RPC...');
 
     const seedAddrs = new Set();
     seedAddrs.add(DEV_WALLET.toLowerCase());
-    // 연결된 지갑도 시드에 추가
     if(wallet && wallet.addr) seedAddrs.add(wallet.addr.toLowerCase());
 
     const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 
-    const blockHex = await provider.request({method:'eth_blockNumber', params:[]});
+    // 지갑 RPC 대신 공개 RPC 직접 사용 (eth_getLogs 지원 안하는 지갑 우회)
+    const blockHex = await rpcCallAny('eth_blockNumber', []);
     const cur = parseInt(blockHex, 16);
-    const from = Math.max(0, cur - 50000); // 더 넓은 범위로 홀더 검색
+    const from = Math.max(0, cur - 50000);
 
-    const logs = await provider.request({
-      method:'eth_getLogs',
-      params:[{
-        address: CHOG,
-        topics: [TRANSFER_TOPIC],
-        fromBlock: '0x'+from.toString(16),
-        toBlock: 'latest'
-      }]
-    });
+    // 청크로 나눠서 요청 (한번에 너무 많으면 RPC 거부)
+    let logs = [];
+    const chunkSize = 10000;
+    for(let start = from; start < cur; start += chunkSize) {
+      const end = Math.min(cur, start + chunkSize - 1);
+      try {
+        const chunk = await rpcCallAny('eth_getLogs', [{
+          address: CHOG,
+          topics: [TRANSFER_TOPIC],
+          fromBlock: '0x'+start.toString(16),
+          toBlock: '0x'+end.toString(16)
+        }]);
+        if(chunk && chunk.length) logs = logs.concat(chunk);
+      } catch(e) { console.warn('chunk err:', e.message); }
+    }
 
     if(logs && logs.length > 0){
       logs.forEach(log => {
@@ -3168,7 +3174,7 @@ async function connectWallet(name){
     if(!accounts||!accounts.length)throw new Error('No accounts');
     const addr=accounts[0];
     try{await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});}
-    catch(sw){if(sw.code===4902)await provider.request({method:'wallet_addEthereumChain',params:[{chainId:MONAD_CHAIN_ID,chainName:'Monad Mainnet',nativeCurrency:{name:'MON',symbol:'MON',decimals:18},rpcUrls:['https://rpc.monad.xyz'],blockExplorerUrls:['https://explorer.monad.xyz']}]});}
+    catch(sw){if(sw.code===4902)await provider.request({method:'wallet_addEthereumChain',params:[{chainId:MONAD_CHAIN_ID,chainName:'Monad',nativeCurrency:{name:'MON',symbol:'MON',decimals:18},rpcUrls:['https://rpc.monad.xyz','https://monad-mainnet.rpc.thirdweb.com'],blockExplorerUrls:['https://explorer.monad.xyz']}]});}
     const padded=addr.slice(2).padStart(64,'0');
     const balHex=await provider.request({method:'eth_call',params:[{to:CHOG_CONTRACT,data:'0x70a08231'+padded},'latest']});
     const raw=(balHex||'0x0').replace('0x','')||'0';
@@ -3557,9 +3563,10 @@ async function doShout(){
     wallet.bal-=SHOUT_COST;chogBalance=wallet.bal;
   }
   const shoutNick = getNick(wallet.addr) || (wallet.addr.slice(0,6)+'...'+wallet.addr.slice(-4));
+  const shoutBal = wallet.bal; // 차감 후 잔액 그대로 사용 (계급 변경 방지 위해 원래 bal 유지)
   showShoutPopup(shoutNick,msg);
   addPinnedShout(wallet.addr,msg);
-  renderMsg({addr:wallet.addr,addrFull:wallet.addr,bal:wallet.bal+SHOUT_COST,msg:'📢 [SHOUT] '+msg,time:nowTime()});
+  renderMsg({addr:wallet.addr,addrFull:wallet.addr,bal:shoutBal,msg:'📢 [SHOUT] '+msg,time:nowTime()});
   const sh=document.getElementById('shoutHistory');
   if(sh){const item=document.createElement('div');item.className='shout-item';item.innerHTML=`<div class="shout-item-addr">${shoutNick} · ${nowTime()}</div><div>${msg}</div>`;sh.insertBefore(item,sh.firstChild);}
   document.getElementById('shoutInput').value='';
