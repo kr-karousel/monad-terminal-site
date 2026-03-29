@@ -921,7 +921,13 @@ const RANKS=[
   {min:1,label:'Street Beggar',badge:'🙏 BEGGAR',cls:'r9'},
   {min:0,label:'ZeroCHOG Ghost',badge:'👻 GHOST',cls:'r10'},
 ];
-function getRank(b){return RANKS.find(r=>b>=r.min)||RANKS[9];}
+function getRank(b, addr){
+  // DEV 지갑은 항상 최상위 계급으로 표시
+  if(addr && addr.toLowerCase() === DEV_WALLET.toLowerCase()){
+    return {min:100000000,label:'CHOG GOD',badge:'👑 GOD',cls:'r1',isDev:true};
+  }
+  return RANKS.find(r=>b>=r.min)||RANKS[9];
+}
 function nowTime(){const n=new Date();return n.getHours()+':'+String(n.getMinutes()).padStart(2,'0');}
 function escHtml(s){
   if(typeof s !== 'string') return s||'';
@@ -2195,7 +2201,7 @@ var chatList = document.getElementById('chatList');
 function renderMsg(item){
   if(!chatList) chatList = document.getElementById('chatList');
   if(!chatList)return;
-  const rank=getRank(item.bal||0);
+  const rank=getRank(item.bal||0, item.addrFull||item.addr||'');
   const div=document.createElement('div');
   const addrFull = item.addrFull || item.addr || '';
   // 닉네임 있으면 닉네임으로 표시
@@ -2430,7 +2436,7 @@ async function confirmSetNick(){
 
 function updateWalletDisplay(){
   if(!wallet) return;
-  const rank  = getRank(wallet.bal);
+  const rank  = getRank(wallet.bal, wallet.addr);
   const nick  = getNick(wallet.addr);
   const label = nick || (wallet.addr.slice(0,6)+'...'+wallet.addr.slice(-4));
   document.getElementById('walletArea').innerHTML =
@@ -3173,8 +3179,22 @@ async function connectWallet(name){
     const accounts=await provider.request({method:'eth_requestAccounts'});
     if(!accounts||!accounts.length)throw new Error('No accounts');
     const addr=accounts[0];
-    try{await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});}
-    catch(sw){if(sw.code===4902)await provider.request({method:'wallet_addEthereumChain',params:[{chainId:MONAD_CHAIN_ID,chainName:'Monad',nativeCurrency:{name:'MON',symbol:'MON',decimals:18},rpcUrls:['https://rpc.monad.xyz','https://monad-mainnet.rpc.thirdweb.com'],blockExplorerUrls:['https://explorer.monad.xyz']}]});}
+    try{
+      await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});
+    } catch(sw){
+      if(sw.code===4902||sw.code===-32603||sw.code===4200){
+        try{
+          await provider.request({method:'wallet_addEthereumChain',params:[{
+            chainId:MONAD_CHAIN_ID,
+            chainName:'Monad Mainnet',
+            nativeCurrency:{name:'Monad',symbol:'MON',decimals:18},
+            rpcUrls:['https://rpc.monad.xyz','https://monad-mainnet.rpc.thirdweb.com','https://monad.drpc.org'],
+            blockExplorerUrls:['https://explorer.monad.xyz']
+          }]});
+          await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});
+        } catch(addErr){ console.warn('addEthereumChain err:', addErr.message); }
+      } else if(sw.code!==4001){ console.warn('switchChain err:', sw.message); }
+    }
     const padded=addr.slice(2).padStart(64,'0');
     const balHex=await provider.request({method:'eth_call',params:[{to:CHOG_CONTRACT,data:'0x70a08231'+padded},'latest']});
     const raw=(balHex||'0x0').replace('0x','')||'0';
@@ -3185,7 +3205,7 @@ async function connectWallet(name){
       const monHex = await provider.request({method:'eth_getBalance',params:[addr,'latest']});
       wallet.monBal = parseInt(monHex,16)/1e18;
     }catch(e){ wallet.monBal = 0; }
-    const rank=getRank(wallet.bal);
+    const rank=getRank(wallet.bal, addr);
     const short=addr.slice(0,6)+'...'+addr.slice(-4);
     updateWalletDisplay();
     document.getElementById('chatInput').disabled=false;
