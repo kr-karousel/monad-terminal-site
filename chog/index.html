@@ -2803,7 +2803,23 @@ async function execNativeSwap(){
   const provider = window.ethereum;
   if(!provider || !wallet){ swapSetStatus('Please connect your wallet.','err'); return; }
 
-  const execBtn = document.getElementById('btnSwapExec');
+  // Monad Mainnet 강제 전환
+  try{
+    await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});
+  } catch(sw){
+    if(sw.code===4902||sw.code===-32603||sw.code===4200){
+      try{
+        await provider.request({method:'wallet_addEthereumChain',params:[{
+          chainId:MONAD_CHAIN_ID,
+          chainName:'Monad Mainnet',
+          nativeCurrency:{name:'Monad',symbol:'MON',decimals:18},
+          rpcUrls:['https://rpc.monad.xyz','https://monad-mainnet.rpc.thirdweb.com','https://monad.drpc.org'],
+          blockExplorerUrls:['https://explorer.monad.xyz']
+        }]});
+        await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});
+      } catch(addErr){ swapSetStatus('❌ Failed to switch to Monad Mainnet.','err'); return; }
+    } else if(sw.code===4001){ swapSetStatus('❌ Network switch cancelled.','err'); return; }
+  }
   if(execBtn){ execBtn.disabled = true; execBtn.textContent = 'Processing...'; }
   swapSetStatus('Sending transaction...','');
 
@@ -2933,8 +2949,8 @@ async function renderHolderList(){
   const content = document.getElementById('holderTabContent');
   content.innerHTML = '<div class="holder-loading">⏳ Loading top holders...</div>';
 
-  // 지갑 미연결 시 RPC 접근 불가 → 안내
-  if(!window.ethereum){
+  // 지갑 미연결 시에도 rpcCallAny로 조회 가능
+  if(false && !window.ethereum){
     content.innerHTML = `<div class="holder-loading" style="text-align:center">
       <div style="font-size:32px;margin-bottom:12px">🔗</div>
       <div style="color:var(--accent);font-weight:700;margin-bottom:6px">Connect Wallet to View Holders</div>
@@ -3052,10 +3068,9 @@ async function renderHolderList(){
 
 async function fetchTopHolders(){
   if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
-  if(!window.ethereum) return null;
+  // window.ethereum 없어도 rpcCallAny(공개 RPC)로 조회 가능
 
   const CHOG = CHOG_CONTRACT;
-  const provider = window.ethereum;
 
   try {
     console.log('📡 Fetching holders via RPC...');
@@ -3101,10 +3116,7 @@ async function fetchTopHolders(){
     const balances = await Promise.all(addrList.map(async addr => {
       try {
         const padded = addr.slice(2).padStart(64,'0');
-        const hex = await provider.request({
-          method:'eth_call',
-          params:[{to:CHOG, data:'0x70a08231'+padded},'latest']
-        });
+        const hex = await rpcCallAny('eth_call',[{to:CHOG, data:'0x70a08231'+padded},'latest']);
         const bal = hex && hex !== '0x' && hex !== '0x0' ? parseInt(hex,16)/1e18 : 0;
         return {address:addr, balance:bal, pct: (bal/TOTAL_SUPPLY)*100};
       } catch(e){ return null; }
@@ -3340,6 +3352,22 @@ function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
 }
 
 function chogEmotion(type){
+  try{
+    const n=document.getElementById('chogImgNormal');
+    const h=document.getElementById('chogImgHappy');
+    const s=document.getElementById('chogImgSad');
+    const c=document.getElementById('chogChar');
+    if(!n||!h||!s||!c)return;
+    if(emotionTimer){clearTimeout(emotionTimer);emotionTimer=null;}
+    if(type==='buy'){n.style.opacity='0';h.style.opacity='1';s.style.opacity='0';}
+    else{n.style.opacity='0';h.style.opacity='0';s.style.opacity='1';}
+    c.classList.remove('emotion');void c.offsetWidth;c.classList.add('emotion');
+    emotionTimer=setTimeout(()=>{
+      try{n.style.opacity='1';h.style.opacity='0';s.style.opacity='0';c.classList.remove('emotion');}catch(e){}
+      emotionTimer=null;
+    },1200);
+  }catch(e){}
+}
 
 // ═══════════════════════════════════════
 //  BACKGROUND EFFECTS (trade size animations)
@@ -3470,22 +3498,6 @@ function devTest(type){
 }
 
 // ═══════════════════════════════════════
-  try{
-    const n=document.getElementById('chogImgNormal');
-    const h=document.getElementById('chogImgHappy');
-    const s=document.getElementById('chogImgSad');
-    const c=document.getElementById('chogChar');
-    if(!n||!h||!s||!c)return;
-    if(emotionTimer){clearTimeout(emotionTimer);emotionTimer=null;}
-    if(type==='buy'){n.style.opacity='0';h.style.opacity='1';s.style.opacity='0';}
-    else{n.style.opacity='0';h.style.opacity='0';s.style.opacity='1';}
-    c.classList.remove('emotion');void c.offsetWidth;c.classList.add('emotion');
-    emotionTimer=setTimeout(()=>{
-      try{n.style.opacity='1';h.style.opacity='0';s.style.opacity='0';c.classList.remove('emotion');}catch(e){}
-      emotionTimer=null;
-    },1200);
-  }catch(e){}
-}
 
 function showShoutPopup(addr,msg){
   const p=document.getElementById('shoutPopup');if(!p)return;
