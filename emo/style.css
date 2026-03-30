@@ -62,10 +62,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 #chart{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
 
 /* EMO CHARACTER */
-.chog-char{position:absolute;right:90px;top:50%;width:80px;height:80px;z-index:30;pointer-events:none;transition:top .35s ease-out;animation:floatChar 2.5s ease-in-out infinite}
-.chog-char img{width:100%;height:100%;object-fit:contain;position:absolute;top:0;left:0;transition:opacity .15s}
+.emo-char{position:absolute;right:90px;top:50%;width:80px;height:80px;z-index:30;pointer-events:none;transition:top .35s ease-out;animation:floatChar 2.5s ease-in-out infinite}
+.emo-char img{width:100%;height:100%;object-fit:contain;position:absolute;top:0;left:0;transition:opacity .15s}
 @keyframes floatChar{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
-.chog-char.emotion{animation:floatChar 2.5s ease-in-out infinite,emotionPop .3s cubic-bezier(.34,1.56,.64,1)}
+.emo-char.emotion{animation:floatChar 2.5s ease-in-out infinite,emotionPop .3s cubic-bezier(.34,1.56,.64,1)}
 @keyframes emotionPop{0%{transform:scale(.7)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
 
 /* CHART STATS */

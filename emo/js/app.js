@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════
-const CHOG_CONTRACT = '0x81A224F8A62f52BdE942dBF23A56df77A10b7777';
+const EMO_CONTRACT = '0x81A224F8A62f52BdE942dBF23A56df77A10b7777';
 const KURU_PAIR     = '' // TODO: EMO Kuru pair;
 const NADFUN_POOL   = '0x714A2694C8d4f0B1bfbA0E5b76240E439df2182D'; // Capricorn V3 EMO/WMON
 const WMON_CONTRACT = '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A'; // Wrapped MON (official)
@@ -12,7 +12,7 @@ const MONAD_CHAIN_ID= '0x8F'; // Monad chainId = 143
 const NADFUN_ROUTER    = '0x0B79d71AE99528D1dB24A4148b5f4F865cc2b137'; // Capricorn V3 Router (buy/sell)
 const NADFUN_LENS      = '0x7e78A8DE94f21804F7a17F4E8BF9EC2c872187ea'; // Lens: getAmountOut / isGraduated
 const BONDING_ROUTER   = '0x6F6B8F1a20703309951a5127c45B49b1CD981A22'; // Bonding curve router (pre-grad)
-const KURU_URL      = 'https://www.kuru.io/token/'+CHOG_CONTRACT;
+const KURU_URL      = 'https://www.kuru.io/token/'+EMO_CONTRACT;
 const TRADE_TOPIC   = '0x9bf11e9ba677c0fd17d95d9812f3b5079882637ad648410ebb7f654269560f4f';
 const TOTAL_SUPPLY  = 1_000_000_000; // 1B EMO total supply
 let cachedMonPrice  = 0.026;           // MON/USD (자동 업데이트)
@@ -198,10 +198,10 @@ function initChart(){
     console.log('✅ DEXScreener 차트 로드');
 
     // EMO 캐릭터 - 마우스 따라다니기 (부드럽게)
-    const chog = document.getElementById('chogChar');
-    if(chog){
-      document.body.appendChild(chog);
-      Object.assign(chog.style, {
+    const emo = document.getElementById('emoChar');
+    if(emo){
+      document.body.appendChild(emo);
+      Object.assign(emo.style, {
         position      : 'fixed',
         left          : '-200px',
         top           : '-200px',
@@ -229,7 +229,7 @@ function initChart(){
         targetY = e.touches[0].clientY - 80;
       }, {passive:true});
 
-      function animateChog(){
+      function animateEmo(){
         // 부드러운 lerp (12% 씩 따라가기)
         curX += (targetX - curX) * 0.12;
         curY += (targetY - curY) * 0.12;
@@ -239,13 +239,13 @@ function initChart(){
         const floatY = Math.sin(floatT) * 5;
         const floatR = Math.sin(floatT * 0.6) * 4;
 
-        chog.style.left      = curX + 'px';
-        chog.style.top       = curY + 'px';
-        chog.style.transform = `translateY(${floatY}px) rotate(${floatR}deg)`;
+        emo.style.left      = curX + 'px';
+        emo.style.top       = curY + 'px';
+        emo.style.transform = `translateY(${floatY}px) rotate(${floatR}deg)`;
 
-        rafId = requestAnimationFrame(animateChog);
+        rafId = requestAnimationFrame(animateEmo);
       }
-      animateChog();
+      animateEmo();
     }
   }
 
@@ -379,7 +379,7 @@ function drawChart(){
   });
 
   // EMO 캐릭터 위치 업데이트
-  updateChogPos(last.mcap, toY);
+  updateEmoPos(last.mcap, toY);
   } // end if(false)
 }
 
@@ -482,13 +482,13 @@ function drawCandleChart(ctx,W,H,cW,cH,PAD_L,PT,PB){
   });
 
   // EMO 캐릭터
-  updateChogPos(last, toY);
+  updateEmoPos(last, toY);
 }
 
 
-function updateChogPosDirect(pY){
+function updateEmoPosDirect(pY){
   try{
-    const char    = document.getElementById('chogChar');
+    const char    = document.getElementById('emoChar');
     const wrapper = document.getElementById('chart-wrapper');
     if(!char || !wrapper) return;
     const charH   = char.offsetHeight || 70;
@@ -499,9 +499,9 @@ function updateChogPosDirect(pY){
   } catch(e){}
 }
 
-function updateChogPosDirect(pY){
+function updateEmoPosDirect(pY){
   try{
-    const char    = document.getElementById('chogChar');
+    const char    = document.getElementById('emoChar');
     const wrapper = document.getElementById('chart-wrapper');
     if(!char || !wrapper) return;
     const charH   = char.offsetHeight || 70;
@@ -512,9 +512,9 @@ function updateChogPosDirect(pY){
   } catch(e){}
 }
 
-function updateChogPos(price, toYFn){
+function updateEmoPos(price, toYFn){
   try{
-    const char=document.getElementById('chogChar');
+    const char=document.getElementById('emoChar');
     const wrapper=document.getElementById('chart-wrapper');
     if(!char||!wrapper)return;
     // toYFn은 현재 drawCandleChart의 lo/hi 기준 Y변환 함수
@@ -646,7 +646,7 @@ function buildOHLCV(logs, intervalMin, curBlock) {
   const iSec = intervalMin * 60;
   const now  = Math.floor(Date.now() / 1000);
   const Q96  = BigInt('0x1000000000000000000000000');
-  const isChogToken0 = CHOG_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
+  const isEmoToken0 = EMO_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
   const monPrice = cachedMonPrice || 2.8;
   const buckets  = {};
 
@@ -664,7 +664,7 @@ function buildOHLCV(logs, intervalMin, curBlock) {
         if(sqrtVal === 0n) return;
         const ratio = Number(sqrtVal) / Number(Q96);
         let priceInWMON = ratio * ratio;
-        if(!isChogToken0) priceInWMON = 1 / priceInWMON;
+        if(!isEmoToken0) priceInWMON = 1 / priceInWMON;
         priceUsd = priceInWMON * monPrice;
         // Sanity: EMO should be between $0.0000001 and $0.1
         if(priceUsd < 1e-8 || priceUsd > 0.5) return;
@@ -757,10 +757,10 @@ async function getChogPriceFromRPC() {
     const Q96 = BigInt('0x1000000000000000000000000');
     if(sqrtVal === 0n) return null;
 
-    const isChogToken0 = CHOG_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
+    const isEmoToken0 = EMO_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
     const ratio = Number(sqrtVal) / Number(Q96);
     let priceInWMON = ratio * ratio;
-    if(!isChogToken0) priceInWMON = 1 / priceInWMON;
+    if(!isEmoToken0) priceInWMON = 1 / priceInWMON;
 
     const priceUsd = priceInWMON * (cachedMonPrice || 0.026);
     console.log('RPC price: EMO/WMON='+priceInWMON.toFixed(8)+' USD='+priceUsd.toFixed(8)+' MCap=$'+(priceUsd*1e9/1000).toFixed(0)+'K');
@@ -995,7 +995,7 @@ async function loadInitialTrades(){
     }
 
     const Q96 = BigInt('0x1000000000000000000000000');
-    const isChogToken0 = CHOG_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
+    const isEmoToken0 = EMO_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
     const monPx = cachedMonPrice || 2.8;
     const now = Math.floor(Date.now()/1000);
 
@@ -1019,12 +1019,12 @@ async function loadInitialTrades(){
 
         const ratio = Number(sqrtVal) / Number(Q96);
         let priceInWMON = ratio * ratio;
-        if(!isChogToken0) priceInWMON = 1 / priceInWMON;
+        if(!isEmoToken0) priceInWMON = 1 / priceInWMON;
         const priceUsd = priceInWMON * monPx;
         if(priceUsd < 1e-9 || priceUsd > 1) return;
 
         let isBuy, monAmount;
-        if(isChogToken0){
+        if(isEmoToken0){
           isBuy = amount0 < 0n;
           monAmount = Number(amount1 < 0n ? -amount1 : amount1) / 1e18;
         } else {
@@ -1212,7 +1212,7 @@ function startPolling() {
 function handleSwapLog(log) {
   try {
     const Q96 = BigInt('0x1000000000000000000000000');
-    const isChogToken0 = CHOG_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
+    const isEmoToken0 = EMO_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
     const data = log.data;
     if(!data || data.length < 2 + 64*5) return;
 
@@ -1236,7 +1236,7 @@ function handleSwapLog(log) {
     // 가격 계산
     const ratio = Number(sqrtVal) / Number(Q96);
     let priceInWMON = ratio * ratio;
-    if(!isChogToken0) priceInWMON = 1 / priceInWMON;
+    if(!isEmoToken0) priceInWMON = 1 / priceInWMON;
     const priceUsd = priceInWMON * (cachedMonPrice || 2.8);
     if(priceUsd < 1e-9 || priceUsd > 1) return;
 
@@ -1245,20 +1245,20 @@ function handleSwapLog(log) {
     // EMO/WMON 풀에서:
     //   EMO amount < 0 → EMO 풀에서 나감 → 사용자가 EMO 받음 → BUY
     //   EMO amount > 0 → EMO 풀로 들어옴 → 사용자가 EMO 넣음 → SELL
-    let isBuy, chogAmount, monAmount, usdValue;
-    if(isChogToken0) {
+    let isBuy, emoAmount, monAmount, usdValue;
+    if(isEmoToken0) {
       isBuy      = amount0 < 0n;
-      chogAmount = Number(amount0 < 0n ? -amount0 : amount0) / 1e18;
+      emoAmount = Number(amount0 < 0n ? -amount0 : amount0) / 1e18;
       monAmount  = Number(amount1 < 0n ? -amount1 : amount1) / 1e18; // WMON
     } else {
       isBuy      = amount1 < 0n;
-      chogAmount = Number(amount1 < 0n ? -amount1 : amount1) / 1e18;
+      emoAmount = Number(amount1 < 0n ? -amount1 : amount1) / 1e18;
       monAmount  = Number(amount0 < 0n ? -amount0 : amount0) / 1e18; // WMON
     }
 
     // MON 기준 USD (더 정확)
     usdValue = monAmount * (cachedMonPrice || 2.8);
-    if(usdValue < 0.5) usdValue = chogAmount * priceUsd; // fallback
+    if(usdValue < 0.5) usdValue = emoAmount * priceUsd; // fallback
 
     // Min $0.5 이상 거래만 표시
     if(usdValue < 0.5) return;
@@ -1280,12 +1280,12 @@ function handleSwapLog(log) {
     updateMcap(mcapNow);
 
     // 플로팅 알림 (MON 기준으로 직접 전달)
-    showTradeFloat(isBuy, usdValue, chogAmount, monAmount);
+    showTradeFloat(isBuy, usdValue, emoAmount, monAmount);
 
     // 채팅창 거래 알림 (1000 MON 이상)
     if(monAmount >= 1000) {
       const txHash = log.transactionHash || '';
-      const _isBuy = isBuy, _chogAmount = chogAmount, _priceUsd = priceUsd, _monAmount = monAmount;
+      const _isBuy = isBuy, _emoAmount = emoAmount, _priceUsd = priceUsd, _monAmount = monAmount;
       // tx.from = 실제 매수/매도자 (topics[1/2]는 라우터 주소라 틀림)
       rpcCallAny('eth_getTransactionByHash', [txHash]).then(txData => {
         const addrFull = (txData && txData.from) ? txData.from
@@ -1298,7 +1298,7 @@ function handleSwapLog(log) {
           addrFull: addrFull,
           txHash: txHash,
           bal: 0,
-          amount: Math.floor(_chogAmount),
+          amount: Math.floor(_emoAmount),
           price: _priceUsd,
           mon: _monAmount,
           time: nowTime()
@@ -1313,16 +1313,16 @@ function handleSwapLog(log) {
           addrFull: addrFull,
           txHash: txHash,
           bal: 0,
-          amount: Math.floor(_chogAmount),
+          amount: Math.floor(_emoAmount),
           price: _priceUsd,
           mon: _monAmount,
           time: nowTime()
         });
       });
-      chogEmotion(isBuy ? 'buy' : 'sell');
+      emoEmotion(isBuy ? 'buy' : 'sell');
     }
 
-    console.log(isBuy?'🟢 BUY':'🔴 SELL', chogAmount.toFixed(0),'CHOG | $'+usdValue.toFixed(2),'| $'+priceUsd.toFixed(8));
+    console.log(isBuy?'🟢 BUY':'🔴 SELL', emoAmount.toFixed(0),'CHOG | $'+usdValue.toFixed(2),'| $'+priceUsd.toFixed(8));
   } catch(e) { console.warn('handleSwapLog:', e.message); }
 }
 
@@ -1387,7 +1387,7 @@ function renderMsg(item){
 
     div.className='chat-msg '+(isBuy?'trade-alert':'trade-sell');
     if(mon >= 10000) div.style.cssText += ';border-width:2px;';
-    chogEmotion(item.side);
+    emoEmotion(item.side);
     const baseEmoji = isBuy ? '🟢' : '🔴';
     const usd = ((item.amount||0)*(item.price||0)).toFixed(0);
     const monStr = mon >= 1000 ? (mon>=1000?Math.floor(mon).toLocaleString()+' MON':'') : '';
@@ -1562,7 +1562,7 @@ async function confirmSetNick(){
       const padAmt = amtWei.toString(16).padStart(64,'0');
       const txHash = await provider.request({
         method:'eth_sendTransaction',
-        params:[{from:wallet.addr, to:CHOG_CONTRACT, data:'0xa9059cbb'+padTo+padAmt}]
+        params:[{from:wallet.addr, to:EMO_CONTRACT, data:'0xa9059cbb'+padTo+padAmt}]
       });
       console.log('Nickname tx:', txHash);
     }
@@ -1717,7 +1717,7 @@ async function getHolderRank(addr){
   }
 
   // Fallback: query BlockVision directly
-  const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
+  const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${EMO_CONTRACT}&limit=50`;
   const PROXY_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(BV_URL)}`;
   for(const url of [BV_URL, PROXY_URL]){
     try {
@@ -1739,7 +1739,7 @@ async function getHolderRank(addr){
 async function fetchChogBalance(addr){
   try{
     const padded = addr.slice(2).padStart(64,'0');
-    const hex = await rpcCallAny('eth_call',[{to:CHOG_CONTRACT, data:'0x70a08231'+padded},'latest']);
+    const hex = await rpcCallAny('eth_call',[{to:EMO_CONTRACT, data:'0x70a08231'+padded},'latest']);
     if(!hex||hex==='0x') return null;
     const raw = hex.replace('0x','')||'0';
     return BigInt ? Number(BigInt('0x'+(raw||'0'))/BigInt('1000000000000000'))/1000 : parseInt(raw.slice(0,-15)||'0',16)/1000;
@@ -1778,7 +1778,7 @@ async function sendChogTo(toAddr){
 
     const txHash = await provider.request({
       method:'eth_sendTransaction',
-      params:[{from:wallet.addr, to:CHOG_CONTRACT, data}]
+      params:[{from:wallet.addr, to:EMO_CONTRACT, data}]
     });
 
     wallet.bal -= amt;
@@ -1799,7 +1799,7 @@ var swapSlippage = 10;       // %
 var swapQuoteTimer = null;
 
 // Capricorn V3 / nad.fun Router 주소 (Monad mainnet)
-const NADFUN_URL    = 'https://nad.fun/tokens/' + CHOG_CONTRACT;
+const NADFUN_URL    = 'https://nad.fun/tokens/' + EMO_CONTRACT;
 
 function openKuru(side){
   openSwapModal(side||'buy');
@@ -1921,7 +1921,7 @@ async function swapCalcOutLens(amtIn){
   try{
     // LENS: getAmountOut(address token, uint256 amountIn, bool isBuy)
     // selector: keccak256("getAmountOut(address,uint256,bool)") → 0x4aa4a4fc
-    const tokenPadded  = CHOG_CONTRACT.slice(2).padStart(64,'0');
+    const tokenPadded  = EMO_CONTRACT.slice(2).padStart(64,'0');
     const amtInPadded  = amtInWei.toString(16).padStart(64,'0');
     const isBuyPadded  = (isBuy ? 1 : 0).toString().padStart(64,'0');
     const callData = '0x4aa4a4fc' + tokenPadded + amtInPadded + isBuyPadded;
@@ -2060,7 +2060,7 @@ async function execNativeSwap(){
       // 0x60: deadline (uint256)
       const data = '0x6df9e92b'
         + encodeUint256(amtOutMinWei)          // amountOutMin
-        + encodeAddress(CHOG_CONTRACT)          // token
+        + encodeAddress(EMO_CONTRACT)          // token
         + encodeAddress(wallet.addr)            // to
         + encodeUint256(deadline);              // deadline
 
@@ -2095,7 +2095,7 @@ async function execNativeSwap(){
 
       const approveTx = await provider.request({method:'eth_sendTransaction', params:[{
         from: wallet.addr,
-        to:   CHOG_CONTRACT,
+        to:   EMO_CONTRACT,
         data: approveData,
         gas:  '0x' + (80000).toString(16)
       }]});
@@ -2114,7 +2114,7 @@ async function execNativeSwap(){
       const data = '0x5de3085d'
         + encodeUint256(amtInWei)              // amountIn
         + encodeUint256(amtOutMinWei)          // amountOutMin
-        + encodeAddress(CHOG_CONTRACT)          // token
+        + encodeAddress(EMO_CONTRACT)          // token
         + encodeAddress(wallet.addr)            // to
         + encodeUint256(deadline);              // deadline
 
@@ -2137,7 +2137,7 @@ async function execNativeSwap(){
       swapUpdateBalances();
       // EMO 잔고도 갱신
       const padded = wallet.addr.slice(2).padStart(64,'0');
-      const balHex = await rpcCallAny('eth_call',[{to:CHOG_CONTRACT, data:'0x70a08231'+padded},'latest']);
+      const balHex = await rpcCallAny('eth_call',[{to:EMO_CONTRACT, data:'0x70a08231'+padded},'latest']);
       if(balHex && balHex !== '0x'){
         wallet.bal = Math.floor(Number(BigInt('0x'+(balHex.replace('0x','')||'0'))/BigInt('1000000000000000'))/1000);
         updateWalletDisplay();
@@ -2313,7 +2313,7 @@ async function renderHolderList(){
 async function fetchTopHolders(){
   if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
 
-  const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
+  const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${EMO_CONTRACT}&limit=50`;
   const enc = encodeURIComponent(BV_URL);
 
   // (url, isWrapped) — isWrapped=true: response is {contents:"json string"}
@@ -2431,7 +2431,7 @@ async function connectWallet(name){
       } else if(sw.code!==4001){ console.warn('switchChain err:', sw.message); }
     }
     const padded=addr.slice(2).padStart(64,'0');
-    const balHex=await provider.request({method:'eth_call',params:[{to:CHOG_CONTRACT,data:'0x70a08231'+padded},'latest']});
+    const balHex=await provider.request({method:'eth_call',params:[{to:EMO_CONTRACT,data:'0x70a08231'+padded},'latest']});
     const raw=(balHex||'0x0').replace('0x','')||'0';
     const bal=BigInt?Number(BigInt('0x'+(raw||'0'))/BigInt('1000000000000000'))/1000:parseInt(raw.slice(0,-15)||'0',16)/1000;
     wallet={addr,bal:Math.floor(bal),name};chogBalance=wallet.bal;
@@ -2519,7 +2519,7 @@ var emotionTimer=null;
 
 function usdToMon(usd){ return usd / (cachedMonPrice || 2.8); }
 
-function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
+function showTradeFloat(isBuy, usdValue, emoAmount, monAmount){
   // monAmount가 있으면 직접 사용, 없으면 USD에서 변환
   const monValue = (monAmount && monAmount > 0) ? monAmount : usdToMon(usdValue);
   const isWhale   = monValue >= MON_WHALE;
@@ -2547,7 +2547,7 @@ function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
     wrap.innerHTML = `
       <div class="trade-float-emoji whale">${whales}</div>
       <div class="trade-float-bubble ${bubbleCls}">${label} ${monDisplay}</div>
-      <div class="trade-float-amount">${Math.floor(chogAmount).toLocaleString()} EMO</div>`;
+      <div class="trade-float-amount">${Math.floor(emoAmount).toLocaleString()} EMO</div>`;
   } else {
     // 10K~100K MON: 매수=🚀 매도=💀
     // 10K~100K: 1K당 로켓/해골 (Max 5개)
@@ -2557,7 +2557,7 @@ function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
     wrap.innerHTML = `
       <div class="trade-float-emoji">${bigEmoji}</div>
       <div class="trade-float-bubble ${isBuy?'buy':'sell'}">${label} ${monDisplay}</div>
-      <div class="trade-float-amount">${Math.floor(chogAmount).toLocaleString()} EMO</div>`;
+      <div class="trade-float-amount">${Math.floor(emoAmount).toLocaleString()} EMO</div>`;
   }
 
   container.appendChild(wrap);
@@ -2574,12 +2574,12 @@ function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
   while(container.children.length > 3) container.removeChild(container.firstChild);
 }
 
-function chogEmotion(type){
+function emoEmotion(type){
   try{
-    const n=document.getElementById('chogImgNormal');
-    const h=document.getElementById('chogImgHappy');
-    const s=document.getElementById('chogImgSad');
-    const c=document.getElementById('chogChar');
+    const n=document.getElementById('emoImgNormal');
+    const h=document.getElementById('emoImgHappy');
+    const s=document.getElementById('emoImgSad');
+    const c=document.getElementById('emoChar');
     if(!n||!h||!s||!c)return;
     if(emotionTimer){clearTimeout(emotionTimer);emotionTimer=null;}
     if(type==='buy'){n.style.opacity='0';h.style.opacity='1';s.style.opacity='0';}
@@ -2974,7 +2974,7 @@ async function doShout(){
       if(provider&&wallet.addr.length===42){
         const paddedTo=DEV_WALLET.slice(2).padStart(64,'0');
         const paddedAmt='00000000000000000000000000000000000000000000010f0cf064dd59200000';
-        await provider.request({method:'eth_sendTransaction',params:[{from:wallet.addr,to:CHOG_CONTRACT,data:'0xa9059cbb'+paddedTo+paddedAmt}]});
+        await provider.request({method:'eth_sendTransaction',params:[{from:wallet.addr,to:EMO_CONTRACT,data:'0xa9059cbb'+paddedTo+paddedAmt}]});
       }
     }catch(e){console.warn('Shout tx:',e.message);}
     wallet.bal-=SHOUT_COST;chogBalance=wallet.bal;
