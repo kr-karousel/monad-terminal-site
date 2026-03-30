@@ -8,12 +8,23 @@ var emotionTimer=null;
 
 function usdToMon(usd){ return usd / (cachedMonPrice || 2.8); }
 
+// ── 이모지 스케일 (MON 기준, 1,000 MON = 1단위)
+// 1K~4.9K  : 이모지 1개
+// 5K~9.9K  : 이모지 2개
+// 10K~49.9K: 이모지 3개
+// 50K~99.9K: 이모지 4개
+// 100K+    : 이모지 5개 (WHALE 티어)
+function getEmojiCount(monValue){
+  if(monValue >= 100000) return 5;
+  if(monValue >= 50000)  return 4;
+  if(monValue >= 10000)  return 3;
+  if(monValue >= 5000)   return 2;
+  return 1;
+}
+
 function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
-  // monAmount가 있으면 직접 사용, 없으면 USD에서 변환
   const monValue = (monAmount && monAmount > 0) ? monAmount : usdToMon(usdValue);
-  const isWhale   = monValue >= MON_WHALE;
-  const isBig     = monValue >= MON_BIG;
-  if(!isBig && !isWhale) return;
+  if(monValue < MON_BIG) return; // 1,000 MON 미만 무시
 
   const container = document.getElementById('tradeFloatContainer');
   if(!container) return;
@@ -21,46 +32,59 @@ function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
   const wrap = document.createElement('div');
   wrap.className = 'trade-float';
 
+  const isWhale = monValue >= MON_WHALE;
+  const count   = getEmojiCount(monValue);
+
+  // MON 표시
   const monDisplay = monValue >= 1000
     ? (monValue/1000).toFixed(1)+'K MON'
     : Math.floor(monValue).toLocaleString()+' MON';
 
-  if(isWhale){
-    const whaleCount = Math.max(1, Math.min(5, Math.floor(monValue / MON_WHALE)));
-    const whales = isBuy
-      ? '🐳'.repeat(whaleCount)
-      : '☠️'.repeat(whaleCount);
-    const bubbleCls = isBuy ? 'whale' : 'sell';
-    const label = isBuy ? '🚨 WHALE BUY!' : '☠️ WHALE SELL!';
+  // 토큰 수량 표시
+  const tokenDisplay = Math.floor(chogAmount).toLocaleString()+' '+TOKEN_NAME;
 
+  if(isWhale){
+    const emoji    = isBuy ? '🐳' : '☠️';
+    const bubbleCls = isBuy ? 'whale' : 'sell';
+    const label    = isBuy ? '🚨 WHALE BUY!' : '☠️ WHALE SELL!';
     wrap.innerHTML = `
-      <div class="trade-float-emoji whale">${whales}</div>
+      <div class="trade-float-emoji whale">${emoji.repeat(count)}</div>
       <div class="trade-float-bubble ${bubbleCls}">${label} ${monDisplay}</div>
-      <div class="trade-float-amount">${Math.floor(chogAmount).toLocaleString()} EMO</div>`;
-  } else {
-    // 10K~100K MON: 매수=🚀 매도=💀
-    // 10K~100K: 1K당 로켓/해골 (Max 5개)
-    const smallCount = Math.min(5, Math.max(1, Math.floor(monValue/1000)));
-    const bigEmoji = isBuy ? '🚀'.repeat(smallCount) : '💀'.repeat(smallCount);
-    const label    = isBuy ? '🟢 BIG BUY!' : '🔴 BIG SELL!';
+      <div class="trade-float-amount">${monDisplay} / ${tokenDisplay}</div>`;
+  } else if(monValue >= 10000){
+    const emoji = isBuy ? '🚀' : '💀';
+    const label = isBuy ? '🟢 BIG BUY!' : '🔴 BIG SELL!';
     wrap.innerHTML = `
-      <div class="trade-float-emoji">${bigEmoji}</div>
+      <div class="trade-float-emoji">${emoji.repeat(count)}</div>
       <div class="trade-float-bubble ${isBuy?'buy':'sell'}">${label} ${monDisplay}</div>
-      <div class="trade-float-amount">${Math.floor(chogAmount).toLocaleString()} EMO</div>`;
+      <div class="trade-float-amount">${monDisplay} / ${tokenDisplay}</div>`;
+  } else if(monValue >= 5000){
+    const emoji = isBuy ? '🔥' : '🩸';
+    const label = isBuy ? '🟡 HOT BUY!' : '🟠 HOT SELL!';
+    wrap.innerHTML = `
+      <div class="trade-float-emoji">${emoji.repeat(count)}</div>
+      <div class="trade-float-bubble ${isBuy?'buy':'sell'}">${label} ${monDisplay}</div>
+      <div class="trade-float-amount">${monDisplay} / ${tokenDisplay}</div>`;
+  } else {
+    // 1K~4.9K: 소형 알림
+    const emoji = isBuy ? '💚' : '🔴';
+    const label = isBuy ? 'BUY' : 'SELL';
+    wrap.innerHTML = `
+      <div class="trade-float-emoji">${emoji}</div>
+      <div class="trade-float-bubble ${isBuy?'buy':'sell'}">${label} ${monDisplay}</div>
+      <div class="trade-float-amount">${monDisplay} / ${tokenDisplay}</div>`;
   }
 
   container.appendChild(wrap);
-
-  // ── 배경 이펙트 ──
   triggerBgEffect(isBuy, monValue);
 
-  const duration = isWhale ? 4000 : 2500;
+  const duration = isWhale ? 4000 : monValue >= 5000 ? 3000 : 2000;
   setTimeout(()=>{
     wrap.classList.add('fadeout');
     setTimeout(()=> wrap.remove(), 500);
   }, duration);
 
-  while(container.children.length > 3) container.removeChild(container.firstChild);
+  while(container.children.length > 5) container.removeChild(container.firstChild);
 }
 
 function chogEmotion(type){

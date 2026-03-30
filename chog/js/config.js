@@ -34,9 +34,10 @@ var NICK_BANNED  = [
 var nickDB = {};
 
 // ── 거래 알림 임계값 (MON 기준)
-var MON_BIG   = 10000;
-var MON_WHALE = 100000; // toggle: true=mcap chart, false=price chart
+var MON_BIG   = 1000;   // 1,000 MON 이상 플로팅
+var MON_WHALE = 100000; // 100,000 MON 이상 웨일
 var SHOUT_COST = 2000;
+const TOKEN_NAME = 'CHOG';
 
 // ═══════════════════════════════════════
 //  RANKS
