@@ -2594,31 +2594,31 @@ function closeProfileModal(){
 async function getHolderRank(addr){
   const lower = addr.toLowerCase();
 
-  // 캐시된 홀더 목록에서 찾기
+  // Use cached holder list first (populated by fetchTopHolders)
   if(holderCache && holderCache.length > 0){
     const idx = holderCache.findIndex(h => h.address.toLowerCase() === lower);
     if(idx !== -1) return idx + 1;
+    // If cache has 50 items and addr not found, it's outside top 50
+    if(holderCache.length >= 50) return null;
   }
 
-  // Explorer API
-  try {
-    const urls = [
-      `https://explorer.monad.xyz/api/v2/tokens/${CHOG_CONTRACT}/holders?limit=200`,
-      `https://api.allorigins.win/raw?url=${encodeURIComponent('https://explorer.monad.xyz/api/v2/tokens/'+CHOG_CONTRACT+'/holders?limit=200')}`
-    ];
-    for(const url of urls){
-      const res = await fetch(url);
+  // Fallback: query BlockVision directly
+  const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
+  const PROXY_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(BV_URL)}`;
+  for(const url of [BV_URL, PROXY_URL]){
+    try {
+      const res = await fetch(url, {headers:{'accept':'application/json'}});
       if(!res.ok) continue;
       const d = await res.json();
-      const items = (d.items||d.holders||[]);
+      const items = d?.result?.data || [];
       if(!items.length) continue;
       const idx = items.findIndex(h =>
-        (h.address?.hash||h.address||'').toLowerCase() === lower
+        (h.holder || h.accountAddress || '').toLowerCase() === lower
       );
       if(idx !== -1) return idx + 1;
-      return null; // 200위 밖
-    }
-  } catch(e){}
+      return null;
+    } catch(e){}
+  }
   return null;
 }
 
@@ -3191,76 +3191,40 @@ async function renderHolderList(){
   }
 
   html += `<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">
-    Click any holder to view profile · ${holderCount} holders found via on-chain data
+    Click any holder to view profile · Top ${holderCount} holders via MonadVision
   </div>`;
   content.innerHTML = html;
 }
 
 async function fetchTopHolders(){
   if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
-  // window.ethereum 없어도 rpcCallAny(공개 RPC)로 조회 가능
 
-  const CHOG = CHOG_CONTRACT;
+  const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
+  const PROXY_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(BV_URL)}`;
 
-  try {
-    console.log('📡 Fetching holders via RPC...');
+  const tryFetch = async (url) => {
+    const res = await fetch(url, {headers:{'accept':'application/json'}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const d = await res.json();
+    if(!d || !d.result || !d.result.data || !d.result.data.length) throw new Error('empty');
+    return d.result.data.map(h => ({
+      address: (h.holder || h.accountAddress || '').toLowerCase(),
+      balance: h.amount ? Number(BigInt(h.amount) * 1000n / BigInt('1000000000000000000')) / 1000 : 0,
+      pct: parseFloat(h.percentage || 0)
+    })).filter(h => h.address && h.balance > 0);
+  };
 
-    const seedAddrs = new Set();
-    seedAddrs.add(DEV_WALLET.toLowerCase());
-    if(wallet && wallet.addr) seedAddrs.add(wallet.addr.toLowerCase());
-
-    const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-
-    // 지갑 RPC 대신 공개 RPC 직접 사용 (eth_getLogs 지원 안하는 지갑 우회)
-    const blockHex = await rpcCallAny('eth_blockNumber', []);
-    const cur = parseInt(blockHex, 16);
-    const from = Math.max(0, cur - 50000);
-
-    // 청크로 나눠서 요청 (한번에 너무 많으면 RPC 거부)
-    let logs = [];
-    const chunkSize = 10000;
-    for(let start = from; start < cur; start += chunkSize) {
-      const end = Math.min(cur, start + chunkSize - 1);
-      try {
-        const chunk = await rpcCallAny('eth_getLogs', [{
-          address: CHOG,
-          topics: [TRANSFER_TOPIC],
-          fromBlock: '0x'+start.toString(16),
-          toBlock: '0x'+end.toString(16)
-        }]);
-        if(chunk && chunk.length) logs = logs.concat(chunk);
-      } catch(e) { console.warn('chunk err:', e.message); }
-    }
-
-    if(logs && logs.length > 0){
-      logs.forEach(log => {
-        if(log.topics && log.topics[1]) seedAddrs.add('0x'+log.topics[1].slice(26).toLowerCase());
-        if(log.topics && log.topics[2]) seedAddrs.add('0x'+log.topics[2].slice(26).toLowerCase());
-      });
-    }
-
-    seedAddrs.delete('0x0000000000000000000000000000000000000000');
-    console.log('Found', seedAddrs.size, 'unique addresses from transfers');
-
-    const addrList = Array.from(seedAddrs).slice(0, 200);
-    const balances = await Promise.all(addrList.map(async addr => {
-      try {
-        const padded = addr.slice(2).padStart(64,'0');
-        const hex = await rpcCallAny('eth_call',[{to:CHOG, data:'0x70a08231'+padded},'latest']);
-        const bal = hex && hex !== '0x' && hex !== '0x0' ? parseInt(hex,16)/1e18 : 0;
-        return {address:addr, balance:bal, pct: (bal/TOTAL_SUPPLY)*100};
-      } catch(e){ return null; }
-    }));
-
-    const valid = balances.filter(b=>b&&b.balance>0)
-                          .sort((a,b)=>b.balance-a.balance)
-                          .slice(0, 50);
-    if(valid.length > 0){
-      console.log('✅ Holders loaded:', valid.length);
-      holderCache = valid; holderCacheTime = Date.now();
-      return valid;
-    }
-  } catch(e){ console.warn('Holder fetch error:', e.message); }
+  for(const url of [BV_URL, PROXY_URL]){
+    try {
+      console.log('📡 Fetching holders from BlockVision...', url === PROXY_URL ? '(proxy)' : '');
+      const valid = await tryFetch(url);
+      if(valid.length > 0){
+        console.log('✅ Holders loaded:', valid.length);
+        holderCache = valid; holderCacheTime = Date.now();
+        return valid;
+      }
+    } catch(e){ console.warn('BlockVision fetch error:', e.message); }
+  }
 
   return null;
 }
