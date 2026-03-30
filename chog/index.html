@@ -276,6 +276,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 @keyframes goldFlash{0%,100%{opacity:0}10%{opacity:.18}50%{opacity:.08}}
 .bg-fear-overlay{position:fixed;inset:0;pointer-events:none;z-index:89;animation:fearPulse 2s ease-out forwards}
 @keyframes fearPulse{0%{background:rgba(220,38,38,0);box-shadow:inset 0 0 0 0 rgba(220,38,38,0)}15%{background:rgba(220,38,38,.08);box-shadow:inset 0 0 120px 30px rgba(220,38,38,.15)}50%{background:rgba(220,38,38,.04);box-shadow:inset 0 0 80px 20px rgba(220,38,38,.08)}100%{background:rgba(0,0,0,0);box-shadow:inset 0 0 0 0 rgba(0,0,0,0)}}
+.bg-green-overlay{position:fixed;inset:0;pointer-events:none;z-index:89;animation:greenPulse 2s ease-out forwards}
+@keyframes greenPulse{0%{background:rgba(34,197,94,0);box-shadow:inset 0 0 0 0 rgba(34,197,94,0)}15%{background:rgba(34,197,94,.08);box-shadow:inset 0 0 120px 30px rgba(34,197,94,.15)}50%{background:rgba(34,197,94,.04);box-shadow:inset 0 0 80px 20px rgba(34,197,94,.08)}100%{background:rgba(0,0,0,0);box-shadow:inset 0 0 0 0 rgba(0,0,0,0)}}
 /* DEV PANEL */
 .dev-panel{position:fixed;top:60px;right:10px;z-index:9999;background:rgba(13,10,26,.96);border:1px solid rgba(251,191,36,.4);border-radius:14px;padding:14px;width:260px;display:none;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,.7)}
 .dev-panel.open{display:block}
@@ -431,6 +433,30 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
     <button class="dev-btn" onclick="devTest('chat')"><span>💬</span> Test Chat Message</button>
     <button class="dev-btn" onclick="devTest('shout')"><span>📢</span> Test Shout</button>
+  </div>
+  <!-- Test Wallets -->
+  <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
+    <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:5px">🧪 Test Wallets</div>
+    <div id="devTestWalletList" style="margin-bottom:5px;font-size:9px"></div>
+    <div style="display:flex;gap:4px">
+      <input id="devWalletInput" placeholder="0x..." style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:10px;color:var(--text);outline:none;font-family:monospace">
+      <button class="dev-btn" onclick="devAddTestWallet()" style="width:auto;padding:4px 10px;margin:0;font-size:10px">+ Add</button>
+    </div>
+  </div>
+  <!-- Fee Settings -->
+  <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
+    <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:6px">💰 Fee Settings</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">
+      <div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:2px">Nickname (CHOG)</div>
+        <input id="devNickCostInput" type="number" value="2000" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px;color:var(--text);outline:none">
+      </div>
+      <div>
+        <div style="font-size:9px;color:var(--muted);margin-bottom:2px">Shout (CHOG)</div>
+        <input id="devShoutCostInput" type="number" value="2000" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px;color:var(--text);outline:none">
+      </div>
+    </div>
+    <button class="dev-btn" onclick="devApplyFees()" style="font-size:10px">✅ Apply Fees</button>
   </div>
   <div style="font-size:9px;color:var(--muted);margin-top:6px;text-align:center">Dev wallet only · Effects are LIVE</div>
 </div>
@@ -635,17 +661,13 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
     <div class="shout-section">
       <div class="shout-header">
         <div class="shout-title">📢 SHOUT</div>
-        <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
-          <s style="font-size:10px;color:var(--muted)">10,000</s>
-          <span style="font-size:11px;font-weight:700;color:#4ade80;font-family:'Share Tech Mono',monospace">5,000 CHOG</span>
-          <span style="background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px;animation:pulse 1.5s infinite">🔥50%</span>
-        </div>
+        <span style="font-size:11px;font-weight:700;color:#4ade80;font-family:'Share Tech Mono',monospace">2,000 CHOG</span>
       </div>
       <div class="shout-desc">Pinned on chart · Up to 3 shown · CHOG sent to dev wallet</div>
       <div class="shout-input-area">
         <input class="shout-input" id="shoutInput" placeholder="Type your shout...">
         <div class="shout-row">
-          <div class="shout-cost">💜 5,000 CHOG</div>
+          <div class="shout-cost" id="shoutCostDisplay">💜 2,000 CHOG</div>
           <button class="btn-shout" onclick="doShout()">📢 SHOUT!</button>
         </div>
       </div>
@@ -728,12 +750,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
     <div class="welcome-section">
       💜 <b>Revenue &amp; CHOG Fees</b><br>
       CHOG Terminal generates revenue through two features:<br>
-      · <b>📢 Shout</b> — <s style="opacity:.6">10,000</s> <b style="color:#4ade80">5,000 CHOG</b> per shout, pinned on the chart<br>
+      · <b>📢 Shout</b> — <b style="color:#4ade80">2,000 CHOG</b> per shout, pinned on the chart<br>
       · <b>✏️ Nickname</b> — <b style="color:#4ade80">2,000 CHOG</b> to set your permanent nickname<br><br>
-      <div style="background:linear-gradient(135deg,rgba(249,115,22,0.15),rgba(239,68,68,0.15));border:1px solid rgba(249,115,22,0.4);border-radius:8px;padding:8px 12px;margin:8px 0;font-size:12px">
-        🔥 <b style="color:#f97316">LAUNCH DISCOUNT!</b><br>
-        <span style="color:var(--muted);font-size:11px">Fees are currently discounted. Original price will return after the promotional period.</span>
-      </div>
       All fees are sent to the dev wallet and used at the developer's discretion
       to support the project and community.<br><br>
       <span style="color:var(--muted)">Fees may be adjusted slightly based on CHOG price and events. Any changes will be announced in advance.</span>
@@ -910,7 +928,7 @@ var nickDB = {};
 // ── 거래 알림 임계값 (MON 기준)
 var MON_BIG   = 10000;
 var MON_WHALE = 100000; // toggle: true=mcap chart, false=price chart
-const SHOUT_COST = 5000;
+var SHOUT_COST = 2000;
 
 // ═══════════════════════════════════════
 //  RANKS
@@ -930,7 +948,7 @@ const RANKS=[
 function getRank(b, addr){
   // DEV 지갑은 항상 최상위 계급으로 표시
   if(addr && addr.toLowerCase() === DEV_WALLET.toLowerCase()){
-    return {min:100000000,label:'CHOG GOD',badge:'👑 GOD',cls:'r1',isDev:true};
+    return {min:0,label:'CHOG Terminal DEV',badge:'🛠️ DEV',cls:'r1',isDev:true};
   }
   return RANKS.find(r=>b>=r.min)||RANKS[9];
 }
@@ -2384,7 +2402,7 @@ function openNickModal(){
 
     <div class="nick-cost">
       <span style="color:var(--muted)">Cost</span>
-      <span class="nick-cost-badge">💜 <s style="opacity:.5">10,000</s> 2,000 CHOG 🔥</span>
+      <span class="nick-cost-badge" id="nickCostDisplay">💜 2,000 CHOG</span>
     </div>
     <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:12px">
       Balance: <b style="color:var(--accent)">${wallet.bal.toLocaleString()} CHOG</b>
@@ -3495,6 +3513,7 @@ function triggerBgEffect(isBuy, monAmount){
       spawnParticles(c, '🤑', 10, 'riseUp', 3800);
       spawnMegaRockets(c, 15);
       spawnGoldFlash();
+      spawnGreenFlash();
       // 화면 전체 골드 플래시
       setTimeout(()=>spawnMegaRockets(c, 10), 800);
       setTimeout(()=>spawnParticles(c, '🚀', 8, 'riseUp', 3500), 400);
@@ -3510,6 +3529,7 @@ function triggerBgEffect(isBuy, monAmount){
       spawnWhale(c, monAmount);
       spawnParticles(c, '💰', 15, 'riseUp', 3500);
       spawnRockets(c, Math.min(8, Math.floor(monAmount/100000)*3));
+      spawnGreenFlash();
       setTimeout(()=>spawnParticles(c, '🚀', 5, 'riseUp', 3200), 500);
       setTimeout(()=>spawnRockets(c, 5), 1000);
     } else {
@@ -3603,24 +3623,88 @@ function spawnFearOverlay(){
   setTimeout(()=>overlay.remove(), 2200);
 }
 
+function spawnGreenFlash(){
+  const overlay = document.createElement('div');
+  overlay.className = 'bg-green-overlay';
+  document.body.appendChild(overlay);
+  setTimeout(()=>overlay.remove(), 2200);
+}
+
 // ═══════════════════════════════════════
 //  DEV PANEL (dev wallet only)
 // ═══════════════════════════════════════
+var devTestWallets = []; // 테스트 권한 지갑 목록
+
+function isDevOrTest(){
+  return wallet && (
+    wallet.addr.toLowerCase() === DEV_WALLET.toLowerCase() ||
+    devTestWallets.includes(wallet.addr.toLowerCase())
+  );
+}
+
 function toggleDevPanel(){
   const p = document.getElementById('devPanel');
   if(p) p.classList.toggle('open');
+  if(p && p.classList.contains('open')){
+    renderDevTestWallets();
+    const ni = document.getElementById('devNickCostInput');
+    const si = document.getElementById('devShoutCostInput');
+    if(ni) ni.value = NICK_COST;
+    if(si) si.value = SHOUT_COST;
+  }
 }
 
 function checkDevAccess(){
   const btn = document.getElementById('devToggleBtn');
   if(!btn) return;
-  if(wallet && wallet.addr.toLowerCase() === DEV_WALLET.toLowerCase()){
+  if(isDevOrTest()){
     btn.style.display = '';
   } else {
     btn.style.display = 'none';
     const p = document.getElementById('devPanel');
     if(p) p.classList.remove('open');
   }
+}
+
+function devAddTestWallet(){
+  const inp = document.getElementById('devWalletInput');
+  const addr = (inp ? inp.value : '').trim().toLowerCase();
+  if(!addr.startsWith('0x') || addr.length !== 42){ alert('Invalid address (must be 0x + 40 hex chars)'); return; }
+  if(!devTestWallets.includes(addr)) devTestWallets.push(addr);
+  if(inp) inp.value = '';
+  renderDevTestWallets();
+}
+
+function devRemoveTestWallet(addr){
+  devTestWallets = devTestWallets.filter(a => a !== addr);
+  renderDevTestWallets();
+}
+
+function renderDevTestWallets(){
+  const el = document.getElementById('devTestWalletList');
+  if(!el) return;
+  if(!devTestWallets.length){
+    el.innerHTML = '<span style="color:var(--muted)">None registered</span>';
+    return;
+  }
+  el.innerHTML = devTestWallets.map(a =>
+    `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border-radius:5px;padding:2px 6px;margin-bottom:2px">
+      <span style="font-family:monospace;font-size:9px">${a.slice(0,8)}...${a.slice(-4)}</span>
+      <button onclick="devRemoveTestWallet('${a}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0 2px;line-height:1">✕</button>
+    </div>`
+  ).join('');
+}
+
+function devApplyFees(){
+  const nc = parseInt(document.getElementById('devNickCostInput').value) || 2000;
+  const sc = parseInt(document.getElementById('devShoutCostInput').value) || 2000;
+  NICK_COST = nc;
+  SHOUT_COST = sc;
+  const shoutDisp = document.getElementById('shoutCostDisplay');
+  if(shoutDisp) shoutDisp.textContent = '💜 ' + sc.toLocaleString() + ' CHOG';
+  const nickDisp = document.getElementById('nickCostDisplay');
+  if(nickDisp) nickDisp.textContent = '💜 ' + nc.toLocaleString() + ' CHOG';
+  alert('✅ Fees updated!\nNickname: ' + nc.toLocaleString() + ' CHOG\nShout: ' + sc.toLocaleString() + ' CHOG');
 }
 
 function devTest(type){
