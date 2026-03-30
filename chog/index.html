@@ -2898,7 +2898,7 @@ async function execNativeSwap(){
 
       const amtOutMin = parseFloat(document.getElementById('swapAmtOut')?.value?.replace(/,/g,'')||'0')||0;
       // slippage 적용 (0.5% 추가 여유)
-      const amtOutMinWei = BigInt(Math.floor(amtOutMin * 0.995 * 1e18));
+      const amtOutMinWei = BigInt(Math.floor(amtOutMin * 0.90 * 1e18));
       const monWei = BigInt(Math.floor(amtIn * 1e18));
 
       // struct tuple ABI 인코딩:
@@ -2934,7 +2934,7 @@ async function execNativeSwap(){
       // selector: 0x5de3085d
       const amtInWei  = BigInt(Math.floor(amtIn * 1e18));
       const amtOutMin = parseFloat(document.getElementById('swapAmtOut')?.value?.replace(/,/g,'')||'0')||0;
-      const amtOutMinWei = BigInt(Math.floor(amtOutMin * 0.995 * 1e18));
+      const amtOutMinWei = BigInt(Math.floor(amtOutMin * 0.90 * 1e18));
 
       // Step 1: CHOG approve → Router
       swapSetStatus('Step 1/2: Approving CHOG...','');
