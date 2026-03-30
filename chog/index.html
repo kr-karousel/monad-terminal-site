@@ -2522,7 +2522,7 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
     : addrFull;
   const rank = getRank(bal);
   const nick = getNick(addrFull);
-  const explorerUrl = txHash ? `https://monadvision.com/tx/${txHash}` : `https://explorer.monad.xyz/address/${addrFull}`;
+  const explorerUrl = txHash ? `https://monadvision.com/tx/${txHash}` : `https://monadvision.com/address/${addrFull}`;
   const isMe = wallet && wallet.addr.toLowerCase() === addrFull.toLowerCase();
 
   // CHOG 잔액 추정 (실제 조회는 비동기)
@@ -3218,34 +3218,45 @@ async function fetchTopHolders(){
   if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
 
   const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
-  const urls = [
-    BV_URL,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(BV_URL)}`,
-    `https://corsproxy.io/?${encodeURIComponent(BV_URL)}`
+  const enc = encodeURIComponent(BV_URL);
+
+  // (url, isWrapped) — isWrapped=true: response is {contents:"json string"}
+  const attempts = [
+    [BV_URL, false],
+    [`https://api.allorigins.win/get?url=${enc}`, true],
+    [`https://api.allorigins.win/raw?url=${enc}`, false],
+    [`https://corsproxy.io/?${enc}`, false],
+    [`https://thingproxy.freeboard.io/fetch/${BV_URL}`, false]
   ];
 
-  const parseHolders = (d) => {
-    if(!d || !d.result || !d.result.data || !d.result.data.length) throw new Error('empty');
-    return d.result.data.map(h => ({
-      address: (h.holder || h.accountAddress || '').toLowerCase(),
-      balance: h.amount ? Number(BigInt(h.amount) * 1000n / BigInt('1000000000000000000')) / 1000 : 0,
-      pct: parseFloat(h.percentage || 0)
+  const parseData = (d) => {
+    // 여러 응답 구조 시도
+    const list = d?.result?.data || d?.result?.list || d?.data || d?.items || d?.holders || [];
+    if(!list.length) throw new Error('empty list');
+    return list.map(h => ({
+      address: (h.holder || h.accountAddress || h.address || '').toLowerCase(),
+      balance: h.amount ? Number(BigInt(h.amount) * 1000n / BigInt('1000000000000000000')) / 1000
+               : h.balance ? parseFloat(h.balance) : 0,
+      pct: parseFloat(h.percentage || h.pct || 0)
     })).filter(h => h.address && h.balance > 0);
   };
 
-  for(const url of urls){
+  for(const [url, isWrapped] of attempts){
     try {
-      console.log('📡 Fetching holders...', url.includes('allorigins') ? '(allorigins proxy)' : url.includes('corsproxy') ? '(corsproxy)' : '(direct)');
+      const label = url.includes('allorigins') ? 'allorigins' : url.includes('corsproxy') ? 'corsproxy' : url.includes('thingproxy') ? 'thingproxy' : 'direct';
+      console.log(`📡 Fetching holders (${label})...`);
       const res = await fetch(url, {headers:{'accept':'application/json'}});
       if(!res.ok) throw new Error('HTTP '+res.status);
-      const d = await res.json();
-      const valid = parseHolders(d);
+      let d = await res.json();
+      if(isWrapped) d = JSON.parse(d.contents || '{}');
+      console.log('raw response:', JSON.stringify(d).slice(0,200));
+      const valid = parseData(d);
       if(valid.length > 0){
         console.log('✅ Holders loaded:', valid.length);
         holderCache = valid; holderCacheTime = Date.now();
         return valid;
       }
-    } catch(e){ console.warn('BlockVision fetch error:', e.message); }
+    } catch(e){ console.warn(`Holder fetch error (${url.slice(0,50)}):`, e.message); }
   }
 
   return null;
