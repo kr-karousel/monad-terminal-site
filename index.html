@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monad Terminal</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0f;
+      color: #e0e0e0;
+      font-family: 'Courier New', Courier, monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(130,80,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(130,80,255,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 720px;
+      padding: 60px 24px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .site-title {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #fff;
+      text-shadow: 0 0 24px rgba(130,80,255,0.7);
+    }
+
+    .site-title span {
+      color: #8250ff;
+    }
+
+    .site-desc {
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: #888;
+      line-height: 1.7;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── Section cards ── */
+    .section {
+      border: 1px solid #222;
+      border-radius: 6px;
+      padding: 28px 32px;
+      margin-bottom: 16px;
+      background: rgba(255,255,255,0.02);
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .section:hover {
+      border-color: #8250ff55;
+      background: rgba(130,80,255,0.04);
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: #8250ff;
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #fff;
+    }
+
+    .section-sub {
+      font-size: 0.82rem;
+      color: #666;
+      margin-top: 6px;
+    }
+
+    /* ── Active terminal links ── */
+    .terminal-link {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .terminal-link .section {
+      cursor: pointer;
+    }
+
+    .terminal-link:hover .section-title {
+      color: #8250ff;
+      text-shadow: 0 0 12px rgba(130,80,255,0.5);
+    }
+
+    .terminal-link .section-title::after {
+      content: ' →';
+      font-size: 1rem;
+      color: #8250ff;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .terminal-link:hover .section-title::after {
+      opacity: 1;
+    }
+
+    /* Token badge */
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 2px 10px;
+      border-radius: 99px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      margin-left: 10px;
+      vertical-align: middle;
+      position: relative;
+      top: -2px;
+    }
+
+    .badge-live {
+      background: rgba(80,255,130,0.12);
+      color: #50ff82;
+      border: 1px solid #50ff8244;
+    }
+
+    .badge-soon {
+      background: rgba(130,80,255,0.12);
+      color: #8250ff;
+      border: 1px solid #8250ff44;
+    }
+
+    /* ── Roadmap list ── */
+    .roadmap-list {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .roadmap-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.83rem;
+      color: #777;
+    }
+
+    .roadmap-item .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #8250ff44;
+      border: 1px solid #8250ff;
+      flex-shrink: 0;
+    }
+
+    /* ── About floating box ── */
+    .about-box {
+      background: rgba(130,80,255,0.06);
+      border: 1px solid #8250ff33;
+      border-radius: 6px;
+      padding: 28px 32px;
+      margin-bottom: 16px;
+    }
+
+    .about-box .section-label {
+      margin-bottom: 12px;
+    }
+
+    .about-text {
+      font-size: 0.84rem;
+      color: #aaa;
+      line-height: 1.8;
+    }
+
+    /* ── Contact ── */
+    .contact-links {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+      color: #bbb;
+    }
+
+    .contact-item .platform {
+      min-width: 80px;
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      color: #8250ff;
+    }
+
+    .contact-item a {
+      color: #ccc;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .contact-item a:hover {
+      color: #fff;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 0.72rem;
+      color: #444;
+      letter-spacing: 0.1em;
+    }
+
+    @media (max-width: 500px) {
+      .site-title { font-size: 1.8rem; }
+      .section { padding: 22px 20px; }
+      .about-box { padding: 22px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <header class="site-header">
+      <div class="site-title">MONAD<span>TERMINAL</span></div>
+      <p class="site-desc">
+        Community-built real-time trading dashboards for Monad blockchain tokens.<br>
+        Live charts, on-chain trades, wallet tracking, and more — all in one terminal.
+      </p>
+    </header>
+
+    <!-- MONAD -->
+    <div class="section">
+      <div class="section-label">Network</div>
+      <div class="section-title">MONAD <span class="badge badge-soon">SOON</span></div>
+      <div class="section-sub">Network-wide terminal coming soon.</div>
+    </div>
+
+    <!-- CHOG -->
+    <a class="terminal-link" href="/chog/">
+      <div class="section">
+        <div class="section-label">Token Terminal</div>
+        <div class="section-title">CHOG <span class="badge badge-live">LIVE</span></div>
+        <div class="section-sub">Real-time trading dashboard for CHOG on Monad.</div>
+      </div>
+    </a>
+
+    <!-- EMO -->
+    <a class="terminal-link" href="/emo/">
+      <div class="section">
+        <div class="section-label">Token Terminal</div>
+        <div class="section-title">EMO <span class="badge badge-live">LIVE</span></div>
+        <div class="section-sub">Real-time trading dashboard for EMO on Monad.</div>
+      </div>
+    </a>
+
+    <!-- Roadmap -->
+    <div class="section">
+      <div class="section-label">Roadmap</div>
+      <div class="section-title">What's next <span class="badge badge-soon">UPDATING</span></div>
+      <div class="roadmap-list">
+        <div class="roadmap-item"><span class="dot"></span>More Monad token terminals</div>
+        <div class="roadmap-item"><span class="dot"></span>Whale alert system</div>
+        <div class="roadmap-item"><span class="dot"></span>Multi-token portfolio view</div>
+        <div class="roadmap-item"><span class="dot"></span>Network-level dashboard</div>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="about-box">
+      <div class="section-label">About</div>
+      <p class="about-text">
+        Monad Terminal is an independent, community-driven project built to make on-chain data accessible and visual for Monad ecosystem traders. Each terminal provides live price charts, real-time buy/sell feeds, holder rankings, whale alerts, and in-app chat — all sourced directly from the blockchain. No backend servers, no data intermediaries.
+      </p>
+    </div>
+
+    <!-- Contact -->
+    <div class="section">
+      <div class="section-label">Contact</div>
+      <div class="section-title">Get in touch</div>
+      <div class="contact-links">
+        <div class="contact-item">
+          <span class="platform">X (Twitter)</span>
+          <a href="https://x.com/hbarkorea" target="_blank" rel="noopener">@hbarkorea</a>
+        </div>
+        <div class="contact-item">
+          <span class="platform">Telegram</span>
+          <span>Jarousel</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">monad-terminal.xyz &nbsp;·&nbsp; community built</div>
+  </div>
+</body>
+</html>

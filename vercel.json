@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/chog", "destination": "/chog/index.html" },
+    { "source": "/emo",  "destination": "/emo/index.html"  }
+  ]
+}
