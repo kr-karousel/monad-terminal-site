@@ -444,6 +444,18 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
       <button class="dev-btn" onclick="devAddTestWallet()" style="width:auto;padding:4px 10px;margin:0;font-size:10px">+ Add</button>
     </div>
   </div>
+  <!-- Custom Tier Labels -->
+  <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
+    <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:5px">🏷️ Custom Tier Labels</div>
+    <div id="devCustomTierList" style="margin-bottom:5px;font-size:9px"></div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <input id="devTierAddrInput" placeholder="0x... (wallet address)" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:10px;color:var(--text);outline:none;font-family:monospace">
+      <div style="display:flex;gap:4px">
+        <input id="devTierLabelInput" placeholder="Label (e.g. team)" style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:10px;color:var(--text);outline:none">
+        <button class="dev-btn" onclick="devAddCustomTier()" style="width:auto;padding:4px 10px;margin:0;font-size:10px">+ Add</button>
+      </div>
+    </div>
+  </div>
   <!-- Fee Settings (메인 Dev 지갑 전용) -->
   <div id="devFeeSection" style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;display:none">
     <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:6px">💰 Fee Settings</div>
@@ -949,6 +961,11 @@ function getRank(b, addr){
   // DEV 지갑은 항상 최상위 계급으로 표시
   if(addr && addr.toLowerCase() === DEV_WALLET.toLowerCase()){
     return {min:0,label:'CHOG Terminal DEV',badge:'🛠️ DEV',cls:'r1',isDev:true};
+  }
+  // 커스텀 Tier 라벨 확인
+  if(addr){
+    const ct = devCustomTiers[addr.toLowerCase()];
+    if(ct) return {min:0, label:ct, badge:'🏷️ '+ct, cls:'r1', isCustom:true};
   }
   return RANKS.find(r=>b>=r.min)||RANKS[9];
 }
@@ -2221,6 +2238,7 @@ function startApp(){
   checkWelcome();
   loadNickDB();
   loadShoutsFromStorage();
+  loadCustomTiersFromStorage();
   initChart();
   startPriceRefresh();
   setTimeout(setupTracking,300);
@@ -3094,7 +3112,7 @@ async function renderHolderList(){
     content.innerHTML = `<div class="holder-loading" style="text-align:center">
       <div style="font-size:32px;margin-bottom:8px">😵</div>
       <div style="color:var(--red);font-weight:700;margin-bottom:6px">Failed to load holders</div>
-      <div style="color:var(--muted);font-size:11px;margin-bottom:14px">No transfer events found in recent blocks.<br>The contract may have low activity.</div>
+      <div style="color:var(--muted);font-size:11px;margin-bottom:14px">Could not reach MonadVision API.<br>Check your connection and retry.</div>
       <button onclick="holderCache=null;renderHolderList()" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:8px 20px;color:#fff;font-weight:700;cursor:pointer;font-size:12px">🔄 Retry</button>
     </div>`;
     return;
@@ -3200,12 +3218,13 @@ async function fetchTopHolders(){
   if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
 
   const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
-  const PROXY_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(BV_URL)}`;
+  const urls = [
+    BV_URL,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(BV_URL)}`,
+    `https://corsproxy.io/?${encodeURIComponent(BV_URL)}`
+  ];
 
-  const tryFetch = async (url) => {
-    const res = await fetch(url, {headers:{'accept':'application/json'}});
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const d = await res.json();
+  const parseHolders = (d) => {
     if(!d || !d.result || !d.result.data || !d.result.data.length) throw new Error('empty');
     return d.result.data.map(h => ({
       address: (h.holder || h.accountAddress || '').toLowerCase(),
@@ -3214,10 +3233,13 @@ async function fetchTopHolders(){
     })).filter(h => h.address && h.balance > 0);
   };
 
-  for(const url of [BV_URL, PROXY_URL]){
+  for(const url of urls){
     try {
-      console.log('📡 Fetching holders from BlockVision...', url === PROXY_URL ? '(proxy)' : '');
-      const valid = await tryFetch(url);
+      console.log('📡 Fetching holders...', url.includes('allorigins') ? '(allorigins proxy)' : url.includes('corsproxy') ? '(corsproxy)' : '(direct)');
+      const res = await fetch(url, {headers:{'accept':'application/json'}});
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const d = await res.json();
+      const valid = parseHolders(d);
       if(valid.length > 0){
         console.log('✅ Holders loaded:', valid.length);
         holderCache = valid; holderCacheTime = Date.now();
@@ -3599,6 +3621,46 @@ function spawnGreenFlash(){
 //  DEV PANEL (dev wallet only)
 // ═══════════════════════════════════════
 var devTestWallets = []; // 테스트 권한 지갑 목록
+var devCustomTiers = {}; // address.toLowerCase() -> custom label
+
+function loadCustomTiersFromStorage(){
+  try { devCustomTiers = JSON.parse(localStorage.getItem('chog_custom_tiers')||'{}'); } catch(e){ devCustomTiers={}; }
+}
+function saveCustomTiersToStorage(){
+  localStorage.setItem('chog_custom_tiers', JSON.stringify(devCustomTiers));
+}
+function devAddCustomTier(){
+  const addr = (document.getElementById('devTierAddrInput').value||'').trim().toLowerCase();
+  const label = (document.getElementById('devTierLabelInput').value||'').trim();
+  if(!addr.startsWith('0x')||addr.length!==42){ alert('Invalid address'); return; }
+  if(!label){ alert('Label required'); return; }
+  devCustomTiers[addr] = label;
+  saveCustomTiersToStorage();
+  document.getElementById('devTierAddrInput').value = '';
+  document.getElementById('devTierLabelInput').value = '';
+  renderDevCustomTiers();
+}
+function devRemoveCustomTier(addr){
+  delete devCustomTiers[addr];
+  saveCustomTiersToStorage();
+  renderDevCustomTiers();
+}
+function renderDevCustomTiers(){
+  const el = document.getElementById('devCustomTierList');
+  if(!el) return;
+  const entries = Object.entries(devCustomTiers);
+  if(!entries.length){
+    el.innerHTML = '<span style="color:var(--muted)">None registered</span>';
+    return;
+  }
+  el.innerHTML = entries.map(([a,l]) =>
+    `<div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.04);border-radius:5px;padding:2px 6px;margin-bottom:2px">
+      <span style="font-family:monospace;font-size:9px">${a.slice(0,8)}...${a.slice(-4)}</span>
+      <span style="font-size:9px;color:var(--accent);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">🏷️ ${escHtml(l)}</span>
+      <button onclick="devRemoveCustomTier('${a}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0 2px;line-height:1">✕</button>
+    </div>`
+  ).join('');
+}
 
 function isDevOrTest(){
   return wallet && (
@@ -3612,6 +3674,7 @@ function toggleDevPanel(){
   if(p) p.classList.toggle('open');
   if(p && p.classList.contains('open')){
     renderDevTestWallets();
+    renderDevCustomTiers();
     const isMainDev = wallet && wallet.addr.toLowerCase() === DEV_WALLET.toLowerCase();
     const feeSection = document.getElementById('devFeeSection');
     if(feeSection) feeSection.style.display = isMainDev ? '' : 'none';
