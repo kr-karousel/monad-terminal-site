@@ -194,6 +194,12 @@ function initChart(){
       title="CHOG/MON Chart">
     </iframe>`;
     tvContainer.style.display = 'block';
+    tvContainer.style.position = 'relative';
+tvContainer.style.zIndex = '1';
+
+window.addEventListener('orientationchange', () => {
+  tvContainer.style.width = '100%';
+});
     if(fallback) fallback.style.display = 'none';
     console.log('✅ DEXScreener 차트 로드');
 
