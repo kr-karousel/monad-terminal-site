@@ -433,6 +433,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
     <button class="dev-btn" onclick="devTest('chat')"><span>💬</span> Test Chat Message</button>
     <button class="dev-btn" onclick="devTest('shout')"><span>📢</span> Test Shout</button>
+    <button class="dev-btn" onclick="clearAllShouts()" style="color:#f87171;border-color:rgba(248,113,113,0.3)"><span>🗑️</span> Clear All Shouts</button>
   </div>
   <!-- Test Wallets -->
   <div style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
@@ -2219,6 +2220,7 @@ function startApp(){
   if(width<10){setTimeout(startApp,80);return;}
   checkWelcome();
   loadNickDB();
+  loadShoutsFromStorage();
   initChart();
   startPriceRefresh();
   setTimeout(setupTracking,300);
@@ -3751,79 +3753,76 @@ function devTest(type){
 
 // ═══════════════════════════════════════
 
+var _shoutPopupTimers = [];
 function showShoutPopup(addr,msg){
   const p=document.getElementById('shoutPopup');if(!p)return;
+  // 이전 타이머 전부 취소 후 새로 시작 (연속 shout 시 조기 종료 방지)
+  _shoutPopupTimers.forEach(t=>clearTimeout(t));
+  _shoutPopupTimers=[];
+  p.classList.remove('active','fadeout');
+  void p.offsetWidth; // reflow
   p.innerHTML=`<div class="shout-popup-bubble">📢 ${escHtml(addr)}: ${escHtml(msg)}</div>`;
-  p.classList.add('active');p.classList.remove('fadeout');
-  setTimeout(()=>p.classList.add('fadeout'),2500);
-  setTimeout(()=>{p.classList.remove('active','fadeout');p.innerHTML='';},3100);
+  p.classList.add('active');
+  _shoutPopupTimers.push(setTimeout(()=>p.classList.add('fadeout'),2500));
+  _shoutPopupTimers.push(setTimeout(()=>{p.classList.remove('active','fadeout');p.innerHTML='';},3100));
 }
 
-// ── SHOUT PIN 큐: 모든 shout 동일 노출 시간 보장 ─────────────────
-// 슬롯 3개, 각 shout는 SHOUT_DISPLAY_MS 동안 표시 후 순서대로 제거
-const SHOUT_DISPLAY_MS = 30000; // 30초씩 균등 노출
-const SHOUT_MAX_SLOTS  = 3;
-const shoutQueue       = []; // 대기 중인 shout
-const shoutActive      = []; // 현재 표시 중인 {item, timer, timerBar, timerAnim}
+// ── SHOUT PIN: 영구 노출, 최대 3개, FIFO, localStorage 영속화 ───
+const SHOUT_MAX_SLOTS = 3;
+var pinnedShouts = []; // {addr, msg, id}
+
+function saveShoutsToStorage(){
+  try{ localStorage.setItem('chog_shouts', JSON.stringify(pinnedShouts)); }catch(e){}
+}
+
+function loadShoutsFromStorage(){
+  try{
+    const saved = localStorage.getItem('chog_shouts');
+    if(!saved) return;
+    const list = JSON.parse(saved);
+    if(!Array.isArray(list)) return;
+    pinnedShouts = list.slice(-SHOUT_MAX_SLOTS); // 최대 3개만
+    const c = document.getElementById('shoutPinned');
+    if(c){
+      c.innerHTML = '';
+      pinnedShouts.forEach(entry => _renderPinnedShout(c, entry));
+    }
+  }catch(e){}
+}
 
 function addPinnedShout(addr, msg){
   const c = document.getElementById('shoutPinned');
   if(!c) return;
-
   const nick = getNick(addr) || addr;
   const entry = { addr: nick, msg, id: Date.now() + Math.random() };
 
-  if(shoutActive.length < SHOUT_MAX_SLOTS){
-    _showPinnedShout(c, entry);
-  } else {
-    // 슬롯 꽉 찼으면 대기열에 추가
-    shoutQueue.push(entry);
+  // 3개 꽉 차면 가장 오래된 것 DOM에서 제거
+  if(pinnedShouts.length >= SHOUT_MAX_SLOTS){
+    const oldest = pinnedShouts.shift();
+    const oldEl = c.querySelector(`[data-id="${oldest.id}"]`);
+    if(oldEl){ oldEl.classList.add('pin-fadeout'); setTimeout(()=>oldEl.remove(), 500); }
   }
+
+  pinnedShouts.push(entry);
+  _renderPinnedShout(c, entry);
+  saveShoutsToStorage();
 }
 
-function _showPinnedShout(c, entry){
+function _renderPinnedShout(c, entry){
   const item = document.createElement('div');
   item.className = 'shout-pin-item';
   item.dataset.id = entry.id;
   item.innerHTML = `
     <div class="shout-pin-addr">📢 ${escHtml(entry.addr)}</div>
-    <div style="line-height:1.4">${escHtml(entry.msg)}</div>
-    <div class="shout-pin-timer" id="spt_${entry.id}" style="width:100%"></div>`;
+    <div style="line-height:1.4">${escHtml(entry.msg)}</div>`;
+  c.appendChild(item); // 최신이 맨 아래 (오래된 게 위)
+}
 
-  // 최신 것이 맨 위 → 아래로 쌓임
-  c.insertBefore(item, c.firstChild);
-
-  // 타이머 바 애니메이션 (남은 시간 시각화)
-  const bar = item.querySelector('.shout-pin-timer');
-  // rAF로 부드럽게 줄어들기
-  const startTs = performance.now();
-  let rafId;
-  function animBar(now){
-    const elapsed = now - startTs;
-    const pct = Math.max(0, 100 - (elapsed / SHOUT_DISPLAY_MS) * 100);
-    if(bar) bar.style.width = pct + '%';
-    if(elapsed < SHOUT_DISPLAY_MS) rafId = requestAnimationFrame(animBar);
-  }
-  rafId = requestAnimationFrame(animBar);
-
-  // 타이머: SHOUT_DISPLAY_MS 후 fadeout → remove
-  const timer = setTimeout(() => {
-    cancelAnimationFrame(rafId);
-    item.classList.add('pin-fadeout');
-    setTimeout(() => {
-      if(item.parentNode) item.parentNode.removeChild(item);
-      // active 목록에서 제거
-      const idx = shoutActive.findIndex(a => a.id === entry.id);
-      if(idx !== -1) shoutActive.splice(idx, 1);
-      // 대기 중인 다음 shout 꺼내기
-      if(shoutQueue.length > 0){
-        const next = shoutQueue.shift();
-        _showPinnedShout(document.getElementById('shoutPinned'), next);
-      }
-    }, 550); // fadeout 애니메이션 대기
-  }, SHOUT_DISPLAY_MS);
-
-  shoutActive.push({ id: entry.id, item, timer, rafId });
+function clearAllShouts(){
+  pinnedShouts = [];
+  const c = document.getElementById('shoutPinned');
+  if(c) c.innerHTML = '';
+  saveShoutsToStorage();
 }
 
 async function doShout(){
