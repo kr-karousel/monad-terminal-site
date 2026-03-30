@@ -1,7 +1,6 @@
 {
   "rewrites": [
-    { "source": "/style.css", "destination": "/chog/style.css" },
-    { "source": "/js/:path*", "destination": "/chog/js/:path*" },
-    { "source": "/", "destination": "/chog/index.html" }
+    { "source": "/chog", "destination": "/chog/index.html" },
+    { "source": "/emo",  "destination": "/emo/index.html"  }
   ]
 }
