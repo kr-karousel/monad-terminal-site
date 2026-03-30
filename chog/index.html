@@ -2832,26 +2832,18 @@ async function execNativeSwap(){
 
     if(isBuy){
       // MON (native) → CHOG
-      // nad.fun router: swapExactETHForTokens(uint amountOutMin, address[] path, address to, uint deadline)
-      // selector: 0x7ff36ab5
-      const amtOutMin  = parseFloat(document.getElementById('swapAmtOut')?.value?.replace(/,/g,'')||'0')||0;
-      const amtInWei   = BigInt(Math.floor(amtIn * 1e18)).toString(16).padStart(64,'0');
+      // nad.fun DEX Router: buy((uint256 amountOutMin, address token, address to, uint256 deadline))
+      // selector: 0x6df9e92b
+      const amtOutMin    = parseFloat(document.getElementById('swapAmtOut')?.value?.replace(/,/g,'')||'0')||0;
       const amtOutMinWei = BigInt(Math.floor(amtOutMin * 1e18)).toString(16).padStart(64,'0');
-      const deadline   = BigInt(Math.floor(Date.now()/1000) + 1200).toString(16).padStart(64,'0');
-      const toAddr     = wallet.addr.slice(2).padStart(64,'0');
-      // path offset, length, WMON, CHOG
-      const pathOffset = BigInt(128).toString(16).padStart(64,'0'); // 0x80
-      const pathLen    = BigInt(2).toString(16).padStart(64,'0');
-      const wmon       = WMON_CONTRACT.slice(2).padStart(64,'0');
-      const chog       = CHOG_CONTRACT.slice(2).padStart(64,'0');
-      const data = '0x7ff36ab5'
+      const token        = CHOG_CONTRACT.slice(2).padStart(64,'0');
+      const toAddr       = wallet.addr.slice(2).padStart(64,'0');
+      const deadline     = BigInt(Math.floor(Date.now()/1000) + 1200).toString(16).padStart(64,'0');
+      const data = '0x6df9e92b'
         + amtOutMinWei  // amountOutMin
-        + pathOffset    // path offset
+        + token         // token (CHOG)
         + toAddr        // to
-        + deadline      // deadline
-        + pathLen       // path length = 2
-        + wmon          // WMON
-        + chog;         // CHOG
+        + deadline;     // deadline
 
       const txHash = await provider.request({method:'eth_sendTransaction', params:[{
         from: wallet.addr,
@@ -2863,18 +2855,14 @@ async function execNativeSwap(){
       swapSetStatus(`✅ BUY complete! TX: ${txHash.slice(0,12)}...`, 'ok');
     } else {
       // CHOG → MON (native)
-      // Approval may be required first
-      // swapExactTokensForETH(uint amountIn, uint amountOutMin, address[] path, address to, uint deadline)
-      // selector: 0x18cbafe5
-      const amtInWei   = BigInt(Math.floor(amtIn * 1e18)).toString(16).padStart(64,'0');
-      const amtOutMin  = parseFloat(document.getElementById('swapAmtOut')?.value?.replace(/,/g,'')||'0')||0;
+      // nad.fun DEX Router: sell((uint256 amountIn, uint256 amountOutMin, address token, address to, uint256 deadline))
+      // selector: 0x5de3085d
+      const amtInWei     = BigInt(Math.floor(amtIn * 1e18)).toString(16).padStart(64,'0');
+      const amtOutMin    = parseFloat(document.getElementById('swapAmtOut')?.value?.replace(/,/g,'')||'0')||0;
       const amtOutMinWei = BigInt(Math.floor(amtOutMin * 1e18)).toString(16).padStart(64,'0');
-      const deadline   = BigInt(Math.floor(Date.now()/1000) + 1200).toString(16).padStart(64,'0');
-      const toAddr     = wallet.addr.slice(2).padStart(64,'0');
-      const pathOffset = BigInt(160).toString(16).padStart(64,'0'); // 0xa0
-      const pathLen    = BigInt(2).toString(16).padStart(64,'0');
-      const chog       = CHOG_CONTRACT.slice(2).padStart(64,'0');
-      const wmon       = WMON_CONTRACT.slice(2).padStart(64,'0');
+      const token        = CHOG_CONTRACT.slice(2).padStart(64,'0');
+      const toAddr       = wallet.addr.slice(2).padStart(64,'0');
+      const deadline     = BigInt(Math.floor(Date.now()/1000) + 1200).toString(16).padStart(64,'0');
 
       // Step 1: Approve CHOG → Router
       swapSetStatus('Requesting approval...','');
@@ -2882,19 +2870,16 @@ async function execNativeSwap(){
       const approveSel = '0x095ea7b3';
       const approveData = approveSel + NADFUN_ROUTER.slice(2).padStart(64,'0') + maxUint;
       await provider.request({method:'eth_sendTransaction', params:[{
-        from: wallet.addr, to: CHOG_CONTRACT, data: approveData, gas:'0x'+( 80000).toString(16)
+        from: wallet.addr, to: CHOG_CONTRACT, data: approveData, gas:'0x'+(80000).toString(16)
       }]});
 
       swapSetStatus('Sending SELL transaction...','');
-      const data = '0x18cbafe5'
+      const data = '0x5de3085d'
         + amtInWei      // amountIn
         + amtOutMinWei  // amountOutMin
-        + pathOffset    // path offset
+        + token         // token (CHOG)
         + toAddr        // to
-        + deadline      // deadline
-        + pathLen       // path length = 2
-        + chog          // CHOG
-        + wmon;         // WMON
+        + deadline;     // deadline
 
       const txHash = await provider.request({method:'eth_sendTransaction', params:[{
         from: wallet.addr, to: NADFUN_ROUTER, data,
