@@ -396,4 +396,3 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .wallet-name{font-weight:700}
 .wallet-sub{font-size:11px;color:var(--muted)}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.8;transform:scale(1.05)}}
-</style>
