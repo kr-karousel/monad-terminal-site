@@ -836,10 +836,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
       <!-- Slippage -->
       <div class="swap-slippage-row">
         <span class="swap-slippage-label">Slippage:</span>
-        <button class="slip-btn active" id="slip05" onclick="setSlippage(0.5)">0.5%</button>
-        <button class="slip-btn" id="slip10" onclick="setSlippage(1.0)">1%</button>
-        <button class="slip-btn" id="slip30" onclick="setSlippage(3.0)">3%</button>
-        <button class="slip-btn" id="slip50" onclick="setSlippage(5.0)">5%</button>
+        <button class="slip-btn active" id="slip10" onclick="setSlippage(10)">10%</button>
+        <button class="slip-btn" id="slip20" onclick="setSlippage(20)">20%</button>
+        <button class="slip-btn" id="slip30" onclick="setSlippage(30)">30%</button>
       </div>
       <!-- Execute Button -->
       <button class="btn-swap-exec buy" id="btnSwapExec" onclick="execNativeSwap()">
@@ -2154,22 +2153,40 @@ function handleSwapLog(log) {
 
     // 채팅창 거래 알림 (1000 MON 이상)
     if(monAmount >= 1000) {
-      const addrFull = log.topics && log.topics[2]
-        ? '0x' + log.topics[2].slice(26)   // recipient (indexed)
-        : (log.topics && log.topics[1] ? '0x' + log.topics[1].slice(26) : '');
-      const addrShort = addrFull
-        ? addrFull.slice(0,6)+'...'+addrFull.slice(-4)
-        : '0xUnknown';
-      renderMsg({
-        type: 'trade',
-        side: isBuy ? 'buy' : 'sell',
-        addr: addrShort,
-        addrFull: addrFull,
-        bal: 0,
-        amount: Math.floor(chogAmount),
-        price: priceUsd,
-        mon: monAmount,
-        time: nowTime()
+      const txHash = log.transactionHash || '';
+      const _isBuy = isBuy, _chogAmount = chogAmount, _priceUsd = priceUsd, _monAmount = monAmount;
+      // tx.from = 실제 매수/매도자 (topics[1/2]는 라우터 주소라 틀림)
+      rpcCallAny('eth_getTransactionByHash', [txHash]).then(txData => {
+        const addrFull = (txData && txData.from) ? txData.from
+          : (log.topics && log.topics[2] ? '0x'+log.topics[2].slice(26) : '');
+        const addrShort = addrFull ? addrFull.slice(0,6)+'...'+addrFull.slice(-4) : '0xUnknown';
+        renderMsg({
+          type: 'trade',
+          side: _isBuy ? 'buy' : 'sell',
+          addr: addrShort,
+          addrFull: addrFull,
+          txHash: txHash,
+          bal: 0,
+          amount: Math.floor(_chogAmount),
+          price: _priceUsd,
+          mon: _monAmount,
+          time: nowTime()
+        });
+      }).catch(() => {
+        const addrFull = log.topics && log.topics[2] ? '0x'+log.topics[2].slice(26) : '';
+        const addrShort = addrFull ? addrFull.slice(0,6)+'...'+addrFull.slice(-4) : '0xUnknown';
+        renderMsg({
+          type: 'trade',
+          side: _isBuy ? 'buy' : 'sell',
+          addr: addrShort,
+          addrFull: addrFull,
+          txHash: txHash,
+          bal: 0,
+          amount: Math.floor(_chogAmount),
+          price: _priceUsd,
+          mon: _monAmount,
+          time: nowTime()
+        });
       });
       chogEmotion(isBuy ? 'buy' : 'sell');
     }
@@ -2217,7 +2234,7 @@ function renderMsg(item){
     ? `<span style="color:var(--accent);font-weight:700">${nick}</span>`
     : item.addr;
 
-  const addrHtml = `<span class="msg-addr" style="cursor:pointer;text-decoration:underline dotted" onclick="openProfileModal('${addrFull}',${item.bal||0},'${rank.cls}','${rank.badge}')">${displayAddr}</span>`;
+  const addrHtml = `<span class="msg-addr" style="cursor:pointer;text-decoration:underline dotted" onclick="openProfileModal('${addrFull}',${item.bal||0},'${rank.cls}','${rank.badge}','${item.txHash||''}')">${displayAddr}</span>`;
 
   if(item.type==='trade'){
     const mon = item.mon || 0;
@@ -2458,7 +2475,7 @@ function updateWalletDisplay(){
 // loadNickDB는 startApp에서 호출
 
 // ── USER PROFILE MODAL ────────────────────────────
-function openProfileModal(addrFull, bal, rankCls, rankBadge){
+function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
   const modal = document.getElementById('profileModal');
   const content = document.getElementById('profileContent');
   if(!modal||!content) return;
@@ -2468,7 +2485,7 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge){
     : addrFull;
   const rank = getRank(bal);
   const nick = getNick(addrFull);
-  const explorerUrl = `https://explorer.monad.xyz/address/${addrFull}`;
+  const explorerUrl = txHash ? `https://monadvision.com/tx/${txHash}` : `https://explorer.monad.xyz/address/${addrFull}`;
   const isMe = wallet && wallet.addr.toLowerCase() === addrFull.toLowerCase();
 
   // CHOG 잔액 추정 (실제 조회는 비동기)
@@ -2645,7 +2662,7 @@ async function sendChogTo(toAddr){
 // Router: Capricorn / nad.fun 풀 직접 호출 (eth_sendTransaction)
 
 var currentSwapSide = 'buy'; // 'buy' | 'sell'
-var swapSlippage = 0.5;      // %
+var swapSlippage = 10;       // %
 var swapQuoteTimer = null;
 
 // Capricorn V3 / nad.fun Router 주소 (Monad mainnet)
@@ -2721,7 +2738,7 @@ function switchSwapSide(side){
 function setSlippage(val){
   swapSlippage = val;
   document.querySelectorAll('.slip-btn').forEach(b => b.classList.remove('active'));
-  const id = val===0.5?'slip05': val===1?'slip10': val===3?'slip30':'slip50';
+  const id = val===10?'slip10': val===20?'slip20':'slip30';
   const el = document.getElementById(id);
   if(el) el.classList.add('active');
   swapCalcOut();
