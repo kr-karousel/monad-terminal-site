@@ -25,7 +25,7 @@ function initChart(){
   if(tvContainer){
     tvContainer.innerHTML = `<iframe
       src="https://dexscreener.com/monad/0x714a2694c8d4f0b1bfba0e5b76240e439df2182d?embed=1&theme=dark&trades=0&info=0"
-      style="width:100%;height:360px;border:none;display:block;-webkit-transform:translateZ(0);transform:translateZ(0)"
+      style="width:100%;height:360px;border:none;display:block"
       allow="clipboard-write"
       loading="eager"
       title="EMO/MON Chart">
@@ -49,7 +49,7 @@ function initChart(){
             if(!iframe || !iframe.src){
               tvContainer.innerHTML = `<iframe
                 src="https://dexscreener.com/monad/0x714a2694c8d4f0b1bfba0e5b76240e439df2182d?embed=1&theme=dark&trades=0&info=0"
-                style="width:100%;height:360px;border:none;display:block;-webkit-transform:translateZ(0);transform:translateZ(0)"
+                style="width:100%;height:360px;border:none;display:block"
                 allow="clipboard-write"
                 loading="eager"
                 title="EMO/MON Chart">
