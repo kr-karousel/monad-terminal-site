@@ -11,9 +11,12 @@ let livePrice=0.000731, priceChange24h=-0.69;
 let isDragging=false, dragStartX=0, dragStartOffset=0;
 const PAD_R=75, PAD_T=10, PAD_B=28;
 
+let chartInited=false;
 function initChart(){
+  if(chartInited)return;
+  chartInited=true;
   const w = document.getElementById('chart-wrapper');
-  if(!w){ setTimeout(initChart, 100); return; }
+  if(!w){ chartInited=false; setTimeout(initChart, 100); return; }
 
   // DEXScreener iframe 임베드
   const tvContainer = document.getElementById('tv-chart-container');

@@ -1,8 +1,11 @@
+let appStarted=false;
 function startApp(){
+  if(appStarted)return;
+  appStarted=true;
   const w=document.getElementById('chart-wrapper');
-  if(!w){setTimeout(startApp,50);return;}
+  if(!w){appStarted=false;setTimeout(startApp,50);return;}
   const width=w.getBoundingClientRect().width||w.offsetWidth;
-  if(width<10){setTimeout(startApp,80);return;}
+  if(width<10){appStarted=false;setTimeout(startApp,80);return;}
   checkWelcome();
   loadNickDB();
   loadShoutsFromStorage();
