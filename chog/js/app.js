@@ -1576,6 +1576,7 @@ async function confirmSetNick(){
   wallet.bal -= NICK_COST;
   nickDB[wallet.addr.toLowerCase()] = nick;
   saveNickDB();
+  if(typeof trackNickPoint==='function') trackNickPoint();
 
   // 지갑 표시 업데이트
   updateWalletDisplay();
@@ -2503,6 +2504,7 @@ function sendChat(){
   const msg=inp.value.trim();if(!msg)return;
   renderMsg({addr:wallet.addr,bal:wallet.bal,msg,time:nowTime()});
   inp.value='';
+  if(typeof trackChatPoint==='function') trackChatPoint();
 }
 document.addEventListener('DOMContentLoaded',()=>{
   const ci=document.getElementById('chatInput');
@@ -2987,6 +2989,7 @@ async function doShout(){
   const sh=document.getElementById('shoutHistory');
   if(sh){const item=document.createElement('div');item.className='shout-item';item.innerHTML=`<div class="shout-item-addr">${shoutNick} · ${nowTime()}</div><div>${msg}</div>`;sh.insertBefore(item,sh.firstChild);}
   document.getElementById('shoutInput').value='';
+  if(typeof trackShoutPoint==='function') trackShoutPoint();
 }
 
 // demoShout 제거됨 (라이브 모드)
