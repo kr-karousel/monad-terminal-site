@@ -50,14 +50,30 @@ function calcUserPoints(entry) {
   return { chatPts, nickPts, shoutPts, total: chatPts + nickPts + shoutPts };
 }
 
-// ── Fetch CHOG balance of DEV_WALLET ──
+// ── Fetch CHOG balance of DEV_WALLET (direct mainnet RPC — bypasses wallet provider to avoid testnet mismatch) ──
 async function fetchDevChogBalance() {
-  try {
-    const padAddr = DEV_WALLET.slice(2).padStart(64, '0');
-    const result  = await rpcCallAny('eth_call', [{ to: CHOG_CONTRACT, data: '0x70a08231' + padAddr }, 'latest']);
-    if (!result || result === '0x' || result.length < 10) return 0;
-    return Number(BigInt(result)) / 1e18;
-  } catch(e) { return 0; }
+  const MAINNET_RPCS = [
+    'https://rpc.monad.xyz',
+    'https://monad-mainnet.rpc.thirdweb.com',
+    'https://monad.drpc.org',
+  ];
+  const padAddr = DEV_WALLET.slice(2).padStart(64, '0');
+  const data    = '0x70a08231' + padAddr; // balanceOf(DEV_WALLET)
+  for (const rpc of MAINNET_RPCS) {
+    try {
+      const res = await fetch(rpc, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: CHOG_CONTRACT, data }, 'latest'] }),
+      });
+      if (!res.ok) continue;
+      const d = await res.json();
+      if (d.result && d.result !== '0x' && d.result.length >= 10) {
+        return Number(BigInt(d.result)) / 1e18;
+      }
+    } catch(e) {}
+  }
+  return 0;
 }
 
 // ── Modal open/close ──
@@ -76,8 +92,8 @@ async function renderRevenueModal() {
   _revDevBal = null;
   const balEl  = document.getElementById('rev-dev-bal');
   const poolEl = document.getElementById('rev-pool');
-  if (balEl)  balEl.textContent  = '조회 중…';
-  if (poolEl) poolEl.textContent = '조회 중…';
+  if (balEl)  balEl.textContent  = 'Loading…';
+  if (poolEl) poolEl.textContent = 'Loading…';
 
   renderContribTable(null);
 
@@ -103,8 +119,8 @@ function renderContribTable(devBal) {
 
   if (entries.length === 0) {
     const msg = wallet
-      ? '아직 기여 활동이 없습니다.<br>채팅, 닉네임 변경, 샤우트로 포인트를 쌓아보세요!'
-      : '지갑을 연결하면 기여도를 추적할 수 있습니다.';
+      ? 'No contributions yet.<br>Earn points by chatting, changing your nickname, and shouting!'
+      : 'Connect your wallet to start tracking contributions.';
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;font-size:12px">${msg}</td></tr>`;
     return;
   }
@@ -121,8 +137,8 @@ function renderContribTable(devBal) {
     rows += `<tr class="${rowCls}">
       <td class="rev-td" style="color:${isMe ? 'var(--accent)' : 'var(--text)'}">${isMe ? '⭐ ' : ''}${escHtml(nick)}</td>
       <td class="rev-td rev-tc">${e.chatPts} <span class="rev-pt">pt</span></td>
-      <td class="rev-td rev-tc">${e.nickCount}건 <span class="rev-pt">(${e.nickPts}pt)</span></td>
-      <td class="rev-td rev-tc">${e.shoutCount}건 <span class="rev-pt">(${e.shoutPts}pt)</span></td>
+      <td class="rev-td rev-tc">${e.nickCount} <span class="rev-pt">(${e.nickPts}pt)</span></td>
+      <td class="rev-td rev-tc">${e.shoutCount} <span class="rev-pt">(${e.shoutPts}pt)</span></td>
       <td class="rev-td rev-tc rev-bold rev-gold">${e.total}</td>
       <td class="rev-td rev-tc rev-pct">${pct.toFixed(1)}%</td>
       <td class="rev-td rev-tr rev-est">${est != null ? '~' + Math.floor(est).toLocaleString() + ' CHOG' : '—'}</td>

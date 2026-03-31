@@ -367,8 +367,9 @@
       CHOG Terminal generates revenue through two features:<br>
       · <b>📢 Shout</b> — CHOG pinned on the chart<br>
       · <b>✏️ Nickname</b> — CHOG to set your permanent nickname<br><br>
-      All fees are sent to the dev wallet and used at the developer's discretion
-      to support the project and community.
+      Revenue is split <b style="color:var(--gold)">50% to Dev</b> and <b style="color:var(--green)">50% returned to the community</b> based on contribution points.<br>
+      Settlement on the last day of each month.<br>
+      · 💰 <b>Revenue Dashboard</b> — check your points &amp; estimated payout in the top nav
     </div>
 
     <label class="welcome-agree" onclick="toggleAgree()">
@@ -499,59 +500,59 @@
       <button class="modal-close" onclick="closeRevenueModal()">✕</button>
     </div>
 
-    <!-- 수익구조 안내 -->
+    <!-- Revenue Structure Info -->
     <div style="background:rgba(192,132,252,0.07);border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.8;margin-bottom:14px">
-      <b style="color:var(--accent)">수익 구조 안내</b><br>
-      Shout 및 닉네임 변경으로 발생한 수익금의 <b style="color:var(--gold)">50%</b>는 Dev에게,
-      나머지 <b style="color:var(--green)">50%</b>는 기여도에 따라 커뮤니티에 반환됩니다.<br>
-      정산은 <b style="color:var(--accent2)">매월 말일</b>에 진행됩니다.
+      <b style="color:var(--accent)">Revenue Structure</b><br>
+      Revenue from Shouts &amp; Nickname changes is split: <b style="color:var(--gold)">50%</b> goes to Dev,
+      <b style="color:var(--green)">50%</b> is returned to the community based on contribution points.<br>
+      Settlement occurs on the <b style="color:var(--accent2)">last day of each month</b>.
     </div>
 
-    <!-- Dev 지갑 잔고 -->
+    <!-- Dev Wallet Balance -->
     <div style="display:flex;gap:10px;margin-bottom:16px">
       <div style="flex:1;background:rgba(192,132,252,0.05);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Dev 지갑 CHOG</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Dev Wallet CHOG</div>
         <div id="rev-dev-bal" style="font-size:18px;font-weight:700;color:var(--accent);font-family:'Bangers',cursive;letter-spacing:1px">—</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">온체인 실시간 조회</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Live on-chain</div>
       </div>
       <div style="display:flex;align-items:center;color:var(--muted);font-size:18px">→</div>
       <div style="flex:1;background:rgba(74,222,128,0.05);border:1px solid rgba(74,222,128,0.2);border-radius:10px;padding:12px;text-align:center">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">커뮤니티 풀 (50%)</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Community Pool (50%)</div>
         <div id="rev-pool" style="font-size:18px;font-weight:700;color:var(--green);font-family:'Bangers',cursive;letter-spacing:1px">—</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">이번 달 예상 배분액</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">Est. monthly payout</div>
       </div>
     </div>
 
-    <!-- 기여도 표 -->
-    <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px">기여도 현황</div>
+    <!-- Contribution Board -->
+    <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px">Contribution Board</div>
     <div style="overflow-x:auto;margin-bottom:14px">
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead>
           <tr style="color:var(--muted);border-bottom:1px solid var(--border)">
-            <th style="text-align:left;padding:6px 6px 6px 2px">지갑</th>
-            <th style="text-align:center;padding:6px 4px">채팅<br><span style="font-size:10px;font-weight:400">시간×1pt</span></th>
-            <th style="text-align:center;padding:6px 4px">닉네임 변경<br><span style="font-size:10px;font-weight:400">건×10pt</span></th>
-            <th style="text-align:center;padding:6px 4px">샤우트<br><span style="font-size:10px;font-weight:400">건×10pt</span></th>
-            <th style="text-align:center;padding:6px 4px">통합<br>포인트</th>
-            <th style="text-align:center;padding:6px 4px">비율</th>
-            <th style="text-align:right;padding:6px 2px 6px 4px">예정 수령액</th>
+            <th style="text-align:left;padding:6px 6px 6px 2px">Wallet</th>
+            <th style="text-align:center;padding:6px 4px">Chat<br><span style="font-size:10px;font-weight:400">hr×1pt</span></th>
+            <th style="text-align:center;padding:6px 4px">Nickname<br><span style="font-size:10px;font-weight:400">×10pt</span></th>
+            <th style="text-align:center;padding:6px 4px">Shout<br><span style="font-size:10px;font-weight:400">×10pt</span></th>
+            <th style="text-align:center;padding:6px 4px">Total<br>Points</th>
+            <th style="text-align:center;padding:6px 4px">Share</th>
+            <th style="text-align:right;padding:6px 2px 6px 4px">Est. Payout</th>
           </tr>
         </thead>
         <tbody id="rev-contrib-table">
-          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;font-size:12px">로딩 중…</td></tr>
+          <tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px;font-size:12px">Loading…</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- 계산식 안내 -->
+    <!-- Formula Info -->
     <div style="background:rgba(192,132,252,0.04);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:11px;color:var(--muted);line-height:1.9">
-      <b style="color:var(--accent2)">📐 포인트 계산 방식</b><br>
-      • 채팅 활동: 1시간 이내 채팅 기록 있으면 <b style="color:var(--text)">1포인트</b> (매시간 1회 집계, 채팅 건수 아님)<br>
-      • 닉네임 변경: 건당 <b style="color:var(--text)">10포인트</b><br>
-      • 샤우트: 건당 <b style="color:var(--text)">10포인트</b><br><br>
-      <b style="color:var(--accent2)">💡 예정 수령액 계산식</b><br>
-      <span style="font-family:monospace;background:rgba(0,0,0,0.3);padding:3px 7px;border-radius:5px;display:inline-block;color:var(--text)">Dev잔고 × 50% × (내 포인트 ÷ 전체 커뮤니티 포인트)</span><br>
-      <span style="font-size:10px;color:var(--muted)">※ 포인트는 이 브라우저에서 집계된 데이터 기준입니다. 실제 정산 시 전체 커뮤니티 기여도가 반영됩니다.</span>
+      <b style="color:var(--accent2)">📐 Point System</b><br>
+      • Chat Activity: 1 point per active hour <b style="color:var(--text)">(max 1pt/hr, not per message)</b><br>
+      • Nickname Change: <b style="color:var(--text)">10 points</b> per change<br>
+      • Shout: <b style="color:var(--text)">10 points</b> each<br><br>
+      <b style="color:var(--accent2)">💡 Payout Formula</b><br>
+      <span style="font-family:monospace;background:rgba(0,0,0,0.3);padding:3px 7px;border-radius:5px;display:inline-block;color:var(--text)">Dev Balance × 50% × (Your Points ÷ Total Community Points)</span><br>
+      <span style="font-size:10px;color:var(--muted)">※ Points are tracked locally in this browser. Final settlement reflects total community contribution.</span>
     </div>
   </div>
 </div>
