@@ -25,7 +25,7 @@ function initChart(){
   if(tvContainer){
     tvContainer.innerHTML = `<iframe
       src="https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0"
-      style="width:100%;height:360px;border:none;display:block"
+      style="width:100%;height:360px;border:none;display:block;transform:translate3d(0,0,0);-webkit-transform:translate3d(0,0,0)"
       allow="clipboard-write"
       loading="eager"
       title="CHOG/MON Chart">
@@ -33,6 +33,10 @@ function initChart(){
     tvContainer.style.display = 'block';
     tvContainer.style.position = 'relative';
     tvContainer.style.zIndex = '1';
+    tvContainer.style.transform = 'translate3d(0,0,0)';
+    tvContainer.style.webkitTransform = 'translate3d(0,0,0)';
+    tvContainer.style.backfaceVisibility = 'hidden';
+    tvContainer.style.webkitBackfaceVisibility = 'hidden';
 
     window.addEventListener('orientationchange', () => {
       tvContainer.style.width = '100%';
@@ -49,7 +53,7 @@ function initChart(){
             if(!iframe || !iframe.src){
               tvContainer.innerHTML = `<iframe
                 src="https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0"
-                style="width:100%;height:360px;border:none;display:block"
+                style="width:100%;height:360px;border:none;display:block;transform:translate3d(0,0,0);-webkit-transform:translate3d(0,0,0)"
                 allow="clipboard-write"
                 loading="eager"
                 title="CHOG/MON Chart">
@@ -116,30 +120,50 @@ function initChart(){
   // 실시간 가격 폴링은 계속 유지
   startPriceRefresh();
 
-  // 삼성인터넷 스크롤 시 iframe 사라짐 방지 (매 프레임 체크)
+  // 삼성인터넷 스크롤 시 iframe 사라짐 방지 (GPU 레이어 강제 유지)
   (function(){
-    let scrolling=false, rafId=null;
-    function forceShow(){
-      const c=document.getElementById('tv-chart-container');
+    let tick=0, rafId=null, scrolling=false;
+    var iframeSrc = 'https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0';
+
+    function forceRepaint(){
+      var c=document.getElementById('tv-chart-container');
       if(!c)return;
-      c.style.visibility='hidden';
-      c.offsetHeight; // force reflow
-      c.style.visibility='visible';
+      var iframe=c.querySelector('iframe');
+      // iframe이 DOM에서 사라졌거나 src가 비었으면 재생성
+      if(!iframe || !iframe.src || iframe.src==='about:blank'){
+        c.innerHTML='<iframe src="'+iframeSrc+'" style="width:100%;height:360px;border:none;display:block;transform:translate3d(0,0,0);-webkit-transform:translate3d(0,0,0)" allow="clipboard-write" loading="eager" title="CHOG/MON Chart"></iframe>';
+        return;
+      }
+      // transform 미세 변경으로 GPU 레이어 repaint 강제 (visibility 보다 효과적)
+      tick=(tick+1)%2;
+      var v=tick?'0.01':'0';
+      c.style.transform='translate3d(0,0,'+v+'px)';
+      c.style.webkitTransform='translate3d(0,0,'+v+'px)';
+      iframe.style.transform='translate3d(0,0,'+v+'px)';
+      iframe.style.webkitTransform='translate3d(0,0,'+v+'px)';
     }
     function onFrame(){
-      if(scrolling){ forceShow(); rafId=requestAnimationFrame(onFrame); }
+      if(scrolling){ forceRepaint(); rafId=requestAnimationFrame(onFrame); }
     }
-    window.addEventListener('touchstart',function(){
+    function startScroll(){
       scrolling=true;
       if(!rafId) rafId=requestAnimationFrame(onFrame);
-    },{passive:true});
-    window.addEventListener('touchend',function(){
+    }
+    function endScroll(){
       scrolling=false; rafId=null;
-      setTimeout(forceShow,50);
-    },{passive:true});
-    window.addEventListener('touchcancel',function(){
-      scrolling=false; rafId=null;
-    },{passive:true});
+      // 스크롤 종료 후 최종 repaint + 약간의 딜레이로 추가 복구
+      forceRepaint();
+      setTimeout(forceRepaint, 100);
+      setTimeout(forceRepaint, 300);
+    }
+    window.addEventListener('touchstart', startScroll, {passive:true});
+    window.addEventListener('touchend', endScroll, {passive:true});
+    window.addEventListener('touchcancel', endScroll, {passive:true});
+    window.addEventListener('scroll', function(){
+      forceRepaint();
+      // scroll 이벤트 후 추가 복구
+      setTimeout(forceRepaint, 150);
+    }, {passive:true});
   })();
 }
 
