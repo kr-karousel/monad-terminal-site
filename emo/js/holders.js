@@ -268,9 +268,8 @@ async function connectWallet(name){
     const rank=getRank(wallet.bal, addr);
     const short=addr.slice(0,6)+'...'+addr.slice(-4);
     updateWalletDisplay();
-    document.getElementById('chatInput').disabled=false;
-    document.getElementById('chatInput').placeholder='Type a message...';
-    document.getElementById('sendBtn').disabled=false;
+    if(typeof updateChatFreezeUI==='function') updateChatFreezeUI();
+    else{ document.getElementById('chatInput').disabled=false; document.getElementById('chatInput').placeholder='Type a message...'; document.getElementById('sendBtn').disabled=false; }
     checkDevAccess();
     // 본인 랭킹 비동기 조회 후 채팅에 표시
     getHolderRank(addr).then(holderRank => {
@@ -324,9 +323,14 @@ async function connectWallet(name){
 
 function sendChat(){
   if(!wallet)return;
+  if(typeof chatFrozen!=='undefined' && chatFrozen && !isDevOrTest()){
+    const inp=document.getElementById('chatInput');
+    if(inp){ inp.value=''; inp.placeholder='❄️ Chat is frozen...'; setTimeout(()=>{ inp.placeholder='❄️ Chat is frozen...'; },1500); }
+    return;
+  }
   const inp=document.getElementById('chatInput');
   const msg=inp.value.trim();if(!msg)return;
-  renderMsg({addr:wallet.addr,bal:wallet.bal,msg,time:nowTime()});
+  renderMsg({addr:wallet.addr,addrFull:wallet.addr,bal:wallet.bal,msg,time:nowTime()});
   inp.value='';
 }
 document.addEventListener('DOMContentLoaded',()=>{

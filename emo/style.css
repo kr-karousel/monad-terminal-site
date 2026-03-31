@@ -113,7 +113,15 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .right-panel{display:flex;flex-direction:column;gap:12px}
 
 /* CHAT */
-.chat-section{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;flex:1}
+.chat-section{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;flex:1;transition:border-color .4s,box-shadow .4s}
+/* ── CHAT FROZEN ── */
+.chat-section.chat-frozen{border-color:rgba(147,210,255,0.55);box-shadow:0 0 18px rgba(147,210,255,0.18),inset 0 0 40px rgba(147,210,255,0.05);animation:frozenPulse 3s ease-in-out infinite}
+@keyframes frozenPulse{0%,100%{box-shadow:0 0 18px rgba(147,210,255,0.18),inset 0 0 40px rgba(147,210,255,0.05)}50%{box-shadow:0 0 32px rgba(147,210,255,0.35),inset 0 0 60px rgba(147,210,255,0.1)}}
+.chat-frozen .chat-list{background:rgba(147,210,255,0.03)}
+.chat-frozen .section-title::after{content:' ❄️';font-family:'Nunito',sans-serif;font-size:13px}
+.chat-frozen .chat-input{border-color:rgba(147,210,255,0.4);background:rgba(147,210,255,0.04)}
+.chat-frozen .chat-input:disabled{opacity:0.5;cursor:not-allowed}
+.chat-frozen .chat-input-area{background:rgba(147,210,255,0.04);border-top-color:rgba(147,210,255,0.25)}
 .section-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:rgba(19,15,36,0.9);border-bottom:1px solid var(--border)}
 .section-title{font-family:'Bangers',cursive;font-size:17px;letter-spacing:1px;color:var(--accent)}
 .chat-list{height:420px;max-height:calc(100vh - 320px);min-height:280px;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:4px}

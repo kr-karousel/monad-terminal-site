@@ -92,10 +92,45 @@ function renderDevCustomTiers(){
 }
 
 function isDevOrTest(){
-  return wallet && (
-    wallet.addr.toLowerCase() === DEV_WALLET.toLowerCase() ||
-    devTestWallets.includes(wallet.addr.toLowerCase())
-  );
+  if(!wallet) return false;
+  const addr = wallet.addr.toLowerCase();
+  return addr === DEV_WALLET.toLowerCase() ||
+    devTestWallets.includes(addr) ||
+    !!devCustomTiers[addr];
+}
+
+// ── CHAT FREEZE ──────────────────────────────────────
+var chatFrozen = false;
+
+function toggleFreezeChat(){
+  chatFrozen = !chatFrozen;
+  updateChatFreezeUI();
+  if(chatFrozen){
+    renderMsg({addr:'SYSTEM', addrFull:'', bal:0, msg:'❄️ Chat has been frozen. Only privileged users can chat.', time:nowTime(), type:'system'});
+  } else {
+    renderMsg({addr:'SYSTEM', addrFull:'', bal:0, msg:'🔥 Chat has been unfrozen.', time:nowTime(), type:'system'});
+  }
+}
+
+function updateChatFreezeUI(){
+  const section = document.querySelector('.chat-section');
+  const inp = document.getElementById('chatInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const btn = document.getElementById('freezeChatBtn');
+  const canChat = !chatFrozen || isDevOrTest();
+  const walletConnected = !!wallet;
+
+  if(chatFrozen){
+    if(section) section.classList.add('chat-frozen');
+    if(inp){ inp.disabled = !canChat; inp.placeholder = canChat ? '❄️ [Frozen] Type a message...' : '❄️ Chat is frozen...'; }
+    if(sendBtn) sendBtn.disabled = !canChat;
+    if(btn){ btn.textContent = '🔥 Unfreeze Chat'; btn.style.color='#fb923c'; btn.style.borderColor='rgba(251,146,60,0.5)'; }
+  } else {
+    if(section) section.classList.remove('chat-frozen');
+    if(inp){ inp.disabled = !walletConnected; inp.placeholder = walletConnected ? 'Type a message...' : 'Connect wallet to chat...'; }
+    if(sendBtn) sendBtn.disabled = !walletConnected;
+    if(btn){ btn.textContent = '❄️ Freeze Chat'; btn.style.color=''; btn.style.borderColor=''; }
+  }
 }
 
 function toggleDevPanel(){
