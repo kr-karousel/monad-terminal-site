@@ -116,19 +116,30 @@ function initChart(){
   // 실시간 가격 폴링은 계속 유지
   startPriceRefresh();
 
-  // 삼성인터넷 스크롤 시 iframe 사라짐 방지
+  // 삼성인터넷 스크롤 시 iframe 사라짐 방지 (매 프레임 체크)
   (function(){
-    function repaint(){
+    let scrolling=false, rafId=null;
+    function forceShow(){
       const c=document.getElementById('tv-chart-container');
       if(!c)return;
-      const iframe=c.querySelector('iframe');
-      if(!iframe)return;
-      iframe.style.opacity='0.9999';
-      requestAnimationFrame(function(){iframe.style.opacity='1';});
+      c.style.visibility='hidden';
+      c.offsetHeight; // force reflow
+      c.style.visibility='visible';
     }
-    let t;
-    window.addEventListener('scroll',function(){clearTimeout(t);t=setTimeout(repaint,150);},{passive:true});
-    window.addEventListener('touchend',function(){setTimeout(repaint,200);},{passive:true});
+    function onFrame(){
+      if(scrolling){ forceShow(); rafId=requestAnimationFrame(onFrame); }
+    }
+    window.addEventListener('touchstart',function(){
+      scrolling=true;
+      if(!rafId) rafId=requestAnimationFrame(onFrame);
+    },{passive:true});
+    window.addEventListener('touchend',function(){
+      scrolling=false; rafId=null;
+      setTimeout(forceShow,50);
+    },{passive:true});
+    window.addEventListener('touchcancel',function(){
+      scrolling=false; rafId=null;
+    },{passive:true});
   })();
 }
 
