@@ -7,6 +7,23 @@ var chatList = document.getElementById('chatList');
 function renderMsg(item){
   if(!chatList) chatList = document.getElementById('chatList');
   if(!chatList)return;
+
+  // 시스템 메시지 (ban 알림 등)
+  if(item.type==='system'){
+    const div=document.createElement('div');
+    div.className='chat-msg';
+    div.style.cssText='background:rgba(255,255,255,0.03);border-left:2px solid rgba(156,163,175,0.4);opacity:0.85';
+    div.innerHTML=`<div style="font-size:11px;color:var(--muted);font-style:italic;display:flex;justify-content:space-between;align-items:center"><span>🔧 ${escHtml(item.msg)}</span><span style="font-size:10px;margin-left:8px">${item.time}</span></div>`;
+    chatList.appendChild(div);
+    if(chatList.children.length>20)chatList.removeChild(chatList.firstChild);
+    chatList.scrollTop=chatList.scrollHeight;
+    return;
+  }
+
+  // 밴된 지갑 메시지 필터링
+  const addrForBan = item.addrFull || (item.addr && item.addr.startsWith('0x') ? item.addr : '');
+  if(addrForBan && typeof isBanned==='function' && isBanned(addrForBan)) return;
+
   const rank=getRank(item.bal||0, item.addrFull||item.addr||'');
   const div=document.createElement('div');
   const addrFull = item.addrFull || item.addr || '';

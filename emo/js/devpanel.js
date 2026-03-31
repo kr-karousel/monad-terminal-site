@@ -3,6 +3,54 @@
 // ═══════════════════════════════════════
 var devTestWallets = []; // 테스트 권한 지갑 목록
 var devCustomTiers = {}; // address.toLowerCase() -> custom label
+var bannedWallets  = {}; // address.toLowerCase() -> {bannedAt}
+
+function loadBansFromStorage(){
+  try { bannedWallets = JSON.parse(localStorage.getItem('emo_bans')||'{}'); } catch(e){ bannedWallets={}; }
+}
+function saveBansToStorage(){
+  localStorage.setItem('emo_bans', JSON.stringify(bannedWallets));
+}
+function isBanned(addr){
+  if(!addr) return false;
+  return !!bannedWallets[addr.toLowerCase()];
+}
+function banWallet(addrFull){
+  if(!isDevOrTest()){ alert('접근 권한 없음'); return; }
+  const addr = addrFull.toLowerCase();
+  if(addr === DEV_WALLET.toLowerCase()){ alert('Cannot ban dev wallet'); return; }
+  bannedWallets[addr] = { bannedAt: Date.now() };
+  saveBansToStorage();
+  renderBanList();
+  closeProfileModal();
+  const nick = getNick(addrFull) || (addrFull.slice(0,6)+'...'+addrFull.slice(-4));
+  renderMsg({addr:'SYSTEM', addrFull:'', bal:0, msg:`🚫 ${nick} has been banned from chat.`, time:nowTime(), type:'system'});
+}
+function unbanWallet(addrFull){
+  if(!isDevOrTest()){ alert('접근 권한 없음'); return; }
+  const addr = addrFull.toLowerCase();
+  delete bannedWallets[addr];
+  saveBansToStorage();
+  renderBanList();
+  const nick = getNick(addrFull) || (addrFull.slice(0,6)+'...'+addrFull.slice(-4));
+  renderMsg({addr:'SYSTEM', addrFull:'', bal:0, msg:`✅ ${nick} has been unbanned.`, time:nowTime(), type:'system'});
+}
+function renderBanList(){
+  const el = document.getElementById('devBanList');
+  if(!el) return;
+  const entries = Object.entries(bannedWallets);
+  if(!entries.length){
+    el.innerHTML = '<span style="color:var(--muted)">No banned wallets</span>';
+    return;
+  }
+  el.innerHTML = entries.map(([a]) =>
+    `<div style="display:flex;align-items:center;gap:4px;background:rgba(248,113,113,0.08);border-radius:5px;padding:2px 6px;margin-bottom:2px">
+      <span style="font-family:monospace;font-size:9px">${a.slice(0,8)}...${a.slice(-4)}</span>
+      <span style="font-size:9px;color:#f87171;flex:1;text-align:right">banned</span>
+      <button onclick="unbanWallet('${a}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0 2px;line-height:1">✕</button>
+    </div>`
+  ).join('');
+}
 
 function loadCustomTiersFromStorage(){
   try { devCustomTiers = JSON.parse(localStorage.getItem('emo_custom_tiers')||'{}'); } catch(e){ devCustomTiers={}; }
@@ -56,6 +104,7 @@ function toggleDevPanel(){
   if(p && p.classList.contains('open')){
     renderDevTestWallets();
     renderDevCustomTiers();
+    renderBanList();
     const isMainDev = wallet && wallet.addr.toLowerCase() === DEV_WALLET.toLowerCase();
     const feeSection = document.getElementById('devFeeSection');
     if(feeSection) feeSection.style.display = isMainDev ? '' : 'none';

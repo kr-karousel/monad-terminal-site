@@ -7,6 +7,7 @@ function startApp(){
   loadNickDB();
   loadShoutsFromStorage();
   loadCustomTiersFromStorage();
+  loadBansFromStorage();
   initChart();
   startPriceRefresh();
   setTimeout(setupTracking,300);

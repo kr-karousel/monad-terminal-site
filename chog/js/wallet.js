@@ -233,6 +233,15 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
       <button class="btn-profile-action" onclick="copyAddr('${addrFull}')">📋 Copy Address</button>
     </div>
 
+    ${(!isMe && addrFull && addrFull.length===42 && addrFull.toLowerCase()!==DEV_WALLET.toLowerCase()) ? `
+    <div class="profile-action-row" style="margin-top:6px">
+      ${(typeof isBanned==='function' && isBanned(addrFull))
+        ? `<button class="btn-profile-action" style="flex:1;color:#4ade80;border-color:rgba(74,222,128,0.4)" onclick="unbanWallet('${addrFull}')">✅ Chat Unban</button>`
+        : `<button class="btn-profile-action" style="flex:1;color:#f87171;border-color:rgba(248,113,113,0.4)" onclick="banWallet('${addrFull}')">🚫 Chat Ban</button>`
+      }
+    </div>
+    ` : ''}
+
     ${!isMe && wallet ? `
     <div class="send-amount-wrap">
       <label>Amount to Send (CHOG)</label>
