@@ -16,9 +16,9 @@ body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellips
 .up{color:var(--green)}.dn{color:var(--red)}
 
 /* NAV */
-nav{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:rgba(13,10,26,0.95);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;gap:8px}
-.nav-logo{font-family:'Bangers',cursive;font-size:26px;letter-spacing:2px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;flex-shrink:0}
-.nav-right{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;justify-content:flex-end;overflow-x:auto;min-width:0}
+nav{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:rgba(13,10,26,0.95);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.nav-logo{font-family:'Bangers',cursive;font-size:26px;letter-spacing:2px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .online-badge{display:flex;align-items:center;gap:6px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.3);border-radius:20px;padding:4px 10px;font-size:12px;font-weight:700;color:var(--green);white-space:nowrap}
 .online-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
@@ -33,8 +33,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 /* MAIN LAYOUT */
 .main{display:grid;grid-template-columns:1fr 360px;gap:16px;padding:16px;max-width:1400px;margin:0 auto;position:relative;z-index:1;align-items:start}
 @media(max-width:900px){.main{grid-template-columns:1fr}}
-@media(max-width:768px){.online-badge{display:none}}
-@media(max-width:480px){nav{padding:8px 10px}.nav-logo{font-size:20px}.btn-rank{font-size:10px;padding:4px 7px}.btn-connect{font-size:10px;padding:4px 9px}}
+@media(max-width:480px){nav{padding:8px 12px}.nav-logo{font-size:20px}.online-badge,.btn-rank{font-size:11px;padding:4px 8px}.btn-connect{font-size:11px;padding:5px 10px}}
 
 /* CHART SECTION */
 .chart-section{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;position:relative;align-self:flex-start}

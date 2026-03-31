@@ -1,6 +1,6 @@
 {
-  "rewrites": [
-    { "source": "/chog", "destination": "/chog/index.html" },
-    { "source": "/emo",  "destination": "/emo/index.html"  }
+  "redirects": [
+    { "source": "/chog", "destination": "/chog/", "permanent": false },
+    { "source": "/emo",  "destination": "/emo/",  "permanent": false }
   ]
 }
