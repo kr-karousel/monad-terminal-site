@@ -29,13 +29,34 @@ function initChart(){
     </iframe>`;
     tvContainer.style.display = 'block';
     tvContainer.style.position = 'relative';
-tvContainer.style.zIndex = '1';
+    tvContainer.style.zIndex = '1';
 
-window.addEventListener('orientationchange', () => {
-  tvContainer.style.width = '100%';
-});
+    window.addEventListener('orientationchange', () => {
+      tvContainer.style.width = '100%';
+    });
     if(fallback) fallback.style.display = 'none';
     console.log('✅ DEXScreener 차트 로드');
+
+    // 모바일 스크롤 후 iframe 소멸 방지 - IntersectionObserver로 복구
+    if('IntersectionObserver' in window){
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if(entry.isIntersecting){
+            const iframe = tvContainer.querySelector('iframe');
+            if(!iframe || !iframe.src){
+              tvContainer.innerHTML = `<iframe
+                src="https://dexscreener.com/monad/0x714a2694c8d4f0b1bfba0e5b76240e439df2182d?embed=1&theme=dark&trades=0&info=0"
+                style="width:100%;height:360px;border:none;display:block;-webkit-transform:translateZ(0);transform:translateZ(0)"
+                allow="clipboard-write"
+                loading="eager"
+                title="EMO/MON Chart">
+              </iframe>`;
+            }
+          }
+        });
+      }, {threshold: 0.1});
+      observer.observe(tvContainer);
+    }
 
     // EMO 캐릭터 - 마우스 따라다니기 (부드럽게)
     const chog = document.getElementById('chogChar');
