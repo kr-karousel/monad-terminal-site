@@ -115,6 +115,21 @@ function initChart(){
 
   // 실시간 가격 폴링은 계속 유지
   startPriceRefresh();
+
+  // 삼성인터넷 스크롤 시 iframe 사라짐 방지
+  (function(){
+    function repaint(){
+      const c=document.getElementById('tv-chart-container');
+      if(!c)return;
+      const iframe=c.querySelector('iframe');
+      if(!iframe)return;
+      iframe.style.opacity='0.9999';
+      requestAnimationFrame(function(){iframe.style.opacity='1';});
+    }
+    let t;
+    window.addEventListener('scroll',function(){clearTimeout(t);t=setTimeout(repaint,150);},{passive:true});
+    window.addEventListener('touchend',function(){setTimeout(repaint,200);},{passive:true});
+  })();
 }
 
 
