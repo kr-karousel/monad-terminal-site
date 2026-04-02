@@ -19,6 +19,12 @@ let cachedMonPrice  = 0.026;           // MON/USD (자동 업데이트)
 const showMcap = true; // always show Market Cap
 const FIXED_TF    = 1;       // 1분봉 고정
 
+// ── Supabase 실시간 동기화 설정 ──────────────────────────
+// https://supabase.com 에서 무료 프로젝트 생성 후 입력
+// (아래 두 값이 비어 있으면 localStorage 폴백 모드로 동작)
+const SUPABASE_URL      = '';   // 예: 'https://xxxxxx.supabase.co'
+const SUPABASE_ANON_KEY = '';   // 예: 'eyJhbGciOiJIUzI1NiIs...'
+
 // ── Set Nickname
 // ── 누락 전역변수 선언
 var priceRefreshStarted = false;
