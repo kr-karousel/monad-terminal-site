@@ -17,6 +17,7 @@ function devAddCustomTier(){
   if(!label){ alert('Label required'); return; }
   devCustomTiers[addr] = label;
   saveCustomTiersToStorage();
+  if(typeof syncCustomTierToServer === 'function') syncCustomTierToServer(addr, label);
   document.getElementById('devTierAddrInput').value = '';
   document.getElementById('devTierLabelInput').value = '';
   renderDevCustomTiers();
@@ -24,6 +25,7 @@ function devAddCustomTier(){
 function devRemoveCustomTier(addr){
   delete devCustomTiers[addr];
   saveCustomTiersToStorage();
+  if(typeof syncCustomTierToServer === 'function') syncCustomTierToServer(addr, null);
   renderDevCustomTiers();
 }
 function renderDevCustomTiers(){
@@ -85,12 +87,14 @@ function devAddTestWallet(){
   const addr = (inp ? inp.value : '').trim().toLowerCase();
   if(!addr.startsWith('0x') || addr.length !== 42){ alert('Invalid address (must be 0x + 40 hex chars)'); return; }
   if(!devTestWallets.includes(addr)) devTestWallets.push(addr);
+  if(typeof syncTestWalletToServer === 'function') syncTestWalletToServer(addr, true);
   if(inp) inp.value = '';
   renderDevTestWallets();
 }
 
 function devRemoveTestWallet(addr){
   devTestWallets = devTestWallets.filter(a => a !== addr);
+  if(typeof syncTestWalletToServer === 'function') syncTestWalletToServer(addr, false);
   renderDevTestWallets();
 }
 

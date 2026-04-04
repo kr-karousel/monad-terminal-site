@@ -1,36 +1,6 @@
 // ═══════════════════════════════════════
 //  SUPABASE 실시간 동기화
-//  닉네임 / 외치기(Shout)를 전 브라우저에 실시간 동기화
-// ═══════════════════════════════════════
-//
-// [최초 설정 방법 — 사이트 소유자 전용]
-// 1. https://supabase.com 에서 무료 프로젝트 생성
-// 2. SQL Editor에서 아래 스키마 실행:
-//
-//   CREATE TABLE nicknames (
-//     address TEXT PRIMARY KEY,
-//     nickname TEXT NOT NULL,
-//     updated_at TIMESTAMPTZ DEFAULT NOW()
-//   );
-//   ALTER TABLE nicknames ENABLE ROW LEVEL SECURITY;
-//   CREATE POLICY "public read"  ON nicknames FOR SELECT USING (true);
-//   CREATE POLICY "public write" ON nicknames FOR ALL    USING (true) WITH CHECK (true);
-//
-//   CREATE TABLE shouts (
-//     id         BIGSERIAL PRIMARY KEY,
-//     address    TEXT NOT NULL,
-//     nickname   TEXT,
-//     message    TEXT NOT NULL,
-//     created_at TIMESTAMPTZ DEFAULT NOW()
-//   );
-//   ALTER TABLE shouts ENABLE ROW LEVEL SECURITY;
-//   CREATE POLICY "public read"   ON shouts FOR SELECT USING (true);
-//   CREATE POLICY "public insert" ON shouts FOR INSERT WITH CHECK (true);
-//
-//   -- Realtime 활성화 (Supabase 대시보드 → Database → Replication → shouts, nicknames 체크)
-//
-// 3. Project Settings → API → URL 과 anon public key 복사
-// 4. config.js 상단의 SUPABASE_URL / SUPABASE_ANON_KEY 에 입력
+//  닉네임 / 외치기(Shout) / 커스텀 티어 / 테스트 지갑을 전 브라우저에 실시간 동기화
 // ═══════════════════════════════════════
 
 var _sbClient = null;
@@ -46,8 +16,12 @@ function initSync(){
     console.log('[Sync] Supabase 연결됨');
     _syncNicknamesFromServer();
     _syncShoutsFromServer();
+    _syncCustomTiersFromServer();
+    _syncTestWalletsFromServer();
     _subscribeToNicknames();
     _subscribeToShouts();
+    _subscribeToCustomTiers();
+    _subscribeToTestWallets();
   }catch(e){
     console.warn('[Sync] 초기화 실패:', e.message);
     _sbClient = null;
@@ -79,10 +53,21 @@ function _subscribeToNicknames(){
       payload => {
         const row = payload.new;
         if(!row || !row.address || !row.nickname) return;
+        const isNew = !nickDB[row.address.toLowerCase()];
         nickDB[row.address.toLowerCase()] = row.nickname;
         // 내 지갑이면 UI 업데이트
-        if(wallet && wallet.addr.toLowerCase() === row.address.toLowerCase())
+        if(wallet && wallet.addr.toLowerCase() === row.address.toLowerCase()){
           if(typeof updateWalletDisplay === 'function') updateWalletDisplay();
+        } else if(isNew && typeof renderMsg === 'function'){
+          // 다른 유저 닉네임 등록 → 채팅에 알림
+          renderMsg({
+            addr: row.nickname,
+            addrFull: row.address,
+            bal: 0,
+            msg: '✏️ Joined as "' + row.nickname + '"!',
+            time: typeof nowTime === 'function' ? nowTime() : ''
+          });
+        }
       }
     )
     .subscribe();
@@ -173,4 +158,104 @@ function _addPinnedShoutLocal(entry){
   }
   pinnedShouts.push(entry);
   _renderPinnedShout(c, entry);
+}
+
+// ── 커스텀 티어 ─────────────────────────────────────────
+
+async function _syncCustomTiersFromServer(){
+  if(!_sbClient) return;
+  try{
+    const { data } = await _sbClient.from('custom_tiers').select('address, label');
+    if(!data) return;
+    data.forEach(row => {
+      if(row.address && row.label)
+        devCustomTiers[row.address.toLowerCase()] = row.label;
+    });
+    if(typeof saveCustomTiersToStorage === 'function') saveCustomTiersToStorage();
+  }catch(e){ console.warn('[Sync] 커스텀 티어 로드 실패:', e.message); }
+}
+
+function _subscribeToCustomTiers(){
+  if(!_sbClient) return;
+  _sbClient.channel('sync-custom-tiers')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'custom_tiers' },
+      payload => {
+        if(payload.eventType === 'DELETE'){
+          const addr = (payload.old?.address || '').toLowerCase();
+          if(addr) delete devCustomTiers[addr];
+        } else {
+          const row = payload.new;
+          if(row?.address && row?.label)
+            devCustomTiers[row.address.toLowerCase()] = row.label;
+        }
+        if(typeof saveCustomTiersToStorage === 'function') saveCustomTiersToStorage();
+        if(typeof renderDevCustomTiers === 'function') renderDevCustomTiers();
+      }
+    )
+    .subscribe();
+}
+
+async function syncCustomTierToServer(address, label){
+  if(!_sbClient) return;
+  try{
+    if(label === null){
+      await _sbClient.from('custom_tiers').delete().eq('address', address.toLowerCase());
+    } else {
+      await _sbClient.from('custom_tiers').upsert(
+        { address: address.toLowerCase(), label, updated_at: new Date().toISOString() },
+        { onConflict: 'address' }
+      );
+    }
+  }catch(e){ console.warn('[Sync] 커스텀 티어 저장 실패:', e.message); }
+}
+
+// ── 테스트 지갑 ─────────────────────────────────────────
+
+async function _syncTestWalletsFromServer(){
+  if(!_sbClient) return;
+  try{
+    const { data } = await _sbClient.from('test_wallets').select('address');
+    if(!data) return;
+    data.forEach(row => {
+      if(row.address && !devTestWallets.includes(row.address.toLowerCase()))
+        devTestWallets.push(row.address.toLowerCase());
+    });
+    if(typeof checkDevAccess === 'function') checkDevAccess();
+    if(typeof renderDevTestWallets === 'function') renderDevTestWallets();
+  }catch(e){ console.warn('[Sync] 테스트 지갑 로드 실패:', e.message); }
+}
+
+function _subscribeToTestWallets(){
+  if(!_sbClient) return;
+  _sbClient.channel('sync-test-wallets')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'test_wallets' },
+      payload => {
+        if(payload.eventType === 'DELETE'){
+          const addr = (payload.old?.address || '').toLowerCase();
+          devTestWallets = devTestWallets.filter(a => a !== addr);
+        } else {
+          const addr = (payload.new?.address || '').toLowerCase();
+          if(addr && !devTestWallets.includes(addr)) devTestWallets.push(addr);
+        }
+        if(typeof checkDevAccess === 'function') checkDevAccess();
+        if(typeof renderDevTestWallets === 'function') renderDevTestWallets();
+      }
+    )
+    .subscribe();
+}
+
+async function syncTestWalletToServer(address, add){
+  if(!_sbClient) return;
+  try{
+    if(add){
+      await _sbClient.from('test_wallets').upsert(
+        { address: address.toLowerCase() },
+        { onConflict: 'address' }
+      );
+    } else {
+      await _sbClient.from('test_wallets').delete().eq('address', address.toLowerCase());
+    }
+  }catch(e){ console.warn('[Sync] 테스트 지갑 저장 실패:', e.message); }
 }
