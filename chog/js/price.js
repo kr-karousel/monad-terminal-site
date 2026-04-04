@@ -240,9 +240,41 @@ function setupTracking(){
 let wsConn = null;
 let wsRetryTimer = null;
 
+var _isHistoryLoad = false;
+
 function startLiveTrades() {
-  // 로컬 HTML파일에서는 WSS 불가 → 바로 폴링 시작
-  startPolling();
+  loadRecentTrades().finally(() => startPolling());
+}
+
+// 페이지 로드 시 최근 거래 채팅 히스토리 표시 (플로팅 없이)
+async function loadRecentTrades(){
+  try{
+    const blockHex = await rpcCallAny('eth_blockNumber', []);
+    if(!blockHex) return;
+    const cur = parseInt(blockHex, 16);
+    // 약 300블록 = Monad 기준 ~5분치 히스토리
+    const from = Math.max(0, cur - 300);
+
+    const logs = await rpcCallAny('eth_getLogs', [{
+      address: NADFUN_POOL,
+      topics:  [[SWAP_TOPIC_V3, TRADE_TOPIC_KURU]],
+      fromBlock: '0x' + from.toString(16),
+      toBlock:   '0x' + cur.toString(16),
+    }]);
+
+    if(!logs || !logs.length){ lastPollBlock = cur; return; }
+
+    // 최근 7건만 채팅에 표시
+    const recent = logs.slice(-7);
+    _isHistoryLoad = true;
+    recent.forEach(log => handleSwapLog(log));
+    _isHistoryLoad = false;
+
+    // 폴링은 현재 블록부터
+    lastPollBlock = cur;
+  }catch(e){
+    _isHistoryLoad = false;
+  }
 }
 
 // WSS 안되면 폴링으로 대체
@@ -341,11 +373,11 @@ function handleSwapLog(log) {
     updatePriceDisplay(priceUsd);
     updateMcap(mcapNow);
 
-    // 플로팅 알림 (MON 기준으로 직접 전달)
-    showTradeFloat(isBuy, usdValue, chogAmount, monAmount);
+    // 플로팅 알림 — 히스토리 로드 시 스킵
+    if(!_isHistoryLoad) showTradeFloat(isBuy, usdValue, chogAmount, monAmount);
 
-    // 채팅창 거래 알림 (1000 MON 이상)
-    if(monAmount >= 1000) {
+    // 채팅창 거래 알림 — 히스토리는 10 MON 이상, 라이브는 1000 MON 이상
+    if(monAmount >= (_isHistoryLoad ? 10 : 1000)) {
       const txHash = log.transactionHash || '';
       const _isBuy = isBuy, _chogAmount = chogAmount, _priceUsd = priceUsd, _monAmount = monAmount;
       // tx.from = 실제 매수/매도자 (topics[1/2]는 라우터 주소라 틀림)
@@ -381,7 +413,7 @@ function handleSwapLog(log) {
           time: nowTime()
         });
       });
-      chogEmotion(isBuy ? 'buy' : 'sell');
+      if(!_isHistoryLoad) chogEmotion(isBuy ? 'buy' : 'sell');
     }
 
     console.log(isBuy?'🟢 BUY':'🔴 SELL', chogAmount.toFixed(0),'CHOG | $'+usdValue.toFixed(2),'| $'+priceUsd.toFixed(8));
