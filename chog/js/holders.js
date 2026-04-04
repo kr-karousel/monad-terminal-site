@@ -337,6 +337,8 @@ function sendChat(){
     // Supabase 미연결 시 로컬 폴백
     renderMsg({addr: wallet.addr, addrFull: wallet.addr, bal: wallet.bal, msg, time: nowTime()});
   }
+  // 채팅 포인트 적립 (시간당 1pt)
+  if(typeof trackChatPoint === 'function') trackChatPoint();
 }
 document.addEventListener('DOMContentLoaded',()=>{
   const ci=document.getElementById('chatInput');

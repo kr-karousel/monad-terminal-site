@@ -24,6 +24,7 @@ function initSync(){
     _subscribeToCustomTiers();
     _subscribeToTestWallets();
     _subscribeToMessages();
+    _subscribeToContributions();
   }catch(e){
     console.warn('[Sync] 초기화 실패:', e.message);
     _sbClient = null;
@@ -303,6 +304,23 @@ function _subscribeToMessages(){
           msg: row.content,
           time: typeof nowTime === 'function' ? nowTime() : ''
         });
+      }
+    )
+    .subscribe();
+}
+
+// ── Contributions 실시간 구독 (Revenue 모달 자동 갱신) ──
+
+function _subscribeToContributions(){
+  if(!_sbClient) return;
+  _sbClient.channel('sync-contributions')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'contributions' },
+      () => {
+        // Revenue 모달이 열려있으면 자동 갱신
+        const modal = document.getElementById('revenueModal');
+        if(modal && modal.classList.contains('open') && typeof renderRevenueModal === 'function')
+          renderRevenueModal();
       }
     )
     .subscribe();
