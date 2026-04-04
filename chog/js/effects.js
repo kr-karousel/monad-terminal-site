@@ -43,11 +43,16 @@ function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
   // 토큰 수량 표시
   const tokenDisplay = Math.floor(chogAmount).toLocaleString()+' '+TOKEN_NAME;
 
+  const clownSrc  = isBuy ? 'img/clown_buy.png' : 'img/clown_sell.png';
+  const clownCls  = isWhale ? 'trade-float-clown whale' : 'trade-float-clown';
+  const clownHtml = `<img class="${clownCls}" src="${clownSrc}" alt="">`;
+
   if(isWhale){
     const emoji    = isBuy ? '🐳' : '☠️';
     const bubbleCls = isBuy ? 'whale' : 'sell';
     const label    = isBuy ? '🚨 WHALE BUY!' : '☠️ WHALE SELL!';
     wrap.innerHTML = `
+      ${clownHtml}
       <div class="trade-float-emoji whale">${emoji.repeat(count)}</div>
       <div class="trade-float-bubble ${bubbleCls}">${label} ${monDisplay}</div>
       <div class="trade-float-amount">${monDisplay} / ${tokenDisplay}</div>`;
@@ -55,6 +60,7 @@ function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
     const emoji = isBuy ? '🚀' : '💀';
     const label = isBuy ? '🟢 BIG BUY!' : '🔴 BIG SELL!';
     wrap.innerHTML = `
+      ${clownHtml}
       <div class="trade-float-emoji">${emoji.repeat(count)}</div>
       <div class="trade-float-bubble ${isBuy?'buy':'sell'}">${label} ${monDisplay}</div>
       <div class="trade-float-amount">${monDisplay} / ${tokenDisplay}</div>`;
@@ -62,6 +68,7 @@ function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
     const emoji = isBuy ? '🔥' : '🩸';
     const label = isBuy ? '🟡 HOT BUY!' : '🟠 HOT SELL!';
     wrap.innerHTML = `
+      ${clownHtml}
       <div class="trade-float-emoji">${emoji.repeat(count)}</div>
       <div class="trade-float-bubble ${isBuy?'buy':'sell'}">${label} ${monDisplay}</div>
       <div class="trade-float-amount">${monDisplay} / ${tokenDisplay}</div>`;
@@ -70,6 +77,7 @@ function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
     const emoji = isBuy ? '💚' : '🔴';
     const label = isBuy ? 'BUY' : 'SELL';
     wrap.innerHTML = `
+      ${clownHtml}
       <div class="trade-float-emoji">${emoji}</div>
       <div class="trade-float-bubble ${isBuy?'buy':'sell'}">${label} ${monDisplay}</div>
       <div class="trade-float-amount">${monDisplay} / ${tokenDisplay}</div>`;

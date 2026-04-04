@@ -176,6 +176,20 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   align-items:center;justify-content:center;
   gap:12px;
 }
+.trade-float-clown{
+  width:90px;height:90px;
+  object-fit:cover;object-position:center top;
+  border-radius:50%;
+  border:3px solid rgba(255,255,255,.25);
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+  animation:clownBounce .5s cubic-bezier(.34,1.56,.64,1) infinite alternate;
+  display:block;
+}
+.trade-float-clown.whale{width:120px;height:120px;}
+@keyframes clownBounce{
+  from{transform:scale(1) rotate(-4deg)}
+  to{transform:scale(1.08) rotate(4deg)}
+}
 .trade-float{
   display:flex;flex-direction:column;align-items:center;gap:8px;
   animation:tradeFloatIn .35s cubic-bezier(.34,1.56,.64,1);
