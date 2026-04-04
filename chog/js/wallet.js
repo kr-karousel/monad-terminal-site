@@ -98,7 +98,7 @@ function openNickModal(){
 
     <div class="nick-cost">
       <span style="color:var(--muted)">Cost</span>
-      <span class="nick-cost-badge" id="nickCostDisplay">💜 2,000 CHOG</span>
+      <span class="nick-cost-badge" id="nickCostDisplay">💜 ${NICK_COST.toLocaleString()} CHOG</span>
     </div>
     <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:12px">
       Balance: <b style="color:var(--accent)">${wallet.bal.toLocaleString()} CHOG</b>

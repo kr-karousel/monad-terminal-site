@@ -113,15 +113,22 @@ function renderDevTestWallets(){
   ).join('');
 }
 
+function updateCostDisplays(){
+  const shoutDisp = document.getElementById('shoutCostDisplay');
+  if(shoutDisp) shoutDisp.textContent = '💜 ' + SHOUT_COST.toLocaleString() + ' CHOG';
+  const shoutHeader = document.getElementById('shoutHeaderCost');
+  if(shoutHeader) shoutHeader.textContent = SHOUT_COST.toLocaleString() + ' CHOG';
+  const nickDisp = document.getElementById('nickCostDisplay');
+  if(nickDisp) nickDisp.textContent = '💜 ' + NICK_COST.toLocaleString() + ' CHOG';
+}
+
 function devApplyFees(){
   const nc = parseInt(document.getElementById('devNickCostInput').value) || 2000;
   const sc = parseInt(document.getElementById('devShoutCostInput').value) || 2000;
   NICK_COST = nc;
   SHOUT_COST = sc;
-  const shoutDisp = document.getElementById('shoutCostDisplay');
-  if(shoutDisp) shoutDisp.textContent = '💜 ' + sc.toLocaleString() + ' CHOG';
-  const nickDisp = document.getElementById('nickCostDisplay');
-  if(nickDisp) nickDisp.textContent = '💜 ' + nc.toLocaleString() + ' CHOG';
+  updateCostDisplays();
+  if(typeof syncConfigToServer === 'function') syncConfigToServer(nc, sc);
   alert('✅ Fees updated!\nNickname: ' + nc.toLocaleString() + ' CHOG\nShout: ' + sc.toLocaleString() + ' CHOG');
 }
 

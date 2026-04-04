@@ -19,12 +19,14 @@ function initSync(){
     _syncCustomTiersFromServer();
     _syncTestWalletsFromServer();
     _syncMessagesFromServer();
+    _syncConfigFromServer();
     _subscribeToNicknames();
     _subscribeToShouts();
     _subscribeToCustomTiers();
     _subscribeToTestWallets();
     _subscribeToMessages();
     _subscribeToContributions();
+    _subscribeToConfig();
   }catch(e){
     console.warn('[Sync] 초기화 실패:', e.message);
     _sbClient = null;
@@ -324,6 +326,50 @@ function _subscribeToContributions(){
       }
     )
     .subscribe();
+}
+
+// ── 사이트 설정 (수수료 등) ──────────────────────────────
+
+async function _syncConfigFromServer(){
+  if(!_sbClient) return;
+  try{
+    const { data } = await _sbClient.from('site_config').select('key, value');
+    if(!data) return;
+    data.forEach(row => _applyConfig(row.key, row.value));
+  }catch(e){ console.warn('[Sync] config 로드 실패:', e.message); }
+}
+
+function _subscribeToConfig(){
+  if(!_sbClient) return;
+  _sbClient.channel('sync-config')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'site_config' },
+      payload => {
+        const row = payload.new;
+        if(!row) return;
+        _applyConfig(row.key, row.value);
+      }
+    )
+    .subscribe();
+}
+
+function _applyConfig(key, value){
+  if(key === 'nick_cost'){
+    NICK_COST = parseInt(value) || 2000;
+  } else if(key === 'shout_cost'){
+    SHOUT_COST = parseInt(value) || 2000;
+  }
+  if(typeof updateCostDisplays === 'function') updateCostDisplays();
+}
+
+async function syncConfigToServer(nickCost, shoutCost){
+  if(!_sbClient) return;
+  try{
+    await _sbClient.from('site_config').upsert([
+      { key: 'nick_cost',   value: String(nickCost),  updated_at: new Date().toISOString() },
+      { key: 'shout_cost',  value: String(shoutCost), updated_at: new Date().toISOString() }
+    ], { onConflict: 'key' });
+  }catch(e){ console.warn('[Sync] config 저장 실패:', e.message); }
 }
 
 async function syncMessageToServer(address, nickname, content){
