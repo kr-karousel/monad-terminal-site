@@ -370,7 +370,7 @@ function sendChat(){
   if(typeof isSyncEnabled === 'function' && isSyncEnabled()){
     // Supabase 저장 → 구독 이벤트가 모든 브라우저에 renderMsg 처리
     const nick = typeof getNick === 'function' ? getNick(wallet.addr) : null;
-    syncMessageToServer(wallet.addr, nick, msg);
+    syncMessageToServer(wallet.addr, nick, msg, wallet.bal);
   } else {
     // Supabase 미연결 시 로컬 폴백
     renderMsg({addr: wallet.addr, addrFull: wallet.addr, bal: wallet.bal, msg, time: nowTime()});

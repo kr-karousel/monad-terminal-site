@@ -348,17 +348,22 @@ function handleSwapLog(log) {
       const txHash = log.transactionHash || '';
       const _isBuy = isBuy, _chogAmount = chogAmount, _priceUsd = priceUsd, _monAmount = monAmount;
       // tx.from = 실제 매수/매도자 (topics[1/2]는 라우터 주소라 틀림)
-      rpcCallAny('eth_getTransactionByHash', [txHash]).then(txData => {
+      rpcCallAny('eth_getTransactionByHash', [txHash]).then(async txData => {
         const addrFull = (txData && txData.from) ? txData.from
           : (log.topics && log.topics[2] ? '0x'+log.topics[2].slice(26) : '');
         const addrShort = addrFull ? addrFull.slice(0,6)+'...'+addrFull.slice(-4) : '0xUnknown';
+        // CHOG 잔고 조회 → 정확한 tier 표시
+        let bal = 0;
+        if(addrFull && typeof fetchChogBalance === 'function'){
+          bal = Math.floor((await fetchChogBalance(addrFull)) || 0);
+        }
         renderMsg({
           type: 'trade',
           side: _isBuy ? 'buy' : 'sell',
           addr: addrShort,
           addrFull: addrFull,
           txHash: txHash,
-          bal: 0,
+          bal,
           amount: Math.floor(_chogAmount),
           price: _priceUsd,
           mon: _monAmount,

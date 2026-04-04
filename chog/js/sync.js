@@ -283,7 +283,7 @@ async function _syncMessagesFromServer(){
       renderMsg({
         addr: row.address,
         addrFull: row.address,
-        bal: 0,
+        bal: row.chog_bal || 0,
         msg: row.content,
         time: timeStr
       });
@@ -302,7 +302,7 @@ function _subscribeToMessages(){
         renderMsg({
           addr: row.address,
           addrFull: row.address,
-          bal: 0,
+          bal: row.chog_bal || 0,
           msg: row.content,
           time: typeof nowTime === 'function' ? nowTime() : ''
         });
@@ -372,13 +372,14 @@ async function syncConfigToServer(nickCost, shoutCost){
   }catch(e){ console.warn('[Sync] config 저장 실패:', e.message); }
 }
 
-async function syncMessageToServer(address, nickname, content){
+async function syncMessageToServer(address, nickname, content, chogBal){
   if(!_sbClient) return;
   try{
     await _sbClient.from('messages').insert({
       address: address.toLowerCase(),
       nickname: nickname || null,
-      content
+      content,
+      chog_bal: Math.floor(chogBal || 0)
     });
   }catch(e){ console.warn('[Sync] 메시지 저장 실패:', e.message); }
 }
