@@ -240,48 +240,8 @@ function setupTracking(){
 let wsConn = null;
 let wsRetryTimer = null;
 
-var _isHistoryLoad = false;
-var _historyRemain = 0; // 히스토리 표시 남은 건수
-
 function startLiveTrades() {
-  loadRecentTrades().finally(() => startPolling());
-}
-
-// 페이지 로드 시 플로팅 기준 이상 거래 최근 5건만 채팅에 표시
-async function loadRecentTrades(){
-  try{
-    const blockHex = await rpcCallAny('eth_blockNumber', []);
-    if(!blockHex) return;
-    const cur = parseInt(blockHex, 16);
-
-    // 최대 5000블록 (~1~2시간) 스캔해서 큰 거래 찾기
-    const from = Math.max(0, cur - 5000);
-
-    const logs = await rpcCallAny('eth_getLogs', [{
-      address: NADFUN_POOL,
-      topics:  [[SWAP_TOPIC_V3, TRADE_TOPIC_KURU]],
-      fromBlock: '0x' + from.toString(16),
-      toBlock:   '0x' + cur.toString(16),
-    }]);
-
-    lastPollBlock = cur;
-    if(!logs || !logs.length) return;
-
-    // 오래된→최신 순이므로 뒤에서 뒤집어 최신 기준으로 필터
-    // handleSwapLog 내부에서 MON_BIG 이상인 것만 채팅 렌더링
-    // _historyRemain으로 5건 제한
-    _historyRemain = 5;
-    _isHistoryLoad = true;
-    // 최신순으로 처리해서 5건 채우기
-    for(let i = logs.length - 1; i >= 0 && _historyRemain > 0; i--){
-      handleSwapLog(logs[i]);
-    }
-    _isHistoryLoad = false;
-    _historyRemain = 0;
-  }catch(e){
-    _isHistoryLoad = false;
-    _historyRemain = 0;
-  }
+  startPolling();
 }
 
 // WSS 안되면 폴링으로 대체
@@ -380,13 +340,11 @@ function handleSwapLog(log) {
     updatePriceDisplay(priceUsd);
     updateMcap(mcapNow);
 
-    // 플로팅 알림 — 히스토리 로드 시 스킵
-    if(!_isHistoryLoad) showTradeFloat(isBuy, usdValue, chogAmount, monAmount);
+    // 플로팅 알림 (MON 기준으로 직접 전달)
+    showTradeFloat(isBuy, usdValue, chogAmount, monAmount);
 
-    // 채팅 — 라이브: MON_BIG 이상 / 히스토리: MON_BIG 이상 + 남은 건수 있을 때만
-    const chatThreshold = monAmount >= MON_BIG;
-    if(chatThreshold && (!_isHistoryLoad || _historyRemain > 0)) {
-      if(_isHistoryLoad) _historyRemain--;
+    // 채팅창 거래 알림 (1000 MON 이상)
+    if(monAmount >= MON_BIG) {
       const txHash = log.transactionHash || '';
       const _isBuy = isBuy, _chogAmount = chogAmount, _priceUsd = priceUsd, _monAmount = monAmount;
       // tx.from = 실제 매수/매도자 (topics[1/2]는 라우터 주소라 틀림)
@@ -422,7 +380,7 @@ function handleSwapLog(log) {
           time: nowTime()
         });
       });
-      if(!_isHistoryLoad) chogEmotion(isBuy ? 'buy' : 'sell');
+      chogEmotion(isBuy ? 'buy' : 'sell');
     }
 
     console.log(isBuy?'🟢 BUY':'🔴 SELL', chogAmount.toFixed(0),'CHOG | $'+usdValue.toFixed(2),'| $'+priceUsd.toFixed(8));
