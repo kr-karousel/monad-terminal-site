@@ -323,11 +323,20 @@ async function connectWallet(name){
 }
 
 function sendChat(){
-  if(!wallet)return;
-  const inp=document.getElementById('chatInput');
-  const msg=inp.value.trim();if(!msg)return;
-  renderMsg({addr:wallet.addr,bal:wallet.bal,msg,time:nowTime()});
-  inp.value='';
+  if(!wallet) return;
+  const inp = document.getElementById('chatInput');
+  const msg = inp.value.trim();
+  if(!msg) return;
+  inp.value = '';
+
+  if(typeof isSyncEnabled === 'function' && isSyncEnabled()){
+    // Supabase 저장 → 구독 이벤트가 모든 브라우저에 renderMsg 처리
+    const nick = typeof getNick === 'function' ? getNick(wallet.addr) : null;
+    syncMessageToServer(wallet.addr, nick, msg);
+  } else {
+    // Supabase 미연결 시 로컬 폴백
+    renderMsg({addr: wallet.addr, addrFull: wallet.addr, bal: wallet.bal, msg, time: nowTime()});
+  }
 }
 document.addEventListener('DOMContentLoaded',()=>{
   const ci=document.getElementById('chatInput');

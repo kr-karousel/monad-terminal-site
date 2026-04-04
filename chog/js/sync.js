@@ -18,10 +18,12 @@ function initSync(){
     _syncShoutsFromServer();
     _syncCustomTiersFromServer();
     _syncTestWalletsFromServer();
+    _syncMessagesFromServer();
     _subscribeToNicknames();
     _subscribeToShouts();
     _subscribeToCustomTiers();
     _subscribeToTestWallets();
+    _subscribeToMessages();
   }catch(e){
     console.warn('[Sync] 초기화 실패:', e.message);
     _sbClient = null;
@@ -258,4 +260,61 @@ async function syncTestWalletToServer(address, add){
       await _sbClient.from('test_wallets').delete().eq('address', address.toLowerCase());
     }
   }catch(e){ console.warn('[Sync] 테스트 지갑 저장 실패:', e.message); }
+}
+
+// ── 채팅 메시지 ─────────────────────────────────────────
+
+async function _syncMessagesFromServer(){
+  if(!_sbClient) return;
+  try{
+    const { data } = await _sbClient
+      .from('messages')
+      .select('id, address, nickname, content, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    if(!data || !data.length) return;
+    // 오래된 순으로 정렬해서 렌더링
+    data.slice().reverse().forEach(row => {
+      const t = new Date(row.created_at);
+      const timeStr = t.getHours() + ':' + String(t.getMinutes()).padStart(2,'0');
+      renderMsg({
+        addr: row.address,
+        addrFull: row.address,
+        bal: 0,
+        msg: row.content,
+        time: timeStr
+      });
+    });
+  }catch(e){ console.warn('[Sync] 메시지 로드 실패:', e.message); }
+}
+
+function _subscribeToMessages(){
+  if(!_sbClient) return;
+  _sbClient.channel('sync-messages')
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages' },
+      payload => {
+        const row = payload.new;
+        if(!row) return;
+        renderMsg({
+          addr: row.address,
+          addrFull: row.address,
+          bal: 0,
+          msg: row.content,
+          time: typeof nowTime === 'function' ? nowTime() : ''
+        });
+      }
+    )
+    .subscribe();
+}
+
+async function syncMessageToServer(address, nickname, content){
+  if(!_sbClient) return;
+  try{
+    await _sbClient.from('messages').insert({
+      address: address.toLowerCase(),
+      nickname: nickname || null,
+      content
+    });
+  }catch(e){ console.warn('[Sync] 메시지 저장 실패:', e.message); }
 }
