@@ -231,10 +231,47 @@ function closeWalletModal(){document.getElementById('walletModal').classList.rem
 function openRankModal(){document.getElementById('rankModal').classList.add('open');}
 function closeRankModal(){document.getElementById('rankModal').classList.remove('open');}
 
+function _getProvider(name){
+  if(name === 'Phantom'){
+    // Phantom 전용 EVM provider 우선
+    if(window.phantom?.ethereum) return window.phantom.ethereum;
+    if(window.ethereum?.isPhantom) return window.ethereum;
+    if(window.ethereum?.providers){
+      const p = window.ethereum.providers.find(p => p.isPhantom);
+      if(p) return p;
+    }
+    return null;
+  }
+  if(name === 'Backpack'){
+    if(window.ethereum?.isBackpack) return window.ethereum;
+    if(window.ethereum?.providers){
+      const p = window.ethereum.providers.find(p => p.isBackpack);
+      if(p) return p;
+    }
+    // Backpack may inject under window.backpack.ethereum
+    if(window.backpack?.ethereum) return window.backpack.ethereum;
+    return null;
+  }
+  // MetaMask — providers 배열에서 MetaMask 찾기 (여러 지갑 공존 시)
+  if(window.ethereum?.providers){
+    const p = window.ethereum.providers.find(p => p.isMetaMask && !p.isPhantom && !p.isBackpack);
+    if(p) return p;
+  }
+  return window.ethereum || null;
+}
+
 async function connectWallet(name){
   closeWalletModal();
-  const provider=window.ethereum;
-  if(!provider){alert('No Web3 wallet detected!\nPlease install MetaMask.');return;}
+  const provider = _getProvider(name);
+  if(!provider){
+    const links = {
+      MetaMask: 'https://metamask.io',
+      Phantom:  'https://phantom.app',
+      Backpack: 'https://backpack.app',
+    };
+    alert(`${name} wallet not found!\nPlease install it from ${links[name]||'the official site'}.`);
+    return;
+  }
   try{
     const accounts=await provider.request({method:'eth_requestAccounts'});
     if(!accounts||!accounts.length)throw new Error('No accounts');
@@ -318,7 +355,8 @@ async function connectWallet(name){
         chatList2.scrollTop = chatList2.scrollHeight;
       }, 600);
     });
-    provider.on('accountsChanged',accs=>{if(!accs.length){wallet=null;location.reload();}else connectWallet(name);});
+    if(typeof provider.on === 'function')
+      provider.on('accountsChanged',accs=>{if(!accs.length){wallet=null;location.reload();}else connectWallet(name);});
   }catch(err){console.error('connectWallet error:',err);alert('Connection failed: '+(err.message||err));}
 }
 
