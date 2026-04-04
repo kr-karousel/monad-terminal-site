@@ -8,10 +8,13 @@ function startApp(){
   if(width<10){appStarted=false;setTimeout(startApp,80);return;}
   checkWelcome();
   loadNickDB();
-  loadShoutsFromStorage();
+  // Supabase 미설정 시에만 로컬 외치기 로드 (설정 시 서버에서 덮어씀)
+  if(typeof SUPABASE_URL === 'undefined' || !SUPABASE_URL) loadShoutsFromStorage();
   loadCustomTiersFromStorage();
   initChart();
   startPriceRefresh();
+  // Supabase 실시간 동기화 초기화
+  setTimeout(initSync, 200);
   setTimeout(setupTracking,300);
 }
 

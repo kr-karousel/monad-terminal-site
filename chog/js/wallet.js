@@ -157,6 +157,8 @@ async function confirmSetNick(){
   wallet.bal -= NICK_COST;
   nickDB[wallet.addr.toLowerCase()] = nick;
   saveNickDB();
+  // 서버에 동기화 (Supabase 활성화 시 다른 브라우저에도 즉시 반영)
+  if(typeof syncNickToServer === 'function') syncNickToServer(wallet.addr, nick);
 
   // 지갑 표시 업데이트
   updateWalletDisplay();

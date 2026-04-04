@@ -256,10 +256,16 @@ async function doShout(){
   const shoutNick = getNick(wallet.addr) || (wallet.addr.slice(0,6)+'...'+wallet.addr.slice(-4));
   const shoutBal = wallet.bal; // 차감 후 잔액 그대로 사용 (계급 변경 방지 위해 원래 bal 유지)
   showShoutPopup(shoutNick,msg);
-  addPinnedShout(wallet.addr,msg);
   renderMsg({addr:wallet.addr,addrFull:wallet.addr,bal:shoutBal,msg:'📢 [SHOUT] '+msg,time:nowTime()});
   const sh=document.getElementById('shoutHistory');
   if(sh){const item=document.createElement('div');item.className='shout-item';item.innerHTML=`<div class="shout-item-addr">${shoutNick} · ${nowTime()}</div><div>${msg}</div>`;sh.insertBefore(item,sh.firstChild);}
+  if(isSyncEnabled()){
+    // Supabase 활성화: 서버에 저장 → subscription이 핀 추가 처리 (전 브라우저 동기화)
+    syncShoutToServer(wallet.addr,shoutNick,msg);
+  }else{
+    // 로컬 모드: localStorage에 저장
+    addPinnedShout(wallet.addr,msg);
+  }
   document.getElementById('shoutInput').value='';
 }
 
