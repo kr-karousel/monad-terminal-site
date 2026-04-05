@@ -138,11 +138,14 @@ async function renderHolderList(){
 async function fetchTopHolders(){
   if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
 
-  const BV_URL   = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
-  const EXP_URL  = `https://explorer.monad.xyz/api/v2/tokens/${CHOG_CONTRACT}/holders`;
-  const EXP_URL1 = `https://explorer.monad.xyz/api?module=token&action=tokenholderlist&contractaddress=${CHOG_CONTRACT}`;
-  const enc      = encodeURIComponent(BV_URL);
-  const encExp   = encodeURIComponent(EXP_URL);
+  const BV_URL    = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
+  const EXP_URL   = `https://explorer.monad.xyz/api/v2/tokens/${CHOG_CONTRACT}/holders`;
+  const EXP_URL1  = `https://explorer.monad.xyz/api?module=token&action=tokenholderlist&contractaddress=${CHOG_CONTRACT}`;
+  const NAD_URL1  = `https://api.nad.fun/v1/tokens/${CHOG_CONTRACT}/holders?limit=50`;
+  const NAD_URL2  = `https://api.nad.fun/coins/${CHOG_CONTRACT}/holders?limit=50`;
+  const enc       = encodeURIComponent(BV_URL);
+  const encExp    = encodeURIComponent(EXP_URL);
+  const encNad    = encodeURIComponent(NAD_URL1);
 
   const fromWei = (v) => { try{ return Number(BigInt(v)*1000n/BigInt('1000000000000000000'))/1000; }catch(_){ return 0; } };
   const parseData = (d) => {
@@ -153,10 +156,10 @@ async function fetchTopHolders(){
         pct: parseFloat(h.percentage || h.pct || 0)
       })).filter(h => h.address && h.balance > 0);
     }
-    const list = d?.result?.data || d?.result?.list || d?.result || d?.data || d?.holders || [];
+    const list = d?.result?.data || d?.result?.list || d?.result || d?.data || d?.holders || d?.list || [];
     if(!list.length) throw new Error('empty list');
     return list.map(h => ({
-      address: (h.holder || h.accountAddress || h.address?.hash || h.address || '').toLowerCase(),
+      address: (h.holder || h.wallet_address || h.accountAddress || h.address?.hash || h.address || '').toLowerCase(),
       balance: h.amount ? fromWei(h.amount) : h.value ? fromWei(h.value) : h.balance ? parseFloat(h.balance) : 0,
       pct: parseFloat(h.percentage || h.share || h.pct || 0)
     })).filter(h => h.address && h.balance > 0);
@@ -164,9 +167,12 @@ async function fetchTopHolders(){
 
   const attempts = [
     [`/api/holders?contract=${CHOG_CONTRACT}&limit=50`, false],
-    [EXP_URL,  false],
-    [EXP_URL1, false],
-    [BV_URL,   false],
+    [NAD_URL1,  false],
+    [NAD_URL2,  false],
+    [EXP_URL,   false],
+    [EXP_URL1,  false],
+    [BV_URL,    false],
+    [`https://api.allorigins.win/raw?url=${encNad}`, false],
     [`https://api.allorigins.win/raw?url=${encExp}`, false],
     [`https://api.allorigins.win/get?url=${enc}`, true],
     [`https://corsproxy.io/?${enc}`, false],
