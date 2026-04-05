@@ -204,63 +204,90 @@ async function fetchTopHolders(){
     } catch(e){ console.warn(`Holder fetch error (${url.slice(0,60)}):`, e.message); }
   }
 
-  // ── rpcCallAny 사용 (지갑 provider → fetch 순으로 CORS 우회, fetchCandles와 동일 방식) ──
+  // ── rpcCallAny 사용 (지갑 provider → fetch 순으로 CORS 우회) ──────────────
   console.log('📡 Fetching holders (rpc-direct)...');
   try {
     const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-    const ZERO = '0x0000000000000000000000000000000000000000';
-    const CHUNK = 400; // fetchCandles와 동일한 안전한 청크 크기
+
+    // 제외할 컨트랙트/LP 주소 (유동성 풀, 라우터 등)
+    const EXCLUDE = new Set([
+      '0x0000000000000000000000000000000000000000',
+      '0x000000000000000000000000000000000000dead',
+      (typeof NADFUN_POOL   !== 'undefined' ? NADFUN_POOL   : '').toLowerCase(),
+      (typeof KURU_PAIR     !== 'undefined' ? KURU_PAIR     : '').toLowerCase(),
+      (typeof NADFUN_ROUTER !== 'undefined' ? NADFUN_ROUTER : '').toLowerCase(),
+      (typeof BONDING_ROUTER!== 'undefined' ? BONDING_ROUTER: '').toLowerCase(),
+    ].filter(Boolean));
 
     // 현재 블록
     const blockHex = await rpcCallAny('eth_blockNumber', []);
     const current = parseInt(blockHex, 16);
     if(!current) return null;
 
-    // Transfer 로그를 400블록 단위로 수집 (최근 → 과거 방향)
+    // Transfer 로그 수집 — 먼저 큰 범위(500k블록 ≈ 5.8일) 한 번에 시도,
+    // 실패하면 2000블록 청크로 나눠서 시도
     const seen = new Set();
-    const MAX_CHUNKS = 50; // 최대 50청크 = 20000블록 (~5.5시간)
-    let chunksSearched = 0;
+    const BIG = Math.max(0, current - 500000);
+    let bigLogs = await rpcCallAny('eth_getLogs', [{
+      address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC],
+      fromBlock: '0x' + BIG.toString(16), toBlock: 'latest',
+    }]);
 
-    for(let end = current; end > 0 && chunksSearched < MAX_CHUNKS; end -= CHUNK, chunksSearched++){
-      const start = Math.max(0, end - CHUNK + 1);
-      const logs = await rpcCallAny('eth_getLogs', [{
-        address: CHOG_CONTRACT,
-        topics: [TRANSFER_TOPIC],
-        fromBlock: '0x' + start.toString(16),
-        toBlock:   '0x' + end.toString(16),
-      }]);
-      if(logs && logs.length){
-        for(const log of logs){
-          if(log.topics?.[2]){
-            const to = '0x' + log.topics[2].slice(26).toLowerCase();
-            if(to !== ZERO) seen.add(to);
-          }
+    if(bigLogs && bigLogs.length){
+      for(const log of bigLogs){
+        if(log.topics?.[2]){
+          const to = '0x' + log.topics[2].slice(26).toLowerCase();
+          if(!EXCLUDE.has(to)) seen.add(to);
         }
       }
-      if(seen.size >= 200) break; // 충분한 주소 수집 시 중단
+    } else {
+      // 청크 방식 fallback (2000블록씩, 최대 100회 = 200k블록)
+      const CHUNK = 2000;
+      for(let end = current, n = 0; end > 0 && n < 100; end -= CHUNK, n++){
+        const start = Math.max(0, end - CHUNK + 1);
+        const logs = await rpcCallAny('eth_getLogs', [{
+          address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC],
+          fromBlock: '0x' + start.toString(16), toBlock: '0x' + end.toString(16),
+        }]);
+        if(logs?.length){
+          for(const log of logs){
+            if(log.topics?.[2]){
+              const to = '0x' + log.topics[2].slice(26).toLowerCase();
+              if(!EXCLUDE.has(to)) seen.add(to);
+            }
+          }
+        }
+        if(seen.size >= 300) break;
+      }
     }
 
     if(!seen.size) return null;
 
-    // 잔고 순차 조회 (rpcCallAny로 지갑 provider 경유 → CORS 걱정 없음)
+    // 잔고 병렬 조회 (20개씩 동시 요청 → 순차 대비 ~20배 빠름)
     const addrs = [...seen];
     const holders = [];
-    for(const addr of addrs){
-      const hex = await rpcCallAny('eth_call', [{
-        to: CHOG_CONTRACT,
-        data: '0x70a08231' + addr.slice(2).padStart(64, '0')
-      }, 'latest']);
-      if(hex && hex.length > 2){
-        const bal = fromWei(hex);
-        if(bal > 0) holders.push({address: addr, balance: bal, pct: 0});
-      }
+    const PARALLEL = 20;
+    for(let i = 0; i < addrs.length; i += PARALLEL){
+      const chunk = addrs.slice(i, i + PARALLEL);
+      const results = await Promise.all(chunk.map(addr =>
+        rpcCallAny('eth_call', [{
+          to: CHOG_CONTRACT,
+          data: '0x70a08231' + addr.slice(2).padStart(64, '0')
+        }, 'latest'])
+      ));
+      results.forEach((hex, j) => {
+        if(hex && hex.length > 2){
+          const bal = fromWei(hex);
+          if(bal > 0) holders.push({address: chunk[j], balance: bal, pct: 0});
+        }
+      });
     }
 
     if(!holders.length) return null;
     holders.sort((a,b) => b.balance - a.balance);
     const top = holders.slice(0, 50);
     top.forEach(h => { h.pct = (h.balance / 1_000_000_000) * 100; });
-    console.log('✅ Holders loaded (rpc):', top.length, 'from', chunksSearched, 'chunks');
+    console.log('✅ Holders loaded (rpc):', top.length, 'from', seen.size, 'unique addrs');
     holderCache = top; holderCacheTime = Date.now();
     return top;
   } catch(e){ console.warn('RPC direct error:', e.message); }
