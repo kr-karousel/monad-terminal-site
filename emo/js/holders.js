@@ -138,34 +138,47 @@ async function renderHolderList(){
 async function fetchTopHolders(){
   if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
 
-  const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
-  const enc = encodeURIComponent(BV_URL);
+  const BV_URL   = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
+  const EXP_URL  = `https://explorer.monad.xyz/api/v2/tokens/${CHOG_CONTRACT}/holders`;
+  const EXP_URL1 = `https://explorer.monad.xyz/api?module=token&action=tokenholderlist&contractaddress=${CHOG_CONTRACT}`;
+  const enc      = encodeURIComponent(BV_URL);
+  const encExp   = encodeURIComponent(EXP_URL);
 
-  // (url, isWrapped) — isWrapped=true: response is {contents:"json string"}
-  const attempts = [
-    [`/api/holders?contract=${CHOG_CONTRACT}&limit=50`, false],
-    [BV_URL, false],
-    [`https://api.allorigins.win/get?url=${enc}`, true],
-    [`https://api.allorigins.win/raw?url=${enc}`, false],
-    [`https://corsproxy.io/?${enc}`, false],
-    [`https://thingproxy.freeboard.io/fetch/${BV_URL}`, false]
-  ];
-
+  const fromWei = (v) => { try{ return Number(BigInt(v)*1000n/BigInt('1000000000000000000'))/1000; }catch(_){ return 0; } };
   const parseData = (d) => {
-    // 여러 응답 구조 시도
-    const list = d?.result?.data || d?.result?.list || d?.data || d?.items || d?.holders || [];
+    if(d?.items?.length){
+      return d.items.map(h => ({
+        address: (h.address?.hash || h.address || '').toLowerCase(),
+        balance: h.value ? fromWei(h.value) : h.balance ? parseFloat(h.balance) : 0,
+        pct: parseFloat(h.percentage || h.pct || 0)
+      })).filter(h => h.address && h.balance > 0);
+    }
+    const list = d?.result?.data || d?.result?.list || d?.result || d?.data || d?.holders || [];
     if(!list.length) throw new Error('empty list');
     return list.map(h => ({
-      address: (h.holder || h.accountAddress || h.address || '').toLowerCase(),
-      balance: h.amount ? Number(BigInt(h.amount) * 1000n / BigInt('1000000000000000000')) / 1000
-               : h.balance ? parseFloat(h.balance) : 0,
-      pct: parseFloat(h.percentage || h.pct || 0)
+      address: (h.holder || h.accountAddress || h.address?.hash || h.address || '').toLowerCase(),
+      balance: h.amount ? fromWei(h.amount) : h.value ? fromWei(h.value) : h.balance ? parseFloat(h.balance) : 0,
+      pct: parseFloat(h.percentage || h.share || h.pct || 0)
     })).filter(h => h.address && h.balance > 0);
   };
 
+  const attempts = [
+    [`/api/holders?contract=${CHOG_CONTRACT}&limit=50`, false],
+    [EXP_URL,  false],
+    [EXP_URL1, false],
+    [BV_URL,   false],
+    [`https://api.allorigins.win/raw?url=${encExp}`, false],
+    [`https://api.allorigins.win/get?url=${enc}`, true],
+    [`https://corsproxy.io/?${enc}`, false],
+  ];
+
   for(const [url, isWrapped] of attempts){
     try {
-      const label = url.includes('allorigins') ? 'allorigins' : url.includes('corsproxy') ? 'corsproxy' : url.includes('thingproxy') ? 'thingproxy' : url.startsWith('/api') ? 'vercel-proxy' : 'direct';
+      const label = url.startsWith('/api') ? 'vercel-proxy'
+        : url.includes('explorer.monad') ? 'monad-explorer'
+        : url.includes('allorigins') ? 'allorigins'
+        : url.includes('corsproxy') ? 'corsproxy'
+        : 'direct';
       console.log(`📡 Fetching holders (${label})...`);
       const res = await fetch(url, {headers:{'accept':'application/json'}});
       if(!res.ok) throw new Error('HTTP '+res.status);
@@ -174,84 +187,78 @@ async function fetchTopHolders(){
       console.log('raw response:', JSON.stringify(d).slice(0,200));
       const valid = parseData(d);
       if(valid.length > 0){
-        console.log('✅ Holders loaded:', valid.length);
+        console.log('✅ Holders loaded:', valid.length, 'via', label);
         holderCache = valid; holderCacheTime = Date.now();
         return valid;
       }
-    } catch(e){ console.warn(`Holder fetch error (${url.slice(0,50)}):`, e.message); }
+    } catch(e){ console.warn(`Holder fetch error (${url.slice(0,60)}):`, e.message); }
   }
 
-  // ── RPC 직접 조회 (Transfer 이벤트 → 잔고 배치 조회) ──────────────────────
+  // ── 최후 수단: Monad RPC Transfer 이벤트 직접 조회 ────────────────────────
   console.log('📡 Fetching holders (rpc-direct)...');
   try {
     const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
     const ZERO = '0x0000000000000000000000000000000000000000';
+    const rpcs = [MONAD_RPC, 'https://monad-mainnet.rpc.thirdweb.com', 'https://monad.drpc.org'];
 
-    const blockRes = await fetch(MONAD_RPC, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_blockNumber',params:[]})
-    });
-    const blockData = await blockRes.json();
-    const current = parseInt(blockData.result, 16);
+    const rpcFetch = async (rpc, body) => {
+      const r = await fetch(rpc, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+      return r.json();
+    };
 
-    let logs = [];
-    const fromBlocks = [0, Math.max(0, current-1000000), Math.max(0, current-200000), Math.max(0, current-50000)];
-    for(const from of fromBlocks){
-      try{
-        const lr = await fetch(MONAD_RPC, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({jsonrpc:'2.0',id:2,method:'eth_getLogs',params:[{
-            fromBlock:'0x'+from.toString(16), toBlock:'latest',
-            address:CHOG_CONTRACT, topics:[TRANSFER_TOPIC]
-          }]})
-        });
-        const ld = await lr.json();
-        if(!ld.error && ld.result && ld.result.length > 0){ logs = ld.result; break; }
-      } catch(_){}
+    let current = 0;
+    for(const rpc of rpcs){
+      try{ const d = await rpcFetch(rpc,{jsonrpc:'2.0',id:1,method:'eth_blockNumber',params:[]}); current=parseInt(d.result,16); if(current>0)break; }catch(_){}
     }
+    if(!current) return null;
 
-    if(logs.length === 0) return null;
+    let logs = [], usedRpc = rpcs[0];
+    const ranges = [
+      [Math.max(0, current-10000),  current],
+      [Math.max(0, current-50000),  current],
+      [Math.max(0, current-200000), current],
+    ];
+    outer:
+    for(const rpc of rpcs){
+      for(const [from, to] of ranges){
+        try{
+          const ld = await rpcFetch(rpc,{jsonrpc:'2.0',id:2,method:'eth_getLogs',params:[{
+            fromBlock:'0x'+from.toString(16), toBlock:'0x'+to.toString(16),
+            address:CHOG_CONTRACT, topics:[TRANSFER_TOPIC]
+          }]});
+          if(!ld.error && ld.result && ld.result.length>0){ logs=ld.result; usedRpc=rpc; break outer; }
+        }catch(_){}
+      }
+    }
+    if(!logs.length) return null;
 
     const seen = new Set();
     for(const log of logs){
-      if(log.topics && log.topics[2]){
-        const to = '0x'+log.topics[2].slice(26).toLowerCase();
-        if(to !== ZERO) seen.add(to);
-      }
+      if(log.topics?.[2]){ const to='0x'+log.topics[2].slice(26).toLowerCase(); if(to!==ZERO) seen.add(to); }
     }
 
     const addrs = [...seen];
     const holders = [];
-    for(let i = 0; i < addrs.length; i += 50){
-      const chunk = addrs.slice(i, i+50);
-      const reqs = chunk.map((addr, j) => ({
-        jsonrpc:'2.0', id:i+j, method:'eth_call',
-        params:[{to:CHOG_CONTRACT, data:'0x70a08231'+addr.slice(2).padStart(64,'0')}, 'latest']
-      }));
+    for(let i=0; i<addrs.length; i+=50){
+      const chunk = addrs.slice(i,i+50);
+      const reqs = chunk.map((addr,j)=>({jsonrpc:'2.0',id:i+j,method:'eth_call',params:[{to:CHOG_CONTRACT,data:'0x70a08231'+addr.slice(2).padStart(64,'0')},'latest']}));
       try{
-        const br = await fetch(MONAD_RPC, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify(reqs)
-        });
-        const arr = await br.json();
-        (Array.isArray(arr)?arr:[arr]).forEach((item, j) => {
-          const hex = item?.result;
-          if(hex && hex !== '0x' && hex !== '0x'+'0'.repeat(64)){
-            try{
-              const bal = Number(BigInt(hex) * 1000n / BigInt('1000000000000000000')) / 1000;
-              if(bal > 0) holders.push({address:chunk[j], balance:bal, pct:0});
-            }catch(_){}
+        const arr = await rpcFetch(usedRpc, reqs);
+        (Array.isArray(arr)?arr:[arr]).forEach((item,j)=>{
+          const hex=item?.result;
+          if(hex && hex.length>2 && BigInt(hex)>0n){
+            const bal=fromWei(hex); if(bal>0) holders.push({address:chunk[j],balance:bal,pct:0});
           }
         });
       }catch(_){}
     }
 
     if(!holders.length) return null;
-    holders.sort((a,b) => b.balance - a.balance);
-    const top = holders.slice(0, 50);
-    top.forEach(h => { h.pct = (h.balance / 1_000_000_000) * 100; });
+    holders.sort((a,b)=>b.balance-a.balance);
+    const top=holders.slice(0,50);
+    top.forEach(h=>{h.pct=(h.balance/1_000_000_000)*100;});
     console.log('✅ Holders loaded (rpc):', top.length);
-    holderCache = top; holderCacheTime = Date.now();
+    holderCache=top; holderCacheTime=Date.now();
     return top;
   } catch(e){ console.warn('RPC direct error:', e.message); }
 
