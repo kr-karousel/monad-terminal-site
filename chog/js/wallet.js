@@ -199,7 +199,7 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
   const short = addrFull.length > 10
     ? addrFull.slice(0,8)+'...'+addrFull.slice(-6)
     : addrFull;
-  const rank = getRank(bal);
+  const rank = getRank(bal, addrFull);
   const nick = getNick(addrFull);
   const explorerUrl = txHash ? `https://monadvision.com/tx/${txHash}` : `https://monadvision.com/address/${addrFull}`;
   const isMe = wallet && wallet.addr.toLowerCase() === addrFull.toLowerCase();
@@ -272,9 +272,14 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
       if(el) el.textContent = balInt.toLocaleString();
       const usdEl = document.getElementById('profileUsd');
       if(usdEl) usdEl.textContent = '$' + (balInt*(livePrice||0.000731)).toFixed(2);
-      // 퍼센트 계산
       const pctEl = document.getElementById('profilePct');
       if(pctEl) pctEl.textContent = ((balInt/1e9)*100).toFixed(3)+'%';
+      // 실제 잔고로 tier 업데이트
+      const realRank = getRank(balInt, addrFull);
+      const rankEl = document.querySelector('.profile-rank-big');
+      if(rankEl){ rankEl.textContent = realRank.label; rankEl.className = 'profile-rank-big ' + realRank.cls; }
+      const avatarEl = document.querySelector('.profile-avatar');
+      if(avatarEl) avatarEl.textContent = realRank.badge.split(' ')[0];
     });
     // 홀더 랭킹 조회
     getHolderRank(addrFull).then(rank => {
