@@ -143,6 +143,7 @@ async function fetchTopHolders(){
 
   // (url, isWrapped) — isWrapped=true: response is {contents:"json string"}
   const attempts = [
+    [`/api/holders?contract=${CHOG_CONTRACT}&limit=50`, false],
     [BV_URL, false],
     [`https://api.allorigins.win/get?url=${enc}`, true],
     [`https://api.allorigins.win/raw?url=${enc}`, false],
@@ -164,7 +165,7 @@ async function fetchTopHolders(){
 
   for(const [url, isWrapped] of attempts){
     try {
-      const label = url.includes('allorigins') ? 'allorigins' : url.includes('corsproxy') ? 'corsproxy' : url.includes('thingproxy') ? 'thingproxy' : 'direct';
+      const label = url.includes('allorigins') ? 'allorigins' : url.includes('corsproxy') ? 'corsproxy' : url.includes('thingproxy') ? 'thingproxy' : url.startsWith('/api') ? 'vercel-proxy' : 'direct';
       console.log(`📡 Fetching holders (${label})...`);
       const res = await fetch(url, {headers:{'accept':'application/json'}});
       if(!res.ok) throw new Error('HTTP '+res.status);
@@ -179,6 +180,84 @@ async function fetchTopHolders(){
       }
     } catch(e){ console.warn(`Holder fetch error (${url.slice(0,50)}):`, e.message); }
   }
+
+  // ── RPC 직접 조회 (Transfer 이벤트 → 잔고 배치 조회) ──────────────────────
+  console.log('📡 Fetching holders (rpc-direct)...');
+  try {
+    const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+    const ZERO = '0x0000000000000000000000000000000000000000';
+
+    // 현재 블록 조회
+    const blockRes = await fetch(MONAD_RPC, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_blockNumber',params:[]})
+    });
+    const blockData = await blockRes.json();
+    const current = parseInt(blockData.result, 16);
+
+    // Transfer 로그 조회 (범위를 단계적으로 좁혀 시도)
+    let logs = [];
+    const fromBlocks = [0, Math.max(0, current-1000000), Math.max(0, current-200000), Math.max(0, current-50000)];
+    for(const from of fromBlocks){
+      try{
+        const lr = await fetch(MONAD_RPC, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({jsonrpc:'2.0',id:2,method:'eth_getLogs',params:[{
+            fromBlock:'0x'+from.toString(16), toBlock:'latest',
+            address:CHOG_CONTRACT, topics:[TRANSFER_TOPIC]
+          }]})
+        });
+        const ld = await lr.json();
+        if(!ld.error && ld.result && ld.result.length > 0){ logs = ld.result; break; }
+      } catch(_){}
+    }
+
+    if(logs.length === 0) return null;
+
+    // 수신 주소 수집 (burn 제외)
+    const seen = new Set();
+    for(const log of logs){
+      if(log.topics && log.topics[2]){
+        const to = '0x'+log.topics[2].slice(26).toLowerCase();
+        if(to !== ZERO) seen.add(to);
+      }
+    }
+
+    // 배치 잔고 조회 (50개씩)
+    const addrs = [...seen];
+    const holders = [];
+    for(let i = 0; i < addrs.length; i += 50){
+      const chunk = addrs.slice(i, i+50);
+      const reqs = chunk.map((addr, j) => ({
+        jsonrpc:'2.0', id:i+j, method:'eth_call',
+        params:[{to:CHOG_CONTRACT, data:'0x70a08231'+addr.slice(2).padStart(64,'0')}, 'latest']
+      }));
+      try{
+        const br = await fetch(MONAD_RPC, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(reqs)
+        });
+        const arr = await br.json();
+        (Array.isArray(arr)?arr:[arr]).forEach((item, j) => {
+          const hex = item?.result;
+          if(hex && hex !== '0x' && hex !== '0x'+'0'.repeat(64)){
+            try{
+              const bal = Number(BigInt(hex) * 1000n / BigInt('1000000000000000000')) / 1000;
+              if(bal > 0) holders.push({address:chunk[j], balance:bal, pct:0});
+            }catch(_){}
+          }
+        });
+      }catch(_){}
+    }
+
+    if(!holders.length) return null;
+    holders.sort((a,b) => b.balance - a.balance);
+    const top = holders.slice(0, 50);
+    top.forEach(h => { h.pct = (h.balance / 1_000_000_000) * 100; });
+    console.log('✅ Holders loaded (rpc):', top.length);
+    holderCache = top; holderCacheTime = Date.now();
+    return top;
+  } catch(e){ console.warn('RPC direct error:', e.message); }
 
   return null;
 }
