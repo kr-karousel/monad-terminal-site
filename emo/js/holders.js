@@ -143,6 +143,7 @@ async function fetchTopHolders(){
 
   // (url, isWrapped) — isWrapped=true: response is {contents:"json string"}
   const attempts = [
+    [`/api/holders?contract=${CHOG_CONTRACT}&limit=50`, false],
     [BV_URL, false],
     [`https://api.allorigins.win/get?url=${enc}`, true],
     [`https://api.allorigins.win/raw?url=${enc}`, false],
