@@ -204,75 +204,64 @@ async function fetchTopHolders(){
     } catch(e){ console.warn(`Holder fetch error (${url.slice(0,60)}):`, e.message); }
   }
 
-  // ── 최후 수단: Monad RPC Transfer 이벤트 직접 조회 ────────────────────────
+  // ── rpcCallAny 사용 (지갑 provider → fetch 순으로 CORS 우회, fetchCandles와 동일 방식) ──
   console.log('📡 Fetching holders (rpc-direct)...');
   try {
     const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
     const ZERO = '0x0000000000000000000000000000000000000000';
-    const rpcs = [MONAD_RPC, 'https://monad-mainnet.rpc.thirdweb.com', 'https://monad.drpc.org'];
+    const CHUNK = 400; // fetchCandles와 동일한 안전한 청크 크기
 
-    const rpcFetch = async (rpc, body) => {
-      const r = await fetch(rpc, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-      return r.json();
-    };
-
-    // 현재 블록 조회
-    let current = 0;
-    for(const rpc of rpcs){
-      try{ const d = await rpcFetch(rpc,{jsonrpc:'2.0',id:1,method:'eth_blockNumber',params:[]}); current=parseInt(d.result,16); if(current>0)break; }catch(_){}
-    }
+    // 현재 블록
+    const blockHex = await rpcCallAny('eth_blockNumber', []);
+    const current = parseInt(blockHex, 16);
     if(!current) return null;
 
-    // Transfer 로그 조회 (작은 범위부터 시도)
-    let logs = [], usedRpc = rpcs[0];
-    const ranges = [
-      [Math.max(0, current-10000),  current],
-      [Math.max(0, current-50000),  current],
-      [Math.max(0, current-200000), current],
-    ];
-    outer:
-    for(const rpc of rpcs){
-      for(const [from, to] of ranges){
-        try{
-          const ld = await rpcFetch(rpc,{jsonrpc:'2.0',id:2,method:'eth_getLogs',params:[{
-            fromBlock:'0x'+from.toString(16), toBlock:'0x'+to.toString(16),
-            address:CHOG_CONTRACT, topics:[TRANSFER_TOPIC]
-          }]});
-          if(!ld.error && ld.result && ld.result.length>0){ logs=ld.result; usedRpc=rpc; break outer; }
-        }catch(_){}
-      }
-    }
-    if(!logs.length) return null;
-
-    // 수신 주소 수집
+    // Transfer 로그를 400블록 단위로 수집 (최근 → 과거 방향)
     const seen = new Set();
-    for(const log of logs){
-      if(log.topics?.[2]){ const to='0x'+log.topics[2].slice(26).toLowerCase(); if(to!==ZERO) seen.add(to); }
+    const MAX_CHUNKS = 50; // 최대 50청크 = 20000블록 (~5.5시간)
+    let chunksSearched = 0;
+
+    for(let end = current; end > 0 && chunksSearched < MAX_CHUNKS; end -= CHUNK, chunksSearched++){
+      const start = Math.max(0, end - CHUNK + 1);
+      const logs = await rpcCallAny('eth_getLogs', [{
+        address: CHOG_CONTRACT,
+        topics: [TRANSFER_TOPIC],
+        fromBlock: '0x' + start.toString(16),
+        toBlock:   '0x' + end.toString(16),
+      }]);
+      if(logs && logs.length){
+        for(const log of logs){
+          if(log.topics?.[2]){
+            const to = '0x' + log.topics[2].slice(26).toLowerCase();
+            if(to !== ZERO) seen.add(to);
+          }
+        }
+      }
+      if(seen.size >= 200) break; // 충분한 주소 수집 시 중단
     }
 
-    // 배치 잔고 조회 (50개씩)
+    if(!seen.size) return null;
+
+    // 잔고 순차 조회 (rpcCallAny로 지갑 provider 경유 → CORS 걱정 없음)
     const addrs = [...seen];
     const holders = [];
-    for(let i=0; i<addrs.length; i+=50){
-      const chunk = addrs.slice(i,i+50);
-      const reqs = chunk.map((addr,j)=>({jsonrpc:'2.0',id:i+j,method:'eth_call',params:[{to:CHOG_CONTRACT,data:'0x70a08231'+addr.slice(2).padStart(64,'0')},'latest']}));
-      try{
-        const arr = await rpcFetch(usedRpc, reqs);
-        (Array.isArray(arr)?arr:[arr]).forEach((item,j)=>{
-          const hex=item?.result;
-          if(hex && hex.length>2 && BigInt(hex)>0n){
-            const bal=fromWei(hex); if(bal>0) holders.push({address:chunk[j],balance:bal,pct:0});
-          }
-        });
-      }catch(_){}
+    for(const addr of addrs){
+      const hex = await rpcCallAny('eth_call', [{
+        to: CHOG_CONTRACT,
+        data: '0x70a08231' + addr.slice(2).padStart(64, '0')
+      }, 'latest']);
+      if(hex && hex.length > 2){
+        const bal = fromWei(hex);
+        if(bal > 0) holders.push({address: addr, balance: bal, pct: 0});
+      }
     }
 
     if(!holders.length) return null;
-    holders.sort((a,b)=>b.balance-a.balance);
-    const top=holders.slice(0,50);
-    top.forEach(h=>{h.pct=(h.balance/1_000_000_000)*100;});
-    console.log('✅ Holders loaded (rpc):', top.length);
-    holderCache=top; holderCacheTime=Date.now();
+    holders.sort((a,b) => b.balance - a.balance);
+    const top = holders.slice(0, 50);
+    top.forEach(h => { h.pct = (h.balance / 1_000_000_000) * 100; });
+    console.log('✅ Holders loaded (rpc):', top.length, 'from', chunksSearched, 'chunks');
+    holderCache = top; holderCacheTime = Date.now();
     return top;
   } catch(e){ console.warn('RPC direct error:', e.message); }
 

@@ -205,66 +205,56 @@ async function fetchTopHolders(){
   try {
     const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
     const ZERO = '0x0000000000000000000000000000000000000000';
-    const rpcs = [MONAD_RPC, 'https://monad-mainnet.rpc.thirdweb.com', 'https://monad.drpc.org'];
+    const CHUNK = 400;
 
-    const rpcFetch = async (rpc, body) => {
-      const r = await fetch(rpc, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-      return r.json();
-    };
-
-    let current = 0;
-    for(const rpc of rpcs){
-      try{ const d = await rpcFetch(rpc,{jsonrpc:'2.0',id:1,method:'eth_blockNumber',params:[]}); current=parseInt(d.result,16); if(current>0)break; }catch(_){}
-    }
+    const blockHex = await rpcCallAny('eth_blockNumber', []);
+    const current = parseInt(blockHex, 16);
     if(!current) return null;
 
-    let logs = [], usedRpc = rpcs[0];
-    const ranges = [
-      [Math.max(0, current-10000),  current],
-      [Math.max(0, current-50000),  current],
-      [Math.max(0, current-200000), current],
-    ];
-    outer:
-    for(const rpc of rpcs){
-      for(const [from, to] of ranges){
-        try{
-          const ld = await rpcFetch(rpc,{jsonrpc:'2.0',id:2,method:'eth_getLogs',params:[{
-            fromBlock:'0x'+from.toString(16), toBlock:'0x'+to.toString(16),
-            address:CHOG_CONTRACT, topics:[TRANSFER_TOPIC]
-          }]});
-          if(!ld.error && ld.result && ld.result.length>0){ logs=ld.result; usedRpc=rpc; break outer; }
-        }catch(_){}
-      }
-    }
-    if(!logs.length) return null;
-
     const seen = new Set();
-    for(const log of logs){
-      if(log.topics?.[2]){ const to='0x'+log.topics[2].slice(26).toLowerCase(); if(to!==ZERO) seen.add(to); }
+    const MAX_CHUNKS = 50;
+    let chunksSearched = 0;
+
+    for(let end = current; end > 0 && chunksSearched < MAX_CHUNKS; end -= CHUNK, chunksSearched++){
+      const start = Math.max(0, end - CHUNK + 1);
+      const logs = await rpcCallAny('eth_getLogs', [{
+        address: CHOG_CONTRACT,
+        topics: [TRANSFER_TOPIC],
+        fromBlock: '0x' + start.toString(16),
+        toBlock:   '0x' + end.toString(16),
+      }]);
+      if(logs && logs.length){
+        for(const log of logs){
+          if(log.topics?.[2]){
+            const to = '0x' + log.topics[2].slice(26).toLowerCase();
+            if(to !== ZERO) seen.add(to);
+          }
+        }
+      }
+      if(seen.size >= 200) break;
     }
+
+    if(!seen.size) return null;
 
     const addrs = [...seen];
     const holders = [];
-    for(let i=0; i<addrs.length; i+=50){
-      const chunk = addrs.slice(i,i+50);
-      const reqs = chunk.map((addr,j)=>({jsonrpc:'2.0',id:i+j,method:'eth_call',params:[{to:CHOG_CONTRACT,data:'0x70a08231'+addr.slice(2).padStart(64,'0')},'latest']}));
-      try{
-        const arr = await rpcFetch(usedRpc, reqs);
-        (Array.isArray(arr)?arr:[arr]).forEach((item,j)=>{
-          const hex=item?.result;
-          if(hex && hex.length>2 && BigInt(hex)>0n){
-            const bal=fromWei(hex); if(bal>0) holders.push({address:chunk[j],balance:bal,pct:0});
-          }
-        });
-      }catch(_){}
+    for(const addr of addrs){
+      const hex = await rpcCallAny('eth_call', [{
+        to: CHOG_CONTRACT,
+        data: '0x70a08231' + addr.slice(2).padStart(64, '0')
+      }, 'latest']);
+      if(hex && hex.length > 2){
+        const bal = fromWei(hex);
+        if(bal > 0) holders.push({address: addr, balance: bal, pct: 0});
+      }
     }
 
     if(!holders.length) return null;
-    holders.sort((a,b)=>b.balance-a.balance);
-    const top=holders.slice(0,50);
-    top.forEach(h=>{h.pct=(h.balance/1_000_000_000)*100;});
-    console.log('✅ Holders loaded (rpc):', top.length);
-    holderCache=top; holderCacheTime=Date.now();
+    holders.sort((a,b) => b.balance - a.balance);
+    const top = holders.slice(0, 50);
+    top.forEach(h => { h.pct = (h.balance / 1_000_000_000) * 100; });
+    console.log('✅ Holders loaded (rpc):', top.length, 'from', chunksSearched, 'chunks');
+    holderCache = top; holderCacheTime = Date.now();
     return top;
   } catch(e){ console.warn('RPC direct error:', e.message); }
 
