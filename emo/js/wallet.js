@@ -62,11 +62,17 @@ function validateNick(nick){
   return null; // OK
 }
 
-function openNickModal(){
+async function openNickModal(){
   if(!wallet){ alert('Connect your wallet first!'); return; }
   const modal = document.getElementById('nickModal');
   const body  = document.getElementById('nickModalBody');
   const curNick = getNick(wallet.addr);
+
+  // 모달 먼저 열고 잔액 새로고침
+  modal.classList.add('open');
+  body.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">⏳ Refreshing balance...</div>`;
+  const freshBal = await fetchChogBalance(wallet.addr);
+  if(freshBal !== null){ wallet.bal = Math.floor(freshBal); chogBalance = wallet.bal; updateWalletDisplay(); }
 
   body.innerHTML = `
     <div style="text-align:center;margin-bottom:14px">
@@ -110,7 +116,6 @@ function openNickModal(){
     </button>
   `;
 
-  modal.classList.add('open');
   setTimeout(()=>{ const el=document.getElementById('nickInput'); if(el)el.focus(); }, 100);
 }
 
