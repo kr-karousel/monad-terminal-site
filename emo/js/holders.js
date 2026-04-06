@@ -344,51 +344,6 @@ function disconnectWallet(){
   if(btn) btn.disabled = true;
 }
 
-// ── WalletConnect (Reown AppKit) ─────────────────────────
-var _wcAppKit = null;
-
-function _initWalletConnect(){
-  if(!WALLETCONNECT_PROJECT_ID || typeof window.AppKit === 'undefined') return;
-  try{
-    const monad = {
-      id: 143, name: 'Monad Mainnet', caipNetworkId: 'eip155:143', chainNamespace: 'eip155',
-      nativeCurrency: {name:'Monad', symbol:'MON', decimals:18},
-      rpcUrls: { default: { http: ['https://rpc.monad.xyz','https://monad.drpc.org'] } },
-      blockExplorers: { default: { url: 'https://explorer.monad.xyz', name: 'MonadVision' } }
-    };
-    _wcAppKit = window.AppKit.createAppKit({
-      projectId: WALLETCONNECT_PROJECT_ID,
-      networks: [monad],
-      metadata: {
-        name: 'EMO Terminal',
-        description: 'EMO Token Terminal on Monad',
-        url: location.origin,
-        icons: [location.origin + '/emo/icon.png']
-      },
-      features: { analytics: false, email: false, socials: false }
-    });
-    console.log('[WC] AppKit 초기화 완료');
-  }catch(e){ console.warn('[WC] AppKit init 실패:', e.message); }
-}
-
-async function connectWalletConnect(){
-  closeWalletModal();
-  if(!_wcAppKit){
-    alert('WalletConnect가 설정되지 않았습니다.\ncloud.reown.com에서 무료 Project ID를 발급받아 config.js에 입력해주세요.');
-    return;
-  }
-  try{
-    _wcAppKit.open();
-    const unsub = _wcAppKit.subscribeAccount(async (acct) => {
-      if(!acct.isConnected || !acct.address) return;
-      unsub();
-      const provider = _wcAppKit.getWalletProvider();
-      if(!provider){ alert('WalletConnect: provider를 가져올 수 없습니다.'); return; }
-      await _finalizeWalletConnection(acct.address, provider, 'WalletConnect');
-    });
-  }catch(e){ alert('WalletConnect 실패: '+(e.message||e)); }
-}
-
 async function _finalizeWalletConnection(addr, provider, name){
   try{
     try{
@@ -458,9 +413,9 @@ async function _finalizeWalletConnection(addr, provider, name){
 }
 
 async function connectWallet(name){
-  if(name === 'WalletConnect'){ await connectWalletConnect(); return; }
   closeWalletModal();
-  const provider=window.ethereum;
+  // WalletConnect: use any available injected provider
+  const provider = name === 'WalletConnect' ? window.ethereum : window.ethereum;
   if(!provider){alert('No Web3 wallet detected!\nPlease install MetaMask.');return;}
   try{
     const accounts=await provider.request({method:'eth_requestAccounts'});

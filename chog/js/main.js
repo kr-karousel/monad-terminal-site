@@ -13,8 +13,6 @@ function startApp(){
   loadCustomTiersFromStorage();
   initChart();
   startPriceRefresh();
-  // WalletConnect 초기화
-  if(typeof _initWalletConnect === 'function') _initWalletConnect();
   // Supabase 실시간 동기화 초기화
   setTimeout(initSync, 200);
   setTimeout(setupTracking,300);

@@ -19,9 +19,6 @@ let cachedMonPrice  = 0.026;           // MON/USD (자동 업데이트)
 const showMcap = true; // always show Market Cap
 const FIXED_TF    = 1;       // 1분봉 고정
 
-// WalletConnect / Reown: https://cloud.reown.com 에서 무료 발급
-const WALLETCONNECT_PROJECT_ID = '';
-
 // ── Set Nickname
 // ── 누락 전역변수 선언
 var priceRefreshStarted = false;
