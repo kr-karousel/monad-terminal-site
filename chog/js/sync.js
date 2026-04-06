@@ -48,7 +48,23 @@ async function _syncNicknamesFromServer(){
         nickDB[row.address.toLowerCase()] = row.nickname;
     });
     if(wallet && typeof updateWalletDisplay === 'function') updateWalletDisplay();
+    _refreshChatNicknames();
   }catch(e){ console.warn('[Sync] 닉네임 로드 실패:', e.message); }
+}
+
+// 닉네임 로드 후 이미 렌더링된 채팅 메시지의 주소를 닉네임으로 업데이트
+function _refreshChatNicknames(){
+  const list = document.getElementById('chatList');
+  if(!list) return;
+  list.querySelectorAll('.msg-addr[data-addr]').forEach(el => {
+    const addr = el.dataset.addr;
+    if(!addr) return;
+    const nick = getNick(addr);
+    if(nick && !el.dataset.nickSet){
+      el.innerHTML = `<span style="color:var(--accent);font-weight:700">${nick}</span>`;
+      el.dataset.nickSet = '1';
+    }
+  });
 }
 
 function _subscribeToNicknames(){
@@ -61,6 +77,8 @@ function _subscribeToNicknames(){
         if(!row || !row.address || !row.nickname) return;
         const isNew = !nickDB[row.address.toLowerCase()];
         nickDB[row.address.toLowerCase()] = row.nickname;
+        // 기존 채팅 메시지 주소 → 닉네임으로 갱신
+        _refreshChatNicknames();
         // 내 지갑이면 UI 업데이트
         if(wallet && wallet.addr.toLowerCase() === row.address.toLowerCase()){
           if(typeof updateWalletDisplay === 'function') updateWalletDisplay();
