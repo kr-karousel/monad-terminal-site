@@ -383,22 +383,54 @@ function disconnectWallet(){
   if(btn) btn.disabled = true;
 }
 
-async function connectWallet(name){
-  closeWalletModal();
-  const provider = _getProvider(name);
-  if(!provider){
-    const links = {
-      MetaMask: 'https://metamask.io',
-      Phantom:  'https://phantom.app',
-      Backpack: 'https://backpack.app',
+// ── WalletConnect (Reown AppKit) ─────────────────────────
+var _wcAppKit = null;
+
+function _initWalletConnect(){
+  if(!WALLETCONNECT_PROJECT_ID || typeof window.AppKit === 'undefined') return;
+  try{
+    const monad = {
+      id: 143, name: 'Monad Mainnet', caipNetworkId: 'eip155:143', chainNamespace: 'eip155',
+      nativeCurrency: {name:'Monad', symbol:'MON', decimals:18},
+      rpcUrls: { default: { http: ['https://rpc.monad.xyz','https://monad.drpc.org'] } },
+      blockExplorers: { default: { url: 'https://explorer.monad.xyz', name: 'MonadVision' } }
     };
-    alert(`${name} wallet not found!\nPlease install it from ${links[name]||'the official site'}.`);
+    _wcAppKit = window.AppKit.createAppKit({
+      projectId: WALLETCONNECT_PROJECT_ID,
+      networks: [monad],
+      metadata: {
+        name: 'CHOG Terminal',
+        description: 'CHOG Token Terminal on Monad',
+        url: location.origin,
+        icons: [location.origin + '/chog/icon.png']
+      },
+      features: { analytics: false, email: false, socials: false }
+    });
+    console.log('[WC] AppKit 초기화 완료');
+  }catch(e){ console.warn('[WC] AppKit init 실패:', e.message); }
+}
+
+async function connectWalletConnect(){
+  closeWalletModal();
+  if(!_wcAppKit){
+    alert('WalletConnect가 설정되지 않았습니다.\ncloud.reown.com에서 무료 Project ID를 발급받아 config.js에 입력해주세요.');
     return;
   }
   try{
-    const accounts=await provider.request({method:'eth_requestAccounts'});
-    if(!accounts||!accounts.length)throw new Error('No accounts');
-    const addr=accounts[0];
+    _wcAppKit.open();
+    const unsub = _wcAppKit.subscribeAccount(async (acct) => {
+      if(!acct.isConnected || !acct.address) return;
+      unsub();
+      const provider = _wcAppKit.getWalletProvider();
+      if(!provider){ alert('WalletConnect: provider를 가져올 수 없습니다.'); return; }
+      await _finalizeWalletConnection(acct.address, provider, 'WalletConnect');
+    });
+  }catch(e){ alert('WalletConnect 실패: '+(e.message||e)); }
+}
+
+// ── 공통 지갑 연결 마무리 ─────────────────────────────────
+async function _finalizeWalletConnection(addr, provider, name){
+  try{
     try{
       await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});
     } catch(sw){
@@ -481,6 +513,22 @@ async function connectWallet(name){
     if(typeof provider.on === 'function')
       provider.on('accountsChanged',accs=>{if(!accs.length){wallet=null;location.reload();}else connectWallet(name);});
   }catch(err){console.error('connectWallet error:',err);alert('Connection failed: '+(err.message||err));}
+}
+
+async function connectWallet(name){
+  if(name === 'WalletConnect'){ await connectWalletConnect(); return; }
+  closeWalletModal();
+  const provider = _getProvider(name);
+  if(!provider){
+    const links = { MetaMask:'https://metamask.io', Phantom:'https://phantom.app', Backpack:'https://backpack.app' };
+    alert(`${name} wallet not found!\nPlease install it from ${links[name]||'the official site'}.`);
+    return;
+  }
+  try{
+    const accounts = await provider.request({method:'eth_requestAccounts'});
+    if(!accounts||!accounts.length) throw new Error('No accounts');
+    await _finalizeWalletConnection(accounts[0], provider, name);
+  }catch(err){ console.error('connectWallet error:',err); alert('Connection failed: '+(err.message||err)); }
 }
 
 function sendChat(){

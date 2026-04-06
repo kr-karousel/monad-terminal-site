@@ -12,6 +12,7 @@ function startApp(){
   loadCustomTiersFromStorage();
   initChart();
   startPriceRefresh();
+  if(typeof _initWalletConnect === 'function') _initWalletConnect();
   setTimeout(setupTracking,300);
 }
 

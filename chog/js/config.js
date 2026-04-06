@@ -22,6 +22,9 @@ const FIXED_TF    = 1;       // 1분봉 고정
 // ── Supabase 실시간 동기화 설정 ──────────────────────────
 // https://supabase.com 에서 무료 프로젝트 생성 후 입력
 // (아래 두 값이 비어 있으면 localStorage 폴백 모드로 동작)
+// WalletConnect / Reown: https://cloud.reown.com 에서 무료 발급
+const WALLETCONNECT_PROJECT_ID = '';
+
 const SUPABASE_URL      = 'https://phjolzvyewacjqausmxx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoam9senZ5ZXdhY2pxYXVzbXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDY5NzIsImV4cCI6MjA5MDY4Mjk3Mn0.XDNfHWN7NdzBHffE6-YgMMR8skNMR7blTJVu1EbvPrY';
 

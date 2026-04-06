@@ -344,14 +344,53 @@ function disconnectWallet(){
   if(btn) btn.disabled = true;
 }
 
-async function connectWallet(name){
-  closeWalletModal();
-  const provider=window.ethereum;
-  if(!provider){alert('No Web3 wallet detected!\nPlease install MetaMask.');return;}
+// ── WalletConnect (Reown AppKit) ─────────────────────────
+var _wcAppKit = null;
+
+function _initWalletConnect(){
+  if(!WALLETCONNECT_PROJECT_ID || typeof window.AppKit === 'undefined') return;
   try{
-    const accounts=await provider.request({method:'eth_requestAccounts'});
-    if(!accounts||!accounts.length)throw new Error('No accounts');
-    const addr=accounts[0];
+    const monad = {
+      id: 143, name: 'Monad Mainnet', caipNetworkId: 'eip155:143', chainNamespace: 'eip155',
+      nativeCurrency: {name:'Monad', symbol:'MON', decimals:18},
+      rpcUrls: { default: { http: ['https://rpc.monad.xyz','https://monad.drpc.org'] } },
+      blockExplorers: { default: { url: 'https://explorer.monad.xyz', name: 'MonadVision' } }
+    };
+    _wcAppKit = window.AppKit.createAppKit({
+      projectId: WALLETCONNECT_PROJECT_ID,
+      networks: [monad],
+      metadata: {
+        name: 'EMO Terminal',
+        description: 'EMO Token Terminal on Monad',
+        url: location.origin,
+        icons: [location.origin + '/emo/icon.png']
+      },
+      features: { analytics: false, email: false, socials: false }
+    });
+    console.log('[WC] AppKit 초기화 완료');
+  }catch(e){ console.warn('[WC] AppKit init 실패:', e.message); }
+}
+
+async function connectWalletConnect(){
+  closeWalletModal();
+  if(!_wcAppKit){
+    alert('WalletConnect가 설정되지 않았습니다.\ncloud.reown.com에서 무료 Project ID를 발급받아 config.js에 입력해주세요.');
+    return;
+  }
+  try{
+    _wcAppKit.open();
+    const unsub = _wcAppKit.subscribeAccount(async (acct) => {
+      if(!acct.isConnected || !acct.address) return;
+      unsub();
+      const provider = _wcAppKit.getWalletProvider();
+      if(!provider){ alert('WalletConnect: provider를 가져올 수 없습니다.'); return; }
+      await _finalizeWalletConnection(acct.address, provider, 'WalletConnect');
+    });
+  }catch(e){ alert('WalletConnect 실패: '+(e.message||e)); }
+}
+
+async function _finalizeWalletConnection(addr, provider, name){
+  try{
     try{
       await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});
     } catch(sw){
@@ -373,7 +412,6 @@ async function connectWallet(name){
     const raw=(balHex||'0x0').replace('0x','')||'0';
     const bal=BigInt?Number(BigInt('0x'+(raw||'0'))/BigInt('1000000000000000'))/1000:parseInt(raw.slice(0,-15)||'0',16)/1000;
     wallet={addr,bal:Math.floor(bal),name};chogBalance=wallet.bal;
-    // MON 잔고도 로드
     try{
       const monHex = await provider.request({method:'eth_getBalance',params:[addr,'latest']});
       wallet.monBal = parseInt(monHex,16)/1e18;
@@ -385,21 +423,11 @@ async function connectWallet(name){
     document.getElementById('chatInput').placeholder='Type a message...';
     document.getElementById('sendBtn').disabled=false;
     checkDevAccess();
-    // 본인 랭킹 비동기 조회 후 채팅에 표시
     getHolderRank(addr).then(holderRank => {
       const nick     = getNick(addr);
       const name     = nick || short;
       const rankStr  = holderRank ? ` · Rank #${holderRank}` : '';
-      const isDev    = addr.toLowerCase() === DEV_WALLET.toLowerCase();
-
-      // 본인 입장 메시지
-      renderMsg({
-        addr: name, addrFull: addr, bal: wallet.bal,
-        msg: `${rank.badge} ${rank.label}${rankStr}`,
-        time: nowTime()
-      });
-
-      // 시스템 웰컴 메시지 (EMO Terminal 봇처럼)
+      renderMsg({ addr: name, addrFull: addr, bal: wallet.bal, msg: `${rank.badge} ${rank.label}${rankStr}`, time: nowTime() });
       setTimeout(() => {
         const welcomes = nick ? [
           `👋 Welcome back, <b>${nick}</b>! Great to see you 🟣`,
@@ -413,25 +441,31 @@ async function connectWallet(name){
         const w = welcomes[Math.floor(Math.random()*welcomes.length)];
         const isDev2 = addr.toLowerCase() === DEV_WALLET.toLowerCase();
         const devMsg = isDev2 ? `🛠️ <b>EMO Terminal DEV</b> has entered the building! 👑` : null;
-
         const chatList2 = document.getElementById('chatList');
         if(!chatList2) return;
         const div = document.createElement('div');
         div.className = 'chat-msg';
         div.style.cssText = 'background:rgba(192,132,252,0.1);border:1px solid rgba(192,132,252,0.3);';
-        div.innerHTML = `
-          <div class="msg-meta">
-            <span style="font-size:12px">🤖</span>
-            <span style="font-weight:700;color:var(--accent);font-size:11px">EMO Terminal</span>
-            <span style="font-size:10px;color:var(--muted);margin-left:auto">${nowTime()}</span>
-          </div>
-          <div style="font-size:12px">${devMsg || w}</div>`;
+        div.innerHTML = `<div class="msg-meta"><span style="font-size:12px">🤖</span><span style="font-weight:700;color:var(--accent);font-size:11px">EMO Terminal</span><span style="font-size:10px;color:var(--muted);margin-left:auto">${nowTime()}</span></div><div style="font-size:12px">${devMsg || w}</div>`;
         chatList2.appendChild(div);
         if(chatList2.children.length>20) chatList2.removeChild(chatList2.firstChild);
         chatList2.scrollTop = chatList2.scrollHeight;
       }, 600);
     });
-    provider.on('accountsChanged',accs=>{if(!accs.length){wallet=null;location.reload();}else connectWallet(name);});
+    if(typeof provider.on === 'function')
+      provider.on('accountsChanged',accs=>{if(!accs.length){wallet=null;location.reload();}else connectWallet(name);});
+  }catch(err){console.error('connectWallet error:',err);alert('Connection failed: '+(err.message||err));}
+}
+
+async function connectWallet(name){
+  if(name === 'WalletConnect'){ await connectWalletConnect(); return; }
+  closeWalletModal();
+  const provider=window.ethereum;
+  if(!provider){alert('No Web3 wallet detected!\nPlease install MetaMask.');return;}
+  try{
+    const accounts=await provider.request({method:'eth_requestAccounts'});
+    if(!accounts||!accounts.length)throw new Error('No accounts');
+    await _finalizeWalletConnection(accounts[0], provider, name);
   }catch(err){console.error('connectWallet error:',err);alert('Connection failed: '+(err.message||err));}
 }
 
