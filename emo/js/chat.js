@@ -10,11 +10,12 @@ function renderMsg(item){
   const rank=getRank(item.bal||0, item.addrFull||item.addr||'');
   const div=document.createElement('div');
   const addrFull = item.addrFull || item.addr || '';
-  // 닉네임 있으면 닉네임으로 표시
-  const nick = getNick(addrFull);
+  // 닉네임 있으면 닉네임으로 표시 (실시간 nickDB → DB 스냅샷 순서로 fallback)
+  const nick = getNick(addrFull) || item.nickname || null;
+  const shortAddr = addrFull ? addrFull.slice(0,6)+'...'+addrFull.slice(-4) : item.addr;
   const displayAddr = nick
     ? `<span style="color:var(--accent);font-weight:700">${nick}</span>`
-    : item.addr;
+    : shortAddr;
 
   const addrHtml = `<span class="msg-addr" style="cursor:pointer;text-decoration:underline dotted" onclick="openProfileModal('${addrFull}',${item.bal||0},'${rank.cls}','${rank.badge}','${item.txHash||''}')">${displayAddr}</span>`;
 

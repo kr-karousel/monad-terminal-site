@@ -5,7 +5,7 @@
 
 var _sbClient = null;
 
-function initSync(){
+async function initSync(){
   if(typeof SUPABASE_URL === 'undefined' || !SUPABASE_URL) return;
   if(typeof window.supabase === 'undefined'){
     console.warn('[Sync] Supabase SDK not loaded');
@@ -14,7 +14,8 @@ function initSync(){
   try{
     _sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('[Sync] Supabase 연결됨');
-    _syncNicknamesFromServer();
+    // 닉네임을 먼저 로드한 뒤 메시지를 렌더링해야 닉네임이 정상 표시됨
+    await _syncNicknamesFromServer();
     _syncShoutsFromServer();
     _syncCustomTiersFromServer();
     _syncTestWalletsFromServer();
@@ -283,6 +284,7 @@ async function _syncMessagesFromServer(){
       renderMsg({
         addr: row.address,
         addrFull: row.address,
+        nickname: row.nickname || null,
         bal: row.chog_bal || 0,
         msg: row.content,
         time: timeStr
@@ -302,6 +304,7 @@ function _subscribeToMessages(){
         renderMsg({
           addr: row.address,
           addrFull: row.address,
+          nickname: row.nickname || null,
           bal: row.chog_bal || 0,
           msg: row.content,
           time: typeof nowTime === 'function' ? nowTime() : ''
