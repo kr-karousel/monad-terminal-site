@@ -34,7 +34,7 @@ var NICK_MAX_LEN = 20;
 var NICK_MIN_LEN = 2;
 var NICK_BANNED  = [
   'benja','toad','admin','mod','moderator','staff','dev','owner',
-  'official','support','scam','chog','chog_official','nadfun',
+  'official','support','scam','chog_official','nadfun',
   'capricorn','monad','monad_team','0x'
 ];
 var nickDB = {};

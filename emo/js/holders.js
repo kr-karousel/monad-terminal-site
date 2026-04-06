@@ -333,6 +333,17 @@ function closeWalletModal(){document.getElementById('walletModal').classList.rem
 function openRankModal(){document.getElementById('rankModal').classList.add('open');}
 function closeRankModal(){document.getElementById('rankModal').classList.remove('open');}
 
+function disconnectWallet(){
+  wallet = null;
+  chogBalance = 0;
+  const area = document.getElementById('walletArea');
+  if(area) area.innerHTML = '<button class="btn-connect" onclick="openWalletModal()">Connect Wallet</button>';
+  const inp = document.getElementById('chatInput');
+  if(inp){ inp.disabled = true; inp.placeholder = 'Connect wallet to chat...'; }
+  const btn = document.getElementById('sendBtn');
+  if(btn) btn.disabled = true;
+}
+
 async function connectWallet(name){
   closeWalletModal();
   const provider=window.ethereum;

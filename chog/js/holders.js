@@ -372,6 +372,17 @@ function _getProvider(name){
   return window.ethereum || null;
 }
 
+function disconnectWallet(){
+  wallet = null;
+  chogBalance = 0;
+  const area = document.getElementById('walletArea');
+  if(area) area.innerHTML = '<button class="btn-connect" onclick="openWalletModal()">Connect Wallet</button>';
+  const inp = document.getElementById('chatInput');
+  if(inp){ inp.disabled = true; inp.placeholder = 'Connect wallet to chat...'; }
+  const btn = document.getElementById('sendBtn');
+  if(btn) btn.disabled = true;
+}
+
 async function connectWallet(name){
   closeWalletModal();
   const provider = _getProvider(name);

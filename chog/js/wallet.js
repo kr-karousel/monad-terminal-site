@@ -180,11 +180,14 @@ function updateWalletDisplay(){
   const nick  = getNick(wallet.addr);
   const label = nick || (wallet.addr.slice(0,6)+'...'+wallet.addr.slice(-4));
   document.getElementById('walletArea').innerHTML =
-    `<div class="wallet-info" style="cursor:pointer" onclick="openNickModal()">
-      <span class="wallet-addr">${label}</span>
-      <span class="rank-badge ${rank.cls}">${rank.badge}</span>
-      <span style="font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--muted)">${wallet.bal.toLocaleString()} CHOG</span>
-      <span class="nick-badge" title="Change nickname">✏️</span>
+    `<div style="display:flex;align-items:center;gap:6px">
+      <div class="wallet-info" style="cursor:pointer" onclick="openNickModal()">
+        <span class="wallet-addr">${label}</span>
+        <span class="rank-badge ${rank.cls}">${rank.badge}</span>
+        <span style="font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--muted)">${wallet.bal.toLocaleString()} CHOG</span>
+        <span class="nick-badge" title="Change nickname">✏️</span>
+      </div>
+      <button onclick="disconnectWallet()" title="Disconnect wallet" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:var(--muted);font-size:13px;padding:4px 8px;cursor:pointer;line-height:1" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='var(--muted)'">⏏</button>
     </div>`;
 }
 
