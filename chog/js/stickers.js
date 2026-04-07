@@ -1,59 +1,92 @@
 // ═══════════════════════════════════════
-//  DISCORD STICKER PICKER
-//  Chog 스티커 데이터 + 채팅 스티커 전송
+//  DISCORD / TELEGRAM STICKER PICKER
+//  Chog 스티커 — Telegram Bot API로 동적 로드
 // ═══════════════════════════════════════
 
-// ── 스티커 데이터 ───────────────────────────────────────────
-// Discord에서 스티커 ID 얻는 법:
-//   1. Discord 채팅창에서 스티커를 우클릭
-//   2. "미디어 링크 복사" 클릭
-//   3. URL 예시: https://cdn.discordapp.com/stickers/1234567890123456789.gif
-//   4. 숫자 부분이 id → id 필드에 입력
-//
-// 애니메이션 스티커: .gif / 정적: .png 또는 .apng
-// ──────────────────────────────────────────────────────────
-const CHOG_STICKERS = [
-  { id: '1370060989297135716', name: 'chog stare',     ext: 'gif' },
-  { id: '1370060989297135717', name: 'chog cry',       ext: 'gif' },
-  { id: '1370060989297135718', name: 'boiling chog',   ext: 'gif' },
-  { id: '1370060989297135719', name: 'chog hype',      ext: 'gif' },
-  { id: '1370060989297135720', name: 'chog rip',       ext: 'gif' },
-  { id: '1370060989297135721', name: 'chog love',      ext: 'gif' },
-  { id: '1370060989297135722', name: 'chog wave',      ext: 'gif' },
-  { id: '1370060989297135723', name: 'chog rage',      ext: 'gif' },
-  { id: '1370060989297135724', name: 'chog sleep',     ext: 'gif' },
-  { id: '1370060989297135725', name: 'chog think',     ext: 'gif' },
-  { id: '1370060989297135726', name: 'chog moon',      ext: 'gif' },
-  { id: '1370060989297135727', name: 'chog ded',       ext: 'gif' },
-];
+const STICKER_SET_NAME = 'ChogStikers';
 
-function getStickerUrl(sticker){
-  return `https://cdn.discordapp.com/stickers/${sticker.id}.${sticker.ext}`;
+// 로드된 스티커 목록 (file_id, emoji, ext, file_path)
+var _loadedStickers = [];
+
+// ── Telegram 스티커 팩 로드 ──────────────────────────────
+async function loadTelegramStickers(){
+  try {
+    const res  = await fetch(`/api/telegram-stickers?set=${STICKER_SET_NAME}`);
+    const data = await res.json();
+    if(!data.ok || !data.stickers) return;
+    _loadedStickers = data.stickers;
+    _buildStickerGrid();
+  } catch(e){
+    console.warn('[Stickers] 로드 실패:', e.message);
+  }
 }
 
-// ── 스티커 피커 초기화 ───────────────────────────────────────
-function initStickerPicker(){
+// ── 스티커 이미지 URL ─────────────────────────────────────
+// WebP(static) → <img> 바로 표시
+// TGS(animated lottie) → 지원 X, emoji fallback
+// WEBM(video) → <video> 태그로 처리
+function getStickerImgUrl(s){
+  if(!s.file_path) return null;
+  return `/api/telegram-file?path=${encodeURIComponent(s.file_path)}`;
+}
+
+// ── 스티커 그리드 생성 ───────────────────────────────────
+function _buildStickerGrid(){
   const picker = document.getElementById('stickerPicker');
   if(!picker) return;
   const grid = picker.querySelector('.sticker-grid');
   if(!grid) return;
+  grid.innerHTML = '';
 
-  CHOG_STICKERS.forEach(s => {
+  if(!_loadedStickers.length){
+    grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 4">스티커를 불러오지 못했어요 😢</div>';
+    return;
+  }
+
+  _loadedStickers.forEach(s => {
     const item = document.createElement('div');
     item.className = 'sticker-item';
-    item.title = s.name;
+    item.title = s.emoji || '🟣';
+
+    if(s.is_video && s.file_path){
+      // WebM 비디오 스티커
+      const vid = document.createElement('video');
+      vid.src = getStickerImgUrl(s);
+      vid.autoplay = true;
+      vid.loop = true;
+      vid.muted = true;
+      vid.playsInline = true;
+      vid.style.cssText = 'width:100%;height:100%;object-fit:contain';
+      item.appendChild(vid);
+    } else if(s.is_animated || s.ext === 'tgs'){
+      // TGS (Lottie) 스티커 → emoji fallback
+      item.textContent = s.emoji || '🟣';
+      item.style.cssText += ';font-size:24px;display:flex;align-items:center;justify-content:center';
+    } else {
+      // WebP 정적/애니메이션 스티커
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      const url = getStickerImgUrl(s);
+      if(url) img.src = url;
+      img.alt = s.emoji || '🟣';
+      img.onerror = function(){
+        this.parentElement.textContent = s.emoji || '🟣';
+        this.parentElement.style.cssText += ';font-size:24px;display:flex;align-items:center;justify-content:center';
+      };
+      item.appendChild(img);
+    }
+
     item.onclick = () => sendSticker(s);
-    const img = document.createElement('img');
-    img.src = getStickerUrl(s);
-    img.alt = s.name;
-    img.loading = 'lazy';
-    img.onerror = function(){ this.style.display='none'; item.textContent='🟣'; item.style.fontSize='24px'; item.style.display='flex'; item.style.alignItems='center'; item.style.justifyContent='center'; };
-    item.appendChild(img);
     grid.appendChild(item);
   });
 }
 
-// ── 피커 토글 ────────────────────────────────────────────────
+// ── 피커 초기화 ──────────────────────────────────────────
+function initStickerPicker(){
+  loadTelegramStickers();
+}
+
+// ── 피커 토글 ────────────────────────────────────────────
 function toggleStickerPicker(){
   const picker = document.getElementById('stickerPicker');
   if(!picker) return;
@@ -61,7 +94,6 @@ function toggleStickerPicker(){
     picker.classList.remove('open');
   } else {
     picker.classList.add('open');
-    // 바깥 클릭 시 닫기
     setTimeout(() => {
       document.addEventListener('click', _closeStickerOnOutside, { once: true });
     }, 0);
@@ -72,27 +104,24 @@ function _closeStickerOnOutside(e){
   const picker = document.getElementById('stickerPicker');
   const btn    = document.getElementById('stickerBtn');
   if(!picker) return;
-  if(!picker.contains(e.target) && e.target !== btn){
+  if(!picker.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
     picker.classList.remove('open');
-  } else {
-    // 아직 열려있으면 다시 리스너 등록
-    if(picker.classList.contains('open')){
-      setTimeout(() => {
-        document.addEventListener('click', _closeStickerOnOutside, { once: true });
-      }, 0);
-    }
+  } else if(picker.classList.contains('open')){
+    setTimeout(() => {
+      document.addEventListener('click', _closeStickerOnOutside, { once: true });
+    }, 0);
   }
 }
 
-// ── 스티커 전송 ──────────────────────────────────────────────
-function sendSticker(sticker){
+// ── 스티커 전송 ──────────────────────────────────────────
+// 메시지 포맷: [sticker:FILE_UNIQUE_ID:EMOJI:EXT:FILE_PATH]
+function sendSticker(s){
   if(!wallet) return;
-  // 피커 닫기
   const picker = document.getElementById('stickerPicker');
   if(picker) picker.classList.remove('open');
 
-  // 메시지 포맷: [sticker:ID:NAME]
-  const msg = `[sticker:${sticker.id}:${sticker.name}]`;
+  const filePath = s.file_path || '';
+  const msg = `[sticker:${s.file_unique_id}:${s.emoji||'🟣'}:${s.ext||'webp'}:${filePath}]`;
 
   if(typeof isSyncEnabled === 'function' && isSyncEnabled()){
     const nick = typeof getNick === 'function' ? getNick(wallet.addr) : null;
@@ -103,5 +132,4 @@ function sendSticker(sticker){
   if(typeof trackChatPoint === 'function') trackChatPoint();
 }
 
-// ── DOMContentLoaded 후 초기화 ─────────────────────────────
 document.addEventListener('DOMContentLoaded', initStickerPicker);

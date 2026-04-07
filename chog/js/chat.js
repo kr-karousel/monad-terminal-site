@@ -69,16 +69,25 @@ function renderMsg(item){
       </div>`;
   }else{
     div.className='chat-msg';
-    const stickerMatch = item.msg && item.msg.match(/^\[sticker:([^:]+):([^\]]+)\]$/);
+    // [sticker:FILE_UNIQUE_ID:EMOJI:EXT:FILE_PATH] 형식 감지
+    const stickerMatch = item.msg && item.msg.match(/^\[sticker:([^:]+):([^:]+):([^:]+):([^\]]*)\]$/);
     let msgContent;
     if(stickerMatch){
-      const sid  = stickerMatch[1];
-      const sname = escHtml(stickerMatch[2]);
-      // CHOG_STICKERS에서 ext 찾기, 없으면 gif 기본값
-      const sData = (typeof CHOG_STICKERS !== 'undefined') ? CHOG_STICKERS.find(s=>s.id===sid) : null;
-      const ext   = sData ? sData.ext : 'gif';
-      const url   = `https://cdn.discordapp.com/stickers/${sid}.${ext}`;
-      msgContent  = `<div class="chat-sticker"><img src="${url}" alt="${sname}" title="${sname}" loading="lazy" onerror="this.parentElement.innerHTML='<span style=\\'font-size:11px;color:var(--muted)\\'>🟣 ${sname}</span>'"><div class="sticker-label">${sname}</div></div>`;
+      const emoji    = escHtml(stickerMatch[2]);
+      const ext      = stickerMatch[3];
+      const filePath = stickerMatch[4];
+      let mediaEl;
+      if(filePath){
+        const proxyUrl = `/api/telegram-file?path=${encodeURIComponent(filePath)}`;
+        if(ext === 'webm'){
+          mediaEl = `<video src="${proxyUrl}" autoplay loop muted playsinline style="width:80px;height:80px;object-fit:contain;border-radius:10px"></video>`;
+        } else {
+          mediaEl = `<img src="${proxyUrl}" alt="${emoji}" loading="lazy" style="width:80px;height:80px;object-fit:contain;border-radius:10px;display:block" onerror="this.outerHTML='<span style=\\'font-size:32px\\'>${emoji}</span>'">`;
+        }
+      } else {
+        mediaEl = `<span style="font-size:32px">${emoji}</span>`;
+      }
+      msgContent = `<div class="chat-sticker">${mediaEl}<div class="sticker-label">${emoji}</div></div>`;
     } else {
       msgContent = `<div>${escHtml(item.msg)}</div>`;
     }
