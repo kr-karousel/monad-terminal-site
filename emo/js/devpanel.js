@@ -235,6 +235,9 @@ function clearAllShouts(){
 
 async function doShout(){
   if(!wallet){alert('Please connect your wallet first!');return;}
+  // 잔액 최신화
+  const freshBal = await fetchChogBalance(wallet.addr);
+  if(freshBal !== null){ wallet.bal = Math.floor(freshBal); chogBalance = wallet.bal; updateWalletDisplay(); }
   const isDev = wallet.addr.toLowerCase()===DEV_WALLET.toLowerCase();
   if(!isDev && wallet.bal<SHOUT_COST){
     alert('You need '+SHOUT_COST.toLocaleString()+' EMO to shout!\nBalance: '+wallet.bal.toLocaleString()+' EMO');

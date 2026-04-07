@@ -138,33 +138,57 @@ async function renderHolderList(){
 async function fetchTopHolders(){
   if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
 
-  const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
-  const enc = encodeURIComponent(BV_URL);
+  const BV_URL    = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
+  const EXP_URL   = `https://explorer.monad.xyz/api/v2/tokens/${CHOG_CONTRACT}/holders`;
+  const EXP_URL1  = `https://explorer.monad.xyz/api?module=token&action=tokenholderlist&contractaddress=${CHOG_CONTRACT}`;
+  const NAD_URL1  = `https://api.nad.fun/v1/tokens/${CHOG_CONTRACT}/holders?limit=50`;
+  const NAD_URL2  = `https://api.nad.fun/coins/${CHOG_CONTRACT}/holders?limit=50`;
+  const enc       = encodeURIComponent(BV_URL);
+  const encExp    = encodeURIComponent(EXP_URL);
+  const encNad    = encodeURIComponent(NAD_URL1);
 
-  // (url, isWrapped) — isWrapped=true: response is {contents:"json string"}
-  const attempts = [
-    [BV_URL, false],
-    [`https://api.allorigins.win/get?url=${enc}`, true],
-    [`https://api.allorigins.win/raw?url=${enc}`, false],
-    [`https://corsproxy.io/?${enc}`, false],
-    [`https://thingproxy.freeboard.io/fetch/${BV_URL}`, false]
-  ];
-
+  // parse 함수 — 여러 응답 포맷 통합 처리
+  const fromWei = (v) => { try{ return Number(BigInt(v)*1000n/BigInt('1000000000000000000'))/1000; }catch(_){ return 0; } };
   const parseData = (d) => {
-    // 여러 응답 구조 시도
-    const list = d?.result?.data || d?.result?.list || d?.data || d?.items || d?.holders || [];
+    // Blockscout v2: { items: [ { address:{hash}, value } ] }
+    if(d?.items?.length){
+      return d.items.map(h => ({
+        address: (h.address?.hash || h.address || '').toLowerCase(),
+        balance: h.value ? fromWei(h.value) : h.balance ? parseFloat(h.balance) : 0,
+        pct: parseFloat(h.percentage || h.pct || 0)
+      })).filter(h => h.address && h.balance > 0);
+    }
+    // nad.fun / BlockVision / generic
+    const list = d?.result?.data || d?.result?.list || d?.result || d?.data || d?.holders || d?.list || [];
     if(!list.length) throw new Error('empty list');
     return list.map(h => ({
-      address: (h.holder || h.accountAddress || h.address || '').toLowerCase(),
-      balance: h.amount ? Number(BigInt(h.amount) * 1000n / BigInt('1000000000000000000')) / 1000
-               : h.balance ? parseFloat(h.balance) : 0,
-      pct: parseFloat(h.percentage || h.pct || 0)
+      address: (h.holder || h.wallet_address || h.accountAddress || h.address?.hash || h.address || '').toLowerCase(),
+      balance: h.amount ? fromWei(h.amount) : h.value ? fromWei(h.value) : h.balance ? parseFloat(h.balance) : 0,
+      pct: parseFloat(h.percentage || h.share || h.pct || 0)
     })).filter(h => h.address && h.balance > 0);
   };
 
+  // (url, isWrapped) — isWrapped=true: response is {contents:"json string"}
+  const attempts = [
+    [`/api/holders?contract=${CHOG_CONTRACT}&limit=50`, false],  // Vercel 서버리스 프록시 (최우선)
+    [NAD_URL1,  false],                                           // nad.fun API v1
+    [NAD_URL2,  false],                                           // nad.fun API v2
+    [EXP_URL,   false],                                           // Monad Explorer (Blockscout v2)
+    [EXP_URL1,  false],                                           // Monad Explorer (Blockscout v1)
+    [BV_URL,    false],                                           // BlockVision 직접
+    [`https://api.allorigins.win/raw?url=${encNad}`, false],      // nad.fun via proxy
+    [`https://api.allorigins.win/raw?url=${encExp}`, false],      // Explorer via proxy
+    [`https://api.allorigins.win/get?url=${enc}`, true],
+    [`https://corsproxy.io/?${enc}`, false],
+  ];
+
   for(const [url, isWrapped] of attempts){
     try {
-      const label = url.includes('allorigins') ? 'allorigins' : url.includes('corsproxy') ? 'corsproxy' : url.includes('thingproxy') ? 'thingproxy' : 'direct';
+      const label = url.startsWith('/api') ? 'vercel-proxy'
+        : url.includes('explorer.monad') ? 'monad-explorer'
+        : url.includes('allorigins') ? 'allorigins'
+        : url.includes('corsproxy') ? 'corsproxy'
+        : 'direct';
       console.log(`📡 Fetching holders (${label})...`);
       const res = await fetch(url, {headers:{'accept':'application/json'}});
       if(!res.ok) throw new Error('HTTP '+res.status);
@@ -173,12 +197,100 @@ async function fetchTopHolders(){
       console.log('raw response:', JSON.stringify(d).slice(0,200));
       const valid = parseData(d);
       if(valid.length > 0){
-        console.log('✅ Holders loaded:', valid.length);
+        console.log('✅ Holders loaded:', valid.length, 'via', label);
         holderCache = valid; holderCacheTime = Date.now();
         return valid;
       }
-    } catch(e){ console.warn(`Holder fetch error (${url.slice(0,50)}):`, e.message); }
+    } catch(e){ console.warn(`Holder fetch error (${url.slice(0,60)}):`, e.message); }
   }
+
+  // ── rpcCallAny 사용 (지갑 provider → fetch 순으로 CORS 우회) ──────────────
+  console.log('📡 Fetching holders (rpc-direct)...');
+  try {
+    const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
+    // 제외할 컨트랙트/LP 주소 (유동성 풀, 라우터 등)
+    const EXCLUDE = new Set([
+      '0x0000000000000000000000000000000000000000',
+      '0x000000000000000000000000000000000000dead',
+      (typeof NADFUN_POOL   !== 'undefined' ? NADFUN_POOL   : '').toLowerCase(),
+      (typeof KURU_PAIR     !== 'undefined' ? KURU_PAIR     : '').toLowerCase(),
+      (typeof NADFUN_ROUTER !== 'undefined' ? NADFUN_ROUTER : '').toLowerCase(),
+      (typeof BONDING_ROUTER!== 'undefined' ? BONDING_ROUTER: '').toLowerCase(),
+    ].filter(Boolean));
+
+    // 현재 블록
+    const blockHex = await rpcCallAny('eth_blockNumber', []);
+    const current = parseInt(blockHex, 16);
+    if(!current) return null;
+
+    // Transfer 로그 수집 — 먼저 큰 범위(500k블록 ≈ 5.8일) 한 번에 시도,
+    // 실패하면 2000블록 청크로 나눠서 시도
+    const seen = new Set();
+    const BIG = Math.max(0, current - 500000);
+    let bigLogs = await rpcCallAny('eth_getLogs', [{
+      address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC],
+      fromBlock: '0x' + BIG.toString(16), toBlock: 'latest',
+    }]);
+
+    if(bigLogs && bigLogs.length){
+      for(const log of bigLogs){
+        if(log.topics?.[2]){
+          const to = '0x' + log.topics[2].slice(26).toLowerCase();
+          if(!EXCLUDE.has(to)) seen.add(to);
+        }
+      }
+    } else {
+      // 청크 방식 fallback (2000블록씩, 최대 100회 = 200k블록)
+      const CHUNK = 2000;
+      for(let end = current, n = 0; end > 0 && n < 100; end -= CHUNK, n++){
+        const start = Math.max(0, end - CHUNK + 1);
+        const logs = await rpcCallAny('eth_getLogs', [{
+          address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC],
+          fromBlock: '0x' + start.toString(16), toBlock: '0x' + end.toString(16),
+        }]);
+        if(logs?.length){
+          for(const log of logs){
+            if(log.topics?.[2]){
+              const to = '0x' + log.topics[2].slice(26).toLowerCase();
+              if(!EXCLUDE.has(to)) seen.add(to);
+            }
+          }
+        }
+        if(seen.size >= 300) break;
+      }
+    }
+
+    if(!seen.size) return null;
+
+    // 잔고 병렬 조회 (20개씩 동시 요청 → 순차 대비 ~20배 빠름)
+    const addrs = [...seen];
+    const holders = [];
+    const PARALLEL = 20;
+    for(let i = 0; i < addrs.length; i += PARALLEL){
+      const chunk = addrs.slice(i, i + PARALLEL);
+      const results = await Promise.all(chunk.map(addr =>
+        rpcCallAny('eth_call', [{
+          to: CHOG_CONTRACT,
+          data: '0x70a08231' + addr.slice(2).padStart(64, '0')
+        }, 'latest'])
+      ));
+      results.forEach((hex, j) => {
+        if(hex && hex.length > 2){
+          const bal = fromWei(hex);
+          if(bal > 0) holders.push({address: chunk[j], balance: bal, pct: 0});
+        }
+      });
+    }
+
+    if(!holders.length) return null;
+    holders.sort((a,b) => b.balance - a.balance);
+    const top = holders.slice(0, 50);
+    top.forEach(h => { h.pct = (h.balance / 1_000_000_000) * 100; });
+    console.log('✅ Holders loaded (rpc):', top.length, 'from', seen.size, 'unique addrs');
+    holderCache = top; holderCacheTime = Date.now();
+    return top;
+  } catch(e){ console.warn('RPC direct error:', e.message); }
 
   return null;
 }
@@ -260,22 +372,22 @@ function _getProvider(name){
   return window.ethereum || null;
 }
 
-async function connectWallet(name){
-  closeWalletModal();
-  const provider = _getProvider(name);
-  if(!provider){
-    const links = {
-      MetaMask: 'https://metamask.io',
-      Phantom:  'https://phantom.app',
-      Backpack: 'https://backpack.app',
-    };
-    alert(`${name} wallet not found!\nPlease install it from ${links[name]||'the official site'}.`);
-    return;
-  }
+function disconnectWallet(){
+  wallet = null;
+  chogBalance = 0;
+  const area = document.getElementById('walletArea');
+  if(area) area.innerHTML = '<button class="btn-connect" onclick="openWalletModal()">Connect Wallet</button>';
+  const inp = document.getElementById('chatInput');
+  if(inp){ inp.disabled = true; inp.placeholder = 'Connect wallet to chat...'; }
+  const btn = document.getElementById('sendBtn');
+  if(btn) btn.disabled = true;
+  const sb = document.getElementById('stickerBtn');
+  if(sb) sb.disabled = true;
+}
+
+// ── 공통 지갑 연결 마무리 ─────────────────────────────────
+async function _finalizeWalletConnection(addr, provider, name){
   try{
-    const accounts=await provider.request({method:'eth_requestAccounts'});
-    if(!accounts||!accounts.length)throw new Error('No accounts');
-    const addr=accounts[0];
     try{
       await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});
     } catch(sw){
@@ -308,6 +420,8 @@ async function connectWallet(name){
     document.getElementById('chatInput').disabled=false;
     document.getElementById('chatInput').placeholder='Type a message...';
     document.getElementById('sendBtn').disabled=false;
+    const sb2 = document.getElementById('stickerBtn');
+    if(sb2) sb2.disabled=false;
     checkDevAccess();
     // 본인 랭킹 비동기 조회 후 채팅에 표시
     getHolderRank(addr).then(holderRank => {
@@ -358,6 +472,22 @@ async function connectWallet(name){
     if(typeof provider.on === 'function')
       provider.on('accountsChanged',accs=>{if(!accs.length){wallet=null;location.reload();}else connectWallet(name);});
   }catch(err){console.error('connectWallet error:',err);alert('Connection failed: '+(err.message||err));}
+}
+
+async function connectWallet(name){
+  closeWalletModal();
+  // WalletConnect: use any available injected provider
+  const provider = name === 'WalletConnect' ? window.ethereum : _getProvider(name);
+  if(!provider){
+    const links = { MetaMask:'https://metamask.io', Phantom:'https://phantom.app', Backpack:'https://backpack.app' };
+    alert(`${name} wallet not found!\nPlease install it from ${links[name]||'the official site'}.`);
+    return;
+  }
+  try{
+    const accounts = await provider.request({method:'eth_requestAccounts'});
+    if(!accounts||!accounts.length) throw new Error('No accounts');
+    await _finalizeWalletConnection(accounts[0], provider, name);
+  }catch(err){ console.error('connectWallet error:',err); alert('Connection failed: '+(err.message||err)); }
 }
 
 function sendChat(){

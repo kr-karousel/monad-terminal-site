@@ -62,11 +62,17 @@ function validateNick(nick){
   return null; // OK
 }
 
-function openNickModal(){
+async function openNickModal(){
   if(!wallet){ alert('Connect your wallet first!'); return; }
   const modal = document.getElementById('nickModal');
   const body  = document.getElementById('nickModalBody');
   const curNick = getNick(wallet.addr);
+
+  // 모달 먼저 열고 잔액 새로고침
+  modal.classList.add('open');
+  body.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">⏳ Refreshing balance...</div>`;
+  const freshBal = await fetchChogBalance(wallet.addr);
+  if(freshBal !== null){ wallet.bal = Math.floor(freshBal); chogBalance = wallet.bal; updateWalletDisplay(); }
 
   body.innerHTML = `
     <div style="text-align:center;margin-bottom:14px">
@@ -110,7 +116,6 @@ function openNickModal(){
     </button>
   `;
 
-  modal.classList.add('open');
   setTimeout(()=>{ const el=document.getElementById('nickInput'); if(el)el.focus(); }, 100);
 }
 
@@ -180,11 +185,15 @@ function updateWalletDisplay(){
   const nick  = getNick(wallet.addr);
   const label = nick || (wallet.addr.slice(0,6)+'...'+wallet.addr.slice(-4));
   document.getElementById('walletArea').innerHTML =
-    `<div class="wallet-info" style="cursor:pointer" onclick="openNickModal()">
-      <span class="wallet-addr">${label}</span>
-      <span class="rank-badge ${rank.cls}">${rank.badge}</span>
-      <span style="font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--muted)">${wallet.bal.toLocaleString()} CHOG</span>
-      <span class="nick-badge" title="Change nickname">✏️</span>
+    `<div class="wallet-info">
+      <span style="cursor:pointer;display:flex;align-items:center;gap:6px" onclick="openNickModal()">
+        <span class="wallet-addr">${label}</span>
+        <span class="rank-badge ${rank.cls}">${rank.badge}</span>
+        <span style="font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--muted)">${wallet.bal.toLocaleString()} CHOG</span>
+        <span class="nick-badge" title="Change nickname">✏️</span>
+      </span>
+      <span style="width:1px;height:14px;background:rgba(255,255,255,0.15);margin:0 2px;flex-shrink:0"></span>
+      <button onclick="disconnectWallet()" title="Disconnect wallet" style="background:none;border:none;color:var(--muted);font-size:15px;font-weight:700;padding:0 2px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='var(--muted)'">×</button>
     </div>`;
 }
 

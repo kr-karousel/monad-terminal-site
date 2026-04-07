@@ -138,33 +138,53 @@ async function renderHolderList(){
 async function fetchTopHolders(){
   if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
 
-  const BV_URL = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
-  const enc = encodeURIComponent(BV_URL);
+  const BV_URL    = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${CHOG_CONTRACT}&limit=50`;
+  const EXP_URL   = `https://explorer.monad.xyz/api/v2/tokens/${CHOG_CONTRACT}/holders`;
+  const EXP_URL1  = `https://explorer.monad.xyz/api?module=token&action=tokenholderlist&contractaddress=${CHOG_CONTRACT}`;
+  const NAD_URL1  = `https://api.nad.fun/v1/tokens/${CHOG_CONTRACT}/holders?limit=50`;
+  const NAD_URL2  = `https://api.nad.fun/coins/${CHOG_CONTRACT}/holders?limit=50`;
+  const enc       = encodeURIComponent(BV_URL);
+  const encExp    = encodeURIComponent(EXP_URL);
+  const encNad    = encodeURIComponent(NAD_URL1);
 
-  // (url, isWrapped) — isWrapped=true: response is {contents:"json string"}
-  const attempts = [
-    [BV_URL, false],
-    [`https://api.allorigins.win/get?url=${enc}`, true],
-    [`https://api.allorigins.win/raw?url=${enc}`, false],
-    [`https://corsproxy.io/?${enc}`, false],
-    [`https://thingproxy.freeboard.io/fetch/${BV_URL}`, false]
-  ];
-
+  const fromWei = (v) => { try{ return Number(BigInt(v)*1000n/BigInt('1000000000000000000'))/1000; }catch(_){ return 0; } };
   const parseData = (d) => {
-    // 여러 응답 구조 시도
-    const list = d?.result?.data || d?.result?.list || d?.data || d?.items || d?.holders || [];
+    if(d?.items?.length){
+      return d.items.map(h => ({
+        address: (h.address?.hash || h.address || '').toLowerCase(),
+        balance: h.value ? fromWei(h.value) : h.balance ? parseFloat(h.balance) : 0,
+        pct: parseFloat(h.percentage || h.pct || 0)
+      })).filter(h => h.address && h.balance > 0);
+    }
+    const list = d?.result?.data || d?.result?.list || d?.result || d?.data || d?.holders || d?.list || [];
     if(!list.length) throw new Error('empty list');
     return list.map(h => ({
-      address: (h.holder || h.accountAddress || h.address || '').toLowerCase(),
-      balance: h.amount ? Number(BigInt(h.amount) * 1000n / BigInt('1000000000000000000')) / 1000
-               : h.balance ? parseFloat(h.balance) : 0,
-      pct: parseFloat(h.percentage || h.pct || 0)
+      address: (h.holder || h.wallet_address || h.accountAddress || h.address?.hash || h.address || '').toLowerCase(),
+      balance: h.amount ? fromWei(h.amount) : h.value ? fromWei(h.value) : h.balance ? parseFloat(h.balance) : 0,
+      pct: parseFloat(h.percentage || h.share || h.pct || 0)
     })).filter(h => h.address && h.balance > 0);
   };
 
+  const attempts = [
+    [`/api/holders?contract=${CHOG_CONTRACT}&limit=50`, false],
+    [NAD_URL1,  false],
+    [NAD_URL2,  false],
+    [EXP_URL,   false],
+    [EXP_URL1,  false],
+    [BV_URL,    false],
+    [`https://api.allorigins.win/raw?url=${encNad}`, false],
+    [`https://api.allorigins.win/raw?url=${encExp}`, false],
+    [`https://api.allorigins.win/get?url=${enc}`, true],
+    [`https://corsproxy.io/?${enc}`, false],
+  ];
+
   for(const [url, isWrapped] of attempts){
     try {
-      const label = url.includes('allorigins') ? 'allorigins' : url.includes('corsproxy') ? 'corsproxy' : url.includes('thingproxy') ? 'thingproxy' : 'direct';
+      const label = url.startsWith('/api') ? 'vercel-proxy'
+        : url.includes('explorer.monad') ? 'monad-explorer'
+        : url.includes('allorigins') ? 'allorigins'
+        : url.includes('corsproxy') ? 'corsproxy'
+        : 'direct';
       console.log(`📡 Fetching holders (${label})...`);
       const res = await fetch(url, {headers:{'accept':'application/json'}});
       if(!res.ok) throw new Error('HTTP '+res.status);
@@ -173,12 +193,94 @@ async function fetchTopHolders(){
       console.log('raw response:', JSON.stringify(d).slice(0,200));
       const valid = parseData(d);
       if(valid.length > 0){
-        console.log('✅ Holders loaded:', valid.length);
+        console.log('✅ Holders loaded:', valid.length, 'via', label);
         holderCache = valid; holderCacheTime = Date.now();
         return valid;
       }
-    } catch(e){ console.warn(`Holder fetch error (${url.slice(0,50)}):`, e.message); }
+    } catch(e){ console.warn(`Holder fetch error (${url.slice(0,60)}):`, e.message); }
   }
+
+  // ── 최후 수단: Monad RPC Transfer 이벤트 직접 조회 ────────────────────────
+  console.log('📡 Fetching holders (rpc-direct)...');
+  try {
+    const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
+    const EXCLUDE = new Set([
+      '0x0000000000000000000000000000000000000000',
+      '0x000000000000000000000000000000000000dead',
+      (typeof NADFUN_POOL   !== 'undefined' ? NADFUN_POOL   : '').toLowerCase(),
+      (typeof KURU_PAIR     !== 'undefined' ? KURU_PAIR     : '').toLowerCase(),
+      (typeof NADFUN_ROUTER !== 'undefined' ? NADFUN_ROUTER : '').toLowerCase(),
+      (typeof BONDING_ROUTER!== 'undefined' ? BONDING_ROUTER: '').toLowerCase(),
+    ].filter(Boolean));
+
+    const blockHex = await rpcCallAny('eth_blockNumber', []);
+    const current = parseInt(blockHex, 16);
+    if(!current) return null;
+
+    const seen = new Set();
+    const BIG = Math.max(0, current - 500000);
+    let bigLogs = await rpcCallAny('eth_getLogs', [{
+      address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC],
+      fromBlock: '0x' + BIG.toString(16), toBlock: 'latest',
+    }]);
+
+    if(bigLogs && bigLogs.length){
+      for(const log of bigLogs){
+        if(log.topics?.[2]){
+          const to = '0x' + log.topics[2].slice(26).toLowerCase();
+          if(!EXCLUDE.has(to)) seen.add(to);
+        }
+      }
+    } else {
+      const CHUNK = 2000;
+      for(let end = current, n = 0; end > 0 && n < 100; end -= CHUNK, n++){
+        const start = Math.max(0, end - CHUNK + 1);
+        const logs = await rpcCallAny('eth_getLogs', [{
+          address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC],
+          fromBlock: '0x' + start.toString(16), toBlock: '0x' + end.toString(16),
+        }]);
+        if(logs?.length){
+          for(const log of logs){
+            if(log.topics?.[2]){
+              const to = '0x' + log.topics[2].slice(26).toLowerCase();
+              if(!EXCLUDE.has(to)) seen.add(to);
+            }
+          }
+        }
+        if(seen.size >= 300) break;
+      }
+    }
+
+    if(!seen.size) return null;
+
+    const addrs = [...seen];
+    const holders = [];
+    const PARALLEL = 20;
+    for(let i = 0; i < addrs.length; i += PARALLEL){
+      const chunk = addrs.slice(i, i + PARALLEL);
+      const results = await Promise.all(chunk.map(addr =>
+        rpcCallAny('eth_call', [{
+          to: CHOG_CONTRACT,
+          data: '0x70a08231' + addr.slice(2).padStart(64, '0')
+        }, 'latest'])
+      ));
+      results.forEach((hex, j) => {
+        if(hex && hex.length > 2){
+          const bal = fromWei(hex);
+          if(bal > 0) holders.push({address: chunk[j], balance: bal, pct: 0});
+        }
+      });
+    }
+
+    if(!holders.length) return null;
+    holders.sort((a,b) => b.balance - a.balance);
+    const top = holders.slice(0, 50);
+    top.forEach(h => { h.pct = (h.balance / 1_000_000_000) * 100; });
+    console.log('✅ Holders loaded (rpc):', top.length, 'from', seen.size, 'unique addrs');
+    holderCache = top; holderCacheTime = Date.now();
+    return top;
+  } catch(e){ console.warn('RPC direct error:', e.message); }
 
   return null;
 }
@@ -231,14 +333,19 @@ function closeWalletModal(){document.getElementById('walletModal').classList.rem
 function openRankModal(){document.getElementById('rankModal').classList.add('open');}
 function closeRankModal(){document.getElementById('rankModal').classList.remove('open');}
 
-async function connectWallet(name){
-  closeWalletModal();
-  const provider=window.ethereum;
-  if(!provider){alert('No Web3 wallet detected!\nPlease install MetaMask.');return;}
+function disconnectWallet(){
+  wallet = null;
+  chogBalance = 0;
+  const area = document.getElementById('walletArea');
+  if(area) area.innerHTML = '<button class="btn-connect" onclick="openWalletModal()">Connect Wallet</button>';
+  const inp = document.getElementById('chatInput');
+  if(inp){ inp.disabled = true; inp.placeholder = 'Connect wallet to chat...'; }
+  const btn = document.getElementById('sendBtn');
+  if(btn) btn.disabled = true;
+}
+
+async function _finalizeWalletConnection(addr, provider, name){
   try{
-    const accounts=await provider.request({method:'eth_requestAccounts'});
-    if(!accounts||!accounts.length)throw new Error('No accounts');
-    const addr=accounts[0];
     try{
       await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});
     } catch(sw){
@@ -260,7 +367,6 @@ async function connectWallet(name){
     const raw=(balHex||'0x0').replace('0x','')||'0';
     const bal=BigInt?Number(BigInt('0x'+(raw||'0'))/BigInt('1000000000000000'))/1000:parseInt(raw.slice(0,-15)||'0',16)/1000;
     wallet={addr,bal:Math.floor(bal),name};chogBalance=wallet.bal;
-    // MON 잔고도 로드
     try{
       const monHex = await provider.request({method:'eth_getBalance',params:[addr,'latest']});
       wallet.monBal = parseInt(monHex,16)/1e18;
@@ -272,21 +378,11 @@ async function connectWallet(name){
     document.getElementById('chatInput').placeholder='Type a message...';
     document.getElementById('sendBtn').disabled=false;
     checkDevAccess();
-    // 본인 랭킹 비동기 조회 후 채팅에 표시
     getHolderRank(addr).then(holderRank => {
       const nick     = getNick(addr);
       const name     = nick || short;
       const rankStr  = holderRank ? ` · Rank #${holderRank}` : '';
-      const isDev    = addr.toLowerCase() === DEV_WALLET.toLowerCase();
-
-      // 본인 입장 메시지
-      renderMsg({
-        addr: name, addrFull: addr, bal: wallet.bal,
-        msg: `${rank.badge} ${rank.label}${rankStr}`,
-        time: nowTime()
-      });
-
-      // 시스템 웰컴 메시지 (EMO Terminal 봇처럼)
+      renderMsg({ addr: name, addrFull: addr, bal: wallet.bal, msg: `${rank.badge} ${rank.label}${rankStr}`, time: nowTime() });
       setTimeout(() => {
         const welcomes = nick ? [
           `👋 Welcome back, <b>${nick}</b>! Great to see you 🟣`,
@@ -300,25 +396,31 @@ async function connectWallet(name){
         const w = welcomes[Math.floor(Math.random()*welcomes.length)];
         const isDev2 = addr.toLowerCase() === DEV_WALLET.toLowerCase();
         const devMsg = isDev2 ? `🛠️ <b>EMO Terminal DEV</b> has entered the building! 👑` : null;
-
         const chatList2 = document.getElementById('chatList');
         if(!chatList2) return;
         const div = document.createElement('div');
         div.className = 'chat-msg';
         div.style.cssText = 'background:rgba(192,132,252,0.1);border:1px solid rgba(192,132,252,0.3);';
-        div.innerHTML = `
-          <div class="msg-meta">
-            <span style="font-size:12px">🤖</span>
-            <span style="font-weight:700;color:var(--accent);font-size:11px">EMO Terminal</span>
-            <span style="font-size:10px;color:var(--muted);margin-left:auto">${nowTime()}</span>
-          </div>
-          <div style="font-size:12px">${devMsg || w}</div>`;
+        div.innerHTML = `<div class="msg-meta"><span style="font-size:12px">🤖</span><span style="font-weight:700;color:var(--accent);font-size:11px">EMO Terminal</span><span style="font-size:10px;color:var(--muted);margin-left:auto">${nowTime()}</span></div><div style="font-size:12px">${devMsg || w}</div>`;
         chatList2.appendChild(div);
         if(chatList2.children.length>20) chatList2.removeChild(chatList2.firstChild);
         chatList2.scrollTop = chatList2.scrollHeight;
       }, 600);
     });
-    provider.on('accountsChanged',accs=>{if(!accs.length){wallet=null;location.reload();}else connectWallet(name);});
+    if(typeof provider.on === 'function')
+      provider.on('accountsChanged',accs=>{if(!accs.length){wallet=null;location.reload();}else connectWallet(name);});
+  }catch(err){console.error('connectWallet error:',err);alert('Connection failed: '+(err.message||err));}
+}
+
+async function connectWallet(name){
+  closeWalletModal();
+  // WalletConnect: use any available injected provider
+  const provider = name === 'WalletConnect' ? window.ethereum : window.ethereum;
+  if(!provider){alert('No Web3 wallet detected!\nPlease install MetaMask.');return;}
+  try{
+    const accounts=await provider.request({method:'eth_requestAccounts'});
+    if(!accounts||!accounts.length)throw new Error('No accounts');
+    await _finalizeWalletConnection(accounts[0], provider, name);
   }catch(err){console.error('connectWallet error:',err);alert('Connection failed: '+(err.message||err));}
 }
 

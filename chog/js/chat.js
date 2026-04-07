@@ -10,13 +10,14 @@ function renderMsg(item){
   const addrFull = item.addrFull || item.addr || '';
   const rank=getRank(item.bal||0, addrFull);
   const div=document.createElement('div');
-  // 닉네임 있으면 닉네임으로 표시
-  const nick = getNick(addrFull);
+  // 닉네임 있으면 닉네임으로 표시 (실시간 nickDB → DB 스냅샷 순서로 fallback)
+  const nick = getNick(addrFull) || item.nickname || null;
+  const shortAddr = addrFull ? addrFull.slice(0,6)+'...'+addrFull.slice(-4) : item.addr;
   const displayAddr = nick
     ? `<span style="color:var(--accent);font-weight:700">${nick}</span>`
-    : item.addr;
+    : shortAddr;
 
-  const addrHtml = `<span class="msg-addr" style="cursor:pointer;text-decoration:underline dotted" onclick="openProfileModal('${addrFull}',${item.bal||0},'${rank.cls}','${rank.badge}','${item.txHash||''}')">${displayAddr}</span>`;
+  const addrHtml = `<span class="msg-addr" data-addr="${addrFull}" style="cursor:pointer;text-decoration:underline dotted" onclick="openProfileModal('${addrFull}',${item.bal||0},'${rank.cls}','${rank.badge}','${item.txHash||''}')">${displayAddr}</span>`;
 
   // bal=0이고 custom tier 없을 때 → 실제 잔고 비동기 조회 후 뱃지 업데이트
   if(!item.bal && addrFull && addrFull.startsWith('0x') && !devCustomTiers[addrFull.toLowerCase()] && typeof fetchChogBalance === 'function'){
@@ -68,7 +69,29 @@ function renderMsg(item){
       </div>`;
   }else{
     div.className='chat-msg';
-    div.innerHTML=`<div class="msg-meta">${addrHtml}<span class="rank-badge ${rank.cls}">${rank.badge}</span><span style="font-size:10px;color:var(--muted);margin-left:auto">${item.time}</span></div><div>${escHtml(item.msg)}</div>`;
+    // [sticker:FILE_UNIQUE_ID:EMOJI:EXT:FILE_PATH] 형식 감지
+    const stickerMatch = item.msg && item.msg.match(/^\[sticker:([^:]+):([^:]+):([^:]+):([^\]]*)\]$/);
+    let msgContent;
+    if(stickerMatch){
+      const emoji    = escHtml(stickerMatch[2]);
+      const ext      = stickerMatch[3];
+      const filePath = stickerMatch[4];
+      let mediaEl;
+      if(filePath){
+        const proxyUrl = `/api/telegram-file?path=${encodeURIComponent(filePath)}`;
+        if(ext === 'webm'){
+          mediaEl = `<video src="${proxyUrl}" autoplay loop muted playsinline style="width:80px;height:80px;object-fit:contain;border-radius:10px"></video>`;
+        } else {
+          mediaEl = `<img src="${proxyUrl}" alt="${emoji}" loading="lazy" style="width:80px;height:80px;object-fit:contain;border-radius:10px;display:block" onerror="this.outerHTML='<span style=\\'font-size:32px\\'>${emoji}</span>'">`;
+        }
+      } else {
+        mediaEl = `<span style="font-size:32px">${emoji}</span>`;
+      }
+      msgContent = `<div class="chat-sticker">${mediaEl}<div class="sticker-label">${emoji}</div></div>`;
+    } else {
+      msgContent = `<div>${escHtml(item.msg)}</div>`;
+    }
+    div.innerHTML=`<div class="msg-meta">${addrHtml}<span class="rank-badge ${rank.cls}">${rank.badge}</span><span style="font-size:10px;color:var(--muted);margin-left:auto">${item.time}</span></div>${msgContent}`;
   }
   chatList.appendChild(div);
   if(chatList.children.length>20)chatList.removeChild(chatList.firstChild);

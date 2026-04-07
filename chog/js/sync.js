@@ -5,7 +5,7 @@
 
 var _sbClient = null;
 
-function initSync(){
+async function initSync(){
   if(typeof SUPABASE_URL === 'undefined' || !SUPABASE_URL) return;
   if(typeof window.supabase === 'undefined'){
     console.warn('[Sync] Supabase SDK not loaded');
@@ -14,7 +14,8 @@ function initSync(){
   try{
     _sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('[Sync] Supabase 연결됨');
-    _syncNicknamesFromServer();
+    // 닉네임을 먼저 로드한 뒤 메시지를 렌더링해야 닉네임이 정상 표시됨
+    await _syncNicknamesFromServer();
     _syncShoutsFromServer();
     _syncCustomTiersFromServer();
     _syncTestWalletsFromServer();
@@ -47,7 +48,23 @@ async function _syncNicknamesFromServer(){
         nickDB[row.address.toLowerCase()] = row.nickname;
     });
     if(wallet && typeof updateWalletDisplay === 'function') updateWalletDisplay();
+    _refreshChatNicknames();
   }catch(e){ console.warn('[Sync] 닉네임 로드 실패:', e.message); }
+}
+
+// 닉네임 로드 후 이미 렌더링된 채팅 메시지의 주소를 닉네임으로 업데이트
+function _refreshChatNicknames(){
+  const list = document.getElementById('chatList');
+  if(!list) return;
+  list.querySelectorAll('.msg-addr[data-addr]').forEach(el => {
+    const addr = el.dataset.addr;
+    if(!addr) return;
+    const nick = getNick(addr);
+    if(nick && !el.dataset.nickSet){
+      el.innerHTML = `<span style="color:var(--accent);font-weight:700">${nick}</span>`;
+      el.dataset.nickSet = '1';
+    }
+  });
 }
 
 function _subscribeToNicknames(){
@@ -60,6 +77,8 @@ function _subscribeToNicknames(){
         if(!row || !row.address || !row.nickname) return;
         const isNew = !nickDB[row.address.toLowerCase()];
         nickDB[row.address.toLowerCase()] = row.nickname;
+        // 기존 채팅 메시지 주소 → 닉네임으로 갱신
+        _refreshChatNicknames();
         // 내 지갑이면 UI 업데이트
         if(wallet && wallet.addr.toLowerCase() === row.address.toLowerCase()){
           if(typeof updateWalletDisplay === 'function') updateWalletDisplay();
@@ -283,6 +302,7 @@ async function _syncMessagesFromServer(){
       renderMsg({
         addr: row.address,
         addrFull: row.address,
+        nickname: row.nickname || null,
         bal: row.chog_bal || 0,
         msg: row.content,
         time: timeStr
@@ -302,6 +322,7 @@ function _subscribeToMessages(){
         renderMsg({
           addr: row.address,
           addrFull: row.address,
+          nickname: row.nickname || null,
           bal: row.chog_bal || 0,
           msg: row.content,
           time: typeof nowTime === 'function' ? nowTime() : ''
