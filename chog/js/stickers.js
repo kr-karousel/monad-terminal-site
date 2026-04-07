@@ -9,22 +9,23 @@ var _loadedStickers = [];
 async function loadTelegramStickers(){
   const grid = document.querySelector('#stickerPicker .sticker-grid');
   if(!grid) return;
-  grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:12px;grid-column:span 4;text-align:center">로딩중...</div>';
+  grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:12px;grid-column:span 4;text-align:center">Loading...</div>';
 
   try {
     const res  = await fetch('/api/telegram-stickers?set=' + STICKER_SET_NAME);
     const data = await res.json();
 
     if(!data.ok || !data.stickers || !data.stickers.length){
-      grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:12px;grid-column:span 4;text-align:center">스티커를 불러오지 못했어요 😢</div>';
+      const errMsg = data.error || 'No stickers found';
+      grid.innerHTML = '<div style="color:#f87171;font-size:11px;padding:12px;grid-column:span 4;text-align:center">Failed to load stickers<br><span style="opacity:.7">' + errMsg + '</span></div>';
       return;
     }
 
     _loadedStickers = data.stickers;
     _buildStickerGrid(grid);
   } catch(e){
-    console.warn('[Stickers] 로드 실패:', e.message);
-    grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:12px;grid-column:span 4;text-align:center">오류: ' + e.message + '</div>';
+    console.warn('[Stickers] load failed:', e.message);
+    grid.innerHTML = '<div style="color:#f87171;font-size:11px;padding:12px;grid-column:span 4;text-align:center">Error: ' + e.message + '</div>';
   }
 }
 
