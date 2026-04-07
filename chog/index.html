@@ -286,6 +286,11 @@
         <div class="sticker-picker" id="stickerPicker">
           <div class="sticker-picker-header">
             <span style="font-family:'Bangers',cursive;letter-spacing:1px;color:var(--accent)">🟣 Chog Stickers</span>
+            <div class="sticker-page-nav">
+              <button class="sticker-nav-btn" id="stickerPrevBtn" onclick="stickerPagePrev()" disabled>◀</button>
+              <span class="sticker-page-info" id="stickerPageInfo">- / -</span>
+              <button class="sticker-nav-btn" id="stickerNextBtn" onclick="stickerPageNext()" disabled>▶</button>
+            </div>
           </div>
           <div class="sticker-grid"></div>
         </div>
