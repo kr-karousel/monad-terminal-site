@@ -281,7 +281,17 @@
       </div>
 
       <div class="chat-list" id="chatList"></div>
-      <div class="chat-input-area">
+      <div class="chat-input-area" style="position:relative">
+        <!-- 스티커 피커 패널 -->
+        <div class="sticker-picker" id="stickerPicker">
+          <div class="sticker-picker-header">
+            <span style="font-family:'Bangers',cursive;letter-spacing:1px;color:var(--accent)">🟣 Chog Stickers</span>
+          </div>
+          <div class="sticker-grid"></div>
+        </div>
+        <button class="btn-sticker" id="stickerBtn" onclick="toggleStickerPicker()" disabled title="Chog Stickers">
+          <img src="https://cdn.discordapp.com/stickers/1370060989297135716.gif" alt="sticker" onerror="this.outerHTML='🟣'" style="width:18px;height:18px;object-fit:contain;border-radius:3px">
+        </button>
         <input class="chat-input" id="chatInput" placeholder="Connect wallet to chat..." disabled>
         <button class="btn-send" id="sendBtn" onclick="sendChat()" disabled>Send</button>
       </div>
@@ -598,6 +608,7 @@
 <script src="js/rpc.js"></script>
 <script src="js/price.js"></script>
 <script src="js/chat.js"></script>
+<script src="js/stickers.js"></script>
 <script src="js/wallet.js"></script>
 <script src="js/trading.js"></script>
 <script src="js/holders.js"></script>

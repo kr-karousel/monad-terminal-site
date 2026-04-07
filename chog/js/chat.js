@@ -69,7 +69,20 @@ function renderMsg(item){
       </div>`;
   }else{
     div.className='chat-msg';
-    div.innerHTML=`<div class="msg-meta">${addrHtml}<span class="rank-badge ${rank.cls}">${rank.badge}</span><span style="font-size:10px;color:var(--muted);margin-left:auto">${item.time}</span></div><div>${escHtml(item.msg)}</div>`;
+    const stickerMatch = item.msg && item.msg.match(/^\[sticker:([^:]+):([^\]]+)\]$/);
+    let msgContent;
+    if(stickerMatch){
+      const sid  = stickerMatch[1];
+      const sname = escHtml(stickerMatch[2]);
+      // CHOG_STICKERS에서 ext 찾기, 없으면 gif 기본값
+      const sData = (typeof CHOG_STICKERS !== 'undefined') ? CHOG_STICKERS.find(s=>s.id===sid) : null;
+      const ext   = sData ? sData.ext : 'gif';
+      const url   = `https://cdn.discordapp.com/stickers/${sid}.${ext}`;
+      msgContent  = `<div class="chat-sticker"><img src="${url}" alt="${sname}" title="${sname}" loading="lazy" onerror="this.parentElement.innerHTML='<span style=\\'font-size:11px;color:var(--muted)\\'>🟣 ${sname}</span>'"><div class="sticker-label">${sname}</div></div>`;
+    } else {
+      msgContent = `<div>${escHtml(item.msg)}</div>`;
+    }
+    div.innerHTML=`<div class="msg-meta">${addrHtml}<span class="rank-badge ${rank.cls}">${rank.badge}</span><span style="font-size:10px;color:var(--muted);margin-left:auto">${item.time}</span></div>${msgContent}`;
   }
   chatList.appendChild(div);
   if(chatList.children.length>20)chatList.removeChild(chatList.firstChild);

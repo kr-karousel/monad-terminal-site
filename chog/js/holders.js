@@ -381,6 +381,8 @@ function disconnectWallet(){
   if(inp){ inp.disabled = true; inp.placeholder = 'Connect wallet to chat...'; }
   const btn = document.getElementById('sendBtn');
   if(btn) btn.disabled = true;
+  const sb = document.getElementById('stickerBtn');
+  if(sb) sb.disabled = true;
 }
 
 // ── 공통 지갑 연결 마무리 ─────────────────────────────────
@@ -418,6 +420,8 @@ async function _finalizeWalletConnection(addr, provider, name){
     document.getElementById('chatInput').disabled=false;
     document.getElementById('chatInput').placeholder='Type a message...';
     document.getElementById('sendBtn').disabled=false;
+    const sb2 = document.getElementById('stickerBtn');
+    if(sb2) sb2.disabled=false;
     checkDevAccess();
     // 본인 랭킹 비동기 조회 후 채팅에 표시
     getHolderRank(addr).then(holderRank => {

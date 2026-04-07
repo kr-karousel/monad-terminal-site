@@ -130,6 +130,25 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .chat-input{flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:10px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Nunito',sans-serif;outline:none}
 .chat-input:focus{border-color:var(--accent)}
 .btn-send{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:8px 14px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap}
+/* STICKER BUTTON */
+.btn-sticker{background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:10px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s;flex-shrink:0}
+.btn-sticker:hover:not(:disabled){background:rgba(192,132,252,0.15);border-color:var(--accent)}
+.btn-sticker:disabled{opacity:.4;cursor:not-allowed}
+/* STICKER PICKER PANEL */
+.sticker-picker{display:none;position:absolute;bottom:calc(100% + 6px);left:0;width:260px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:300;overflow:hidden;animation:stickerIn .15s ease}
+@keyframes stickerIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.sticker-picker.open{display:block}
+.sticker-picker-header{padding:8px 12px;background:rgba(192,132,252,0.08);border-bottom:1px solid var(--border);font-size:12px}
+.sticker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px;max-height:220px;overflow-y:auto}
+.sticker-grid::-webkit-scrollbar{width:4px}
+.sticker-grid::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.sticker-item{aspect-ratio:1;border-radius:10px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid transparent;display:flex;align-items:center;justify-content:center;transition:background .12s,border-color .12s,transform .1s}
+.sticker-item:hover{background:rgba(192,132,252,0.15);border-color:var(--accent);transform:scale(1.08)}
+.sticker-item img{width:100%;height:100%;object-fit:contain}
+/* STICKER IN CHAT */
+.chat-sticker{display:inline-block;margin-top:4px}
+.chat-sticker img{width:80px;height:80px;object-fit:contain;border-radius:10px;display:block}
+.sticker-label{font-size:9px;color:var(--muted);text-align:center;margin-top:2px}
 
 /* SHOUT SECTION */
 .shout-section{background:var(--card);border:1px solid rgba(251,191,36,0.25);border-radius:16px;overflow:hidden}
