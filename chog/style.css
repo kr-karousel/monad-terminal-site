@@ -135,7 +135,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .btn-sticker:hover:not(:disabled){background:rgba(192,132,252,0.15);border-color:var(--accent)}
 .btn-sticker:disabled{opacity:.4;cursor:not-allowed}
 /* STICKER PICKER PANEL */
-.sticker-picker{display:none;position:absolute;bottom:calc(100% + 6px);left:0;width:260px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:300;overflow:hidden;animation:stickerIn .15s ease}
+.sticker-picker{display:none;position:absolute;bottom:calc(100% + 6px);right:0;width:260px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:300;overflow:hidden;animation:stickerIn .15s ease}
 @keyframes stickerIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .sticker-picker.open{display:block}
 .sticker-picker-header{padding:8px 12px;background:rgba(192,132,252,0.08);border-bottom:1px solid var(--border);font-size:12px}
