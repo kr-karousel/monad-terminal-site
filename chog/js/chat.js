@@ -69,23 +69,21 @@ function renderMsg(item){
       </div>`;
   }else{
     div.className='chat-msg';
-    // [sticker:FILE_UNIQUE_ID:EMOJI:EXT:FILE_PATH] 형식 감지
-    const stickerMatch = item.msg && item.msg.match(/^\[sticker:([^:]+):([^:]+):([^:]+):([^\]]*)\]$/);
+    // [sticker:FILE_UNIQUE_ID:EMOJI:EXT:FILE_ID] 형식 감지
+    const stickerMatch = item.msg && item.msg.match(/^\[sticker:([^:]+):([^:]+):([^:]+):([^\]]+)\]$/);
     let msgContent;
     if(stickerMatch){
-      const emoji    = escHtml(stickerMatch[2]);
-      const ext      = stickerMatch[3];
-      const filePath = stickerMatch[4];
+      const emoji  = escHtml(stickerMatch[2]);
+      const ext    = stickerMatch[3];
+      const fileId = stickerMatch[4];
+      const proxyUrl = `/api/telegram-file?id=${encodeURIComponent(fileId)}`;
       let mediaEl;
-      if(filePath){
-        const proxyUrl = `/api/telegram-file?path=${encodeURIComponent(filePath)}`;
-        if(ext === 'webm'){
-          mediaEl = `<video src="${proxyUrl}" autoplay loop muted playsinline style="width:80px;height:80px;object-fit:contain;border-radius:10px"></video>`;
-        } else {
-          mediaEl = `<img src="${proxyUrl}" alt="${emoji}" loading="lazy" style="width:80px;height:80px;object-fit:contain;border-radius:10px;display:block" onerror="this.outerHTML='<span style=\\'font-size:32px\\'>${emoji}</span>'">`;
-        }
-      } else {
+      if(ext === 'webm'){
+        mediaEl = `<video src="${proxyUrl}" autoplay loop muted playsinline style="width:80px;height:80px;object-fit:contain;border-radius:10px"></video>`;
+      } else if(ext === 'tgs'){
         mediaEl = `<span style="font-size:32px">${emoji}</span>`;
+      } else {
+        mediaEl = `<img src="${proxyUrl}" alt="${emoji}" loading="lazy" style="width:80px;height:80px;object-fit:contain;border-radius:10px;display:block" onerror="this.outerHTML='<span style=\\'font-size:32px\\'>${emoji}</span>'">`;
       }
       msgContent = `<div class="chat-sticker">${mediaEl}<div class="sticker-label">${emoji}</div></div>`;
     } else {
