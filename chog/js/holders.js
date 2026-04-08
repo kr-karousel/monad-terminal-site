@@ -414,6 +414,8 @@ async function _finalizeWalletConnection(addr, provider, name){
       const monHex = await provider.request({method:'eth_getBalance',params:[addr,'latest']});
       wallet.monBal = parseInt(monHex,16)/1e18;
     }catch(e){ wallet.monBal = 0; }
+    // 지갑 연결 후 chess invite 구독 초기화 (페이지 로드 시엔 지갑 없어서 구독 못함)
+    if(typeof initChessSync==='function') initChessSync();
     const rank=getRank(wallet.bal, addr);
     const short=addr.slice(0,6)+'...'+addr.slice(-4);
     updateWalletDisplay();
