@@ -484,20 +484,25 @@ function chessShortAddr(addr){
 
 // ── Start/init game ───────────────────────────────────
 function chessStartGame(matchId, whiteAddr, blackAddr, myColor, existingState){
-  chessGame = existingState ? {...existingState, matchId, myColor} : {
+  // whiteAddr/blackAddr are always set regardless of existingState
+  // (existingState comes from game_state JSONB which doesn't include these)
+  chessGame = {
+    ...(existingState || {
+      board:      chessInitBoard(),
+      turn:       'white',
+      castling:   {wK:true,wQ:true,bK:true,bQ:true},
+      enPassant:  null,
+      status:     'normal',
+      lastMove:   null,
+      moveHistory:[],
+      winner:     null,
+    }),
     matchId,
-    whiteAddr: whiteAddr.toLowerCase(),
-    blackAddr: blackAddr.toLowerCase(),
     myColor,
-    board:     chessInitBoard(),
-    turn:      'white',
-    castling:  {wK:true,wQ:true,bK:true,bQ:true},
-    enPassant: null,
-    status:    'normal',
-    selected:  null,
-    validMoves:[],
-    lastMove:  null,
-    moveHistory:[],
+    whiteAddr:  whiteAddr.toLowerCase(),
+    blackAddr:  blackAddr.toLowerCase(),
+    selected:   null,
+    validMoves: [],
   };
   openChessModal();
   if(typeof _subscribeToChessMatch==='function') _subscribeToChessMatch(matchId);
@@ -528,9 +533,10 @@ function chessShowResult(emoji, title, sub, type){
       <div class="chess-gameover-emoji">${iWon?'👑':'💀'}</div>
       <div class="chess-gameover-title">${iWon?'GG EZ! 🎉':'NGMI 😭'}</div>
       <div class="chess-gameover-sub">${title} — ${sub}</div>
-      <div class="chess-gameover-pts">${iWon?'<span style="color:var(--green)">+3 pts earned! 🏆</span>':'<span style="color:var(--accent)">+1 pt earned 💜</span>'}</div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="chess-btn" onclick="closeChessModal()">Close</button>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="chess-btn" style="background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(192,132,252,.25));border-color:rgba(192,132,252,.5);color:var(--accent)"
+          onclick="closeChessModal();chessGame=null;chessJoinQueue()">♟️ Play Again</button>
+        <button class="chess-btn" onclick="closeChessModal();chessGame=null;">Close</button>
       </div>
     </div>`;
   el.style.display='flex';

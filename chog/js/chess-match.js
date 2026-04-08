@@ -311,11 +311,11 @@ function chessPostResultToChat(winner, g){
   const wNick = (typeof getNick==='function'?getNick(g.whiteAddr):null)||chessShortAddr(g.whiteAddr);
   const bNick = (typeof getNick==='function'?getNick(g.blackAddr):null)||chessShortAddr(g.blackAddr);
   let msg;
-  if(!winner) msg = `♟️ Chess: ${wNick} vs ${bNick} — Draw! Both get +1pt`;
+  if(!winner) msg = `♟️ Chess: ${wNick} vs ${bNick} — Draw!`;
   else {
-    const winNick = winner==='white'?wNick:bNick;
+    const winNick  = winner==='white'?wNick:bNick;
     const loseNick = winner==='white'?bNick:wNick;
-    msg = `♟️ Chess: ${winNick} beats ${loseNick}! 👑 +3pts | 💜 +1pt`;
+    msg = `♟️ Chess: ${winNick} beat ${loseNick}! 👑`;
   }
   renderMsg({ addr:'SYSTEM', addrFull:'', bal:0, msg, time:typeof nowTime==='function'?nowTime():'' });
 }
