@@ -65,10 +65,7 @@ async function chessAcceptInvite(inviteId, fromAddr){
   if(!_chSb()) return;
 
   try{
-    // Update invite status
-    await _sbClient.from('chess_invites').update({status:'accepted'}).eq('id',inviteId);
-
-    // Create match — challenger = white, acceptor = black
+    // Create match FIRST (challenger = white, acceptor = black)
     const whiteAddr = fromAddr.toLowerCase();
     const blackAddr = wallet.addr.toLowerCase();
     const initState = {
@@ -90,6 +87,9 @@ async function chessAcceptInvite(inviteId, fromAddr){
     }).select().single();
 
     if(error) throw error;
+
+    // Update invite status AFTER match exists (triggers challenger's subscription)
+    await _sbClient.from('chess_invites').update({status:'accepted'}).eq('id',inviteId);
 
     // Hide notification
     _dismissInviteNotif(inviteId);

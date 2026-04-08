@@ -486,7 +486,15 @@ function chessShortAddr(addr){
 
 // ── Start/init game ───────────────────────────────────
 function chessStartGame(matchId, whiteAddr, blackAddr, myColor, existingState){
-  chessGame = existingState ? {...existingState, matchId, myColor} : {
+  chessGame = existingState ? {
+    ...existingState,
+    matchId,
+    myColor,
+    whiteAddr: whiteAddr.toLowerCase(),
+    blackAddr: blackAddr.toLowerCase(),
+    selected:  null,
+    validMoves:[],
+  } : {
     matchId,
     whiteAddr: whiteAddr.toLowerCase(),
     blackAddr: blackAddr.toLowerCase(),

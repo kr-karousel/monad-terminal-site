@@ -454,7 +454,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   max-width: 520px;
   padding: 0;
   overflow: hidden;
-  background-image: url('../img/chess-board-bg.png');
+  background-image: url('img/chess-board-bg.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -517,8 +517,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   position: relative;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
-.chess-piece-white { background-image: url('../img/chess-pieces-w.png'); }
-.chess-piece-black { background-image: url('../img/chess-pieces-b.png'); }
+.chess-piece-white { background-image: url('img/chess-pieces-w.png'); }
+.chess-piece-black { background-image: url('img/chess-pieces-b.png'); }
 .chess-pc-P { background-position-x: 0%; }
 .chess-pc-R { background-position-x: 20%; }
 .chess-pc-N { background-position-x: 40%; }
