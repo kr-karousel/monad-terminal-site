@@ -456,7 +456,7 @@ var _queueCheckTimer = null;
 
 // ── 네비게이션 버튼 클릭 핸들러 ──────────────────────
 function chessNavClick(){
-  if(!wallet){ alert('지갑을 연결해주세요!'); return; }
+  if(!wallet){ alert('Please connect your wallet first!'); return; }
   if(_inQueue){
     chessLeaveQueue();
   } else if(chessGame && (chessGame.status==='active'||chessGame.status==='normal')){
@@ -492,12 +492,12 @@ async function chessJoinQueue(){
     }catch(e){
       console.warn('[Chess Queue] join failed:', e.message);
       // Supabase 없으면 안내만
-      _showQueueToast('⚠️ 랜덤 매칭은 Supabase 설정 후 이용 가능합니다.');
+      _showQueueToast('⚠️ Random matchmaking requires Supabase to be configured.');
       _inQueue = false;
       _updateNavChessBtn();
     }
   } else {
-    _showQueueToast('⚠️ 실시간 동기화가 필요합니다. Supabase를 연결해주세요.');
+    _showQueueToast('⚠️ Real-time sync unavailable. Please connect Supabase.');
     _inQueue = false;
     _updateNavChessBtn();
   }
@@ -534,7 +534,7 @@ async function _chessCheckQueue(myAddr){
     } else {
       // 계속 대기 — 30초 후 자동 취소
       _queueCheckTimer = setTimeout(()=>{
-        if(_inQueue){ chessLeaveQueue(); _showQueueToast('⏱️ 상대를 찾지 못했습니다. 다시 시도해주세요.'); }
+        if(_inQueue){ chessLeaveQueue(); _showQueueToast('⏱️ No opponent found. Please try again!'); }
       }, 30000);
     }
   }catch(e){ console.warn('[Chess Queue] check failed:', e.message); }
@@ -571,7 +571,7 @@ async function _chessMatchFromQueue(myAddr, opponentAddr){
   if(error){ console.warn('[Chess Queue] match create failed:', error.message); return; }
 
   _updateNavChessBtn();
-  _showQueueToast('🎉 매칭 성공! 게임을 시작합니다!');
+  _showQueueToast('🎉 Match found! Starting game...');
   setTimeout(()=>chessStartGame(data.id, myAddr, opponentAddr, 'white', data.game_state), 500);
 }
 
@@ -614,7 +614,7 @@ function _subscribeToChessQueue(){
 
         if(error){ console.warn('[Chess Queue] black-side match failed:', error.message); return; }
         _updateNavChessBtn();
-        _showQueueToast('🎉 매칭 성공! 게임을 시작합니다!');
+        _showQueueToast('🎉 Match found! Starting game...');
         setTimeout(()=>chessStartGame(data.id, newAddr, myAddr, 'black', data.game_state), 500);
       }
     )
@@ -635,7 +635,7 @@ function _updateNavChessBtn(){
     btn.style.borderColor = 'rgba(74,222,128,0.5)';
     btn.style.color = '#86efac';
   } else if(_inQueue){
-    btn.innerHTML = '♟️ <span class="chess-queue-spin">⟳</span> 상대 찾는중…';
+    btn.innerHTML = '♟️ <span class="chess-queue-spin">⟳</span> Finding opponent…';
     btn.style.borderColor = 'rgba(250,204,21,0.5)';
     btn.style.color = 'var(--gold)';
   } else {
@@ -654,11 +654,11 @@ async function _renderQueueStatus(){
     const {data} = await _sbClient.from('chess_queue').select('nick').limit(5);
     if(data && data.length>0 && !_inQueue){
       const names = data.map(r=>r.nick||'?').join(', ');
-      btn.title = `대기 중: ${names} — 클릭해서 매칭!`;
+      btn.title = `Waiting: ${names} — Click to match!`;
       btn.style.borderColor = 'rgba(74,222,128,0.4)';
       btn.style.animation = 'chessBtnPulse 1.5s ease-in-out infinite';
     } else {
-      btn.title = '랜덤 매칭 신청';
+      btn.title = 'Random matchmaking';
       btn.style.borderColor = '';
       btn.style.animation = '';
     }
