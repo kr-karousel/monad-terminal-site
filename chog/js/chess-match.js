@@ -442,3 +442,237 @@ async function chessAwardPoints(winner, g){
 
   console.log(`[Chess] +${pts}pts → ${myAddr} (${iWon?'win':'loss/draw'})`);
 }
+
+// ══════════════════════════════════════════════════════
+//  랜덤 매칭 큐 시스템 (네비게이션 버튼용)
+//  chess_queue 테이블 필요:
+//    id(uuid), address(text UNIQUE), nick(text),
+//    created_at(timestamptz DEFAULT now())
+// ══════════════════════════════════════════════════════
+
+var _chessQueueSub   = null;
+var _inQueue         = false;
+var _queueCheckTimer = null;
+
+// ── 네비게이션 버튼 클릭 핸들러 ──────────────────────
+function chessNavClick(){
+  if(!wallet){ alert('지갑을 연결해주세요!'); return; }
+  if(_inQueue){
+    chessLeaveQueue();
+  } else if(chessGame && (chessGame.status==='active'||chessGame.status==='normal')){
+    openChessModal();
+  } else {
+    chessJoinQueue();
+  }
+}
+
+// ── 큐 입장 ──────────────────────────────────────────
+async function chessJoinQueue(){
+  if(!wallet||_inQueue) return;
+  _inQueue = true;
+  _updateNavChessBtn();
+
+  const myAddr = wallet.addr.toLowerCase();
+  const myNick = (typeof getNick==='function'?getNick(wallet.addr):null)||chessShortAddr(wallet.addr);
+
+  if(_chSb()){
+    try{
+      // 큐에 등록
+      await _sbClient.from('chess_queue').upsert(
+        { address: myAddr, nick: myNick },
+        { onConflict: 'address' }
+      );
+
+      // 큐 구독 시작
+      _subscribeToChessQueue();
+
+      // 상대방 이미 대기 중인지 확인
+      await _chessCheckQueue(myAddr);
+
+    }catch(e){
+      console.warn('[Chess Queue] join failed:', e.message);
+      // Supabase 없으면 안내만
+      _showQueueToast('⚠️ 랜덤 매칭은 Supabase 설정 후 이용 가능합니다.');
+      _inQueue = false;
+      _updateNavChessBtn();
+    }
+  } else {
+    _showQueueToast('⚠️ 실시간 동기화가 필요합니다. Supabase를 연결해주세요.');
+    _inQueue = false;
+    _updateNavChessBtn();
+  }
+}
+
+// ── 큐 퇴장 ──────────────────────────────────────────
+async function chessLeaveQueue(){
+  if(!_inQueue||!wallet) return;
+  _inQueue = false;
+  _updateNavChessBtn();
+  if(_queueCheckTimer){ clearTimeout(_queueCheckTimer); _queueCheckTimer=null; }
+  if(_chessQueueSub){ _sbClient.removeChannel(_chessQueueSub); _chessQueueSub=null; }
+  if(_chSb()){
+    try{ await _sbClient.from('chess_queue').delete().eq('address',wallet.addr.toLowerCase()); }
+    catch(e){}
+  }
+}
+
+// ── 큐에서 상대 찾기 ──────────────────────────────────
+async function _chessCheckQueue(myAddr){
+  if(!_chSb()||!_inQueue) return;
+  try{
+    const {data} = await _sbClient
+      .from('chess_queue')
+      .select('address, nick')
+      .neq('address', myAddr)
+      .order('created_at', {ascending:true})
+      .limit(1);
+
+    if(data && data.length>0){
+      const opponent = data[0];
+      // 매칭 성사! — 먼저 입장한 사람이 white
+      await _chessMatchFromQueue(myAddr, opponent.address);
+    } else {
+      // 계속 대기 — 30초 후 자동 취소
+      _queueCheckTimer = setTimeout(()=>{
+        if(_inQueue){ chessLeaveQueue(); _showQueueToast('⏱️ 상대를 찾지 못했습니다. 다시 시도해주세요.'); }
+      }, 30000);
+    }
+  }catch(e){ console.warn('[Chess Queue] check failed:', e.message); }
+}
+
+// ── 큐 매칭 성사 처리 ────────────────────────────────
+async function _chessMatchFromQueue(myAddr, opponentAddr){
+  if(!_chSb()) return;
+
+  // 두 명 모두 큐에서 제거
+  await _sbClient.from('chess_queue').delete().in('address',[myAddr, opponentAddr]);
+  _inQueue = false;
+  if(_queueCheckTimer){ clearTimeout(_queueCheckTimer); _queueCheckTimer=null; }
+  if(_chessQueueSub){ _sbClient.removeChannel(_chessQueueSub); _chessQueueSub=null; }
+
+  // 먼저 큐에 들어온 사람(나) = white
+  const initState = null; // chessStartGame이 초기화
+  const {data, error} = await _sbClient.from('chess_matches').insert({
+    white_addr: myAddr,
+    black_addr: opponentAddr,
+    game_state: {
+      board: chessInitBoard(),
+      turn: 'white',
+      castling: {wK:true,wQ:true,bK:true,bQ:true},
+      enPassant: null,
+      status: 'normal',
+      lastMove: null,
+      moveHistory: [],
+      winner: null,
+    },
+    status: 'active',
+  }).select().single();
+
+  if(error){ console.warn('[Chess Queue] match create failed:', error.message); return; }
+
+  _updateNavChessBtn();
+  _showQueueToast('🎉 매칭 성공! 게임을 시작합니다!');
+  setTimeout(()=>chessStartGame(data.id, myAddr, opponentAddr, 'white', data.game_state), 500);
+}
+
+// ── 큐 실시간 구독 (상대방이 큐에 들어왔을 때 감지) ──
+function _subscribeToChessQueue(){
+  if(!_chSb()) return;
+  if(_chessQueueSub){ _sbClient.removeChannel(_chessQueueSub); }
+
+  _chessQueueSub = _sbClient.channel('chess-queue-watch')
+    .on('postgres_changes',
+      { event:'INSERT', schema:'public', table:'chess_queue' },
+      async payload => {
+        if(!_inQueue||!wallet) return;
+        const myAddr = wallet.addr.toLowerCase();
+        const newAddr = payload.new?.address;
+        if(!newAddr||newAddr===myAddr) return;
+
+        // 상대가 들어옴 → 매칭 성사
+        // 큐에 먼저 들어온 쪽(상대)이 white, 나는 black
+        await _sbClient.from('chess_queue').delete().in('address',[myAddr, newAddr]);
+        _inQueue = false;
+        if(_queueCheckTimer){ clearTimeout(_queueCheckTimer); _queueCheckTimer=null; }
+        if(_chessQueueSub){ _sbClient.removeChannel(_chessQueueSub); _chessQueueSub=null; }
+
+        const {data, error} = await _sbClient.from('chess_matches').insert({
+          white_addr: newAddr,
+          black_addr: myAddr,
+          game_state: {
+            board: chessInitBoard(),
+            turn: 'white',
+            castling: {wK:true,wQ:true,bK:true,bQ:true},
+            enPassant: null,
+            status: 'normal',
+            lastMove: null,
+            moveHistory: [],
+            winner: null,
+          },
+          status: 'active',
+        }).select().single();
+
+        if(error){ console.warn('[Chess Queue] black-side match failed:', error.message); return; }
+        _updateNavChessBtn();
+        _showQueueToast('🎉 매칭 성공! 게임을 시작합니다!');
+        setTimeout(()=>chessStartGame(data.id, newAddr, myAddr, 'black', data.game_state), 500);
+      }
+    )
+    // 다른 유저의 큐 현황도 구독 (버튼 상태 표시용)
+    .on('postgres_changes',
+      { event:'*', schema:'public', table:'chess_queue' },
+      () => { _renderQueueStatus(); }
+    )
+    .subscribe();
+}
+
+// ── 네비게이션 버튼 상태 업데이트 ───────────────────
+function _updateNavChessBtn(){
+  const btn = document.getElementById('chessNavBtn');
+  if(!btn) return;
+  if(chessGame && (chessGame.status==='active'||chessGame.status==='normal')){
+    btn.textContent = '♟️ Game';
+    btn.style.borderColor = 'rgba(74,222,128,0.5)';
+    btn.style.color = '#86efac';
+  } else if(_inQueue){
+    btn.innerHTML = '♟️ <span class="chess-queue-spin">⟳</span> 상대 찾는중…';
+    btn.style.borderColor = 'rgba(250,204,21,0.5)';
+    btn.style.color = 'var(--gold)';
+  } else {
+    btn.textContent = '♟️ Chess';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }
+}
+
+// ── 큐 현황 렌더 (다른 유저가 대기 중임을 표시) ──────
+async function _renderQueueStatus(){
+  if(!_chSb()) return;
+  const btn = document.getElementById('chessNavBtn');
+  if(!btn||_inQueue) return;
+  try{
+    const {data} = await _sbClient.from('chess_queue').select('nick').limit(5);
+    if(data && data.length>0 && !_inQueue){
+      const names = data.map(r=>r.nick||'?').join(', ');
+      btn.title = `대기 중: ${names} — 클릭해서 매칭!`;
+      btn.style.borderColor = 'rgba(74,222,128,0.4)';
+      btn.style.animation = 'chessBtnPulse 1.5s ease-in-out infinite';
+    } else {
+      btn.title = '랜덤 매칭 신청';
+      btn.style.borderColor = '';
+      btn.style.animation = '';
+    }
+  }catch(e){}
+}
+
+// ── 토스트 메시지 ────────────────────────────────────
+function _showQueueToast(msg){
+  const toast = document.createElement('div');
+  toast.className = 'chess-queue-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(()=>{ toast.classList.add('chess-queue-toast-hide'); setTimeout(()=>toast.remove(),500); }, 3000);
+}
+
+// ── 큐 현황 주기적 갱신 (30초마다) ──────────────────
+setInterval(()=>{ if(!_inQueue) _renderQueueStatus(); }, 30000);
