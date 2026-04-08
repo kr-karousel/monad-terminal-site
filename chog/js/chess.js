@@ -272,8 +272,8 @@ function renderChessBoard(){
       // Piece
       if(piece){
         const el = document.createElement('div');
-        el.className = 'chess-piece '+(chessIsWhite(piece)?'chess-piece-white':'chess-piece-black');
-        el.textContent = CHESS_SYMBOLS[piece];
+        const isW = chessIsWhite(piece);
+        el.className = `chess-piece chess-piece-${isW?'white':'black'} chess-pc-${piece.toUpperCase()}`;
         sq.appendChild(el);
       }
 
@@ -446,6 +446,8 @@ function showChessPromotion(){
   if(!el) return;
   const color = chessGame?chessGame.turn:'white';
   const pieces = color==='white'?['Q','R','B','N']:['q','r','b','n'];
+  const colorClass = color==='white'?'chess-piece-white':'chess-piece-black';
+  const NAMES = {Q:'Queen',R:'Rook',B:'Bishop',N:'Knight',q:'Queen',r:'Rook',b:'Bishop',n:'Knight'};
   el.innerHTML = `
     <div class="chess-promo-bg" onclick="closeChessPromotion()"></div>
     <div class="chess-promo-box">
@@ -453,8 +455,8 @@ function showChessPromotion(){
       <div style="display:flex;gap:8px">
         ${pieces.map(p=>`
           <button class="chess-promo-btn" onclick="chessFinishPromotion('${p}')">
-            <span style="font-size:32px">${CHESS_SYMBOLS[p]}</span>
-            <span style="font-size:10px;color:var(--muted)">${{Q:'Queen',R:'Rook',B:'Bishop',N:'Knight',q:'Queen',r:'Rook',b:'Bishop',n:'Knight'}[p]}</span>
+            <div class="chess-promo-piece ${colorClass} chess-pc-${p.toUpperCase()}"></div>
+            <span style="font-size:10px;color:var(--muted)">${NAMES[p]}</span>
           </button>
         `).join('')}
       </div>
