@@ -639,7 +639,7 @@ function _updateNavChessBtn(){
     btn.style.borderColor = 'rgba(250,204,21,0.5)';
     btn.style.color = 'var(--gold)';
   } else {
-    btn.textContent = '♟️ Chess';
+    btn.textContent = '♟️ CHOG Chess';
     btn.style.borderColor = '';
     btn.style.color = '';
   }
