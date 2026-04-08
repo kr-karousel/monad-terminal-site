@@ -505,11 +505,11 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 
 /* ── Pieces (individual cropped PNGs with transparent bg) ── */
 .chess-piece {
-  width: 88%;
-  height: 88%;
+  width: 92%;
+  height: 92%;
   background-size: contain;
   background-repeat: no-repeat;
-  background-position: center bottom;
+  background-position: center;
   user-select: none;
   pointer-events: none;
   transition: transform 0.12s;

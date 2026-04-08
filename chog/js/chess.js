@@ -220,12 +220,27 @@ function chessMoveNote(piece, fr, fc, tr, tc, captured, special, promoteTo){
 
 function openChessModal(){
   document.getElementById('chessModal').classList.add('open');
+  // Reset overlays from previous game
+  const go = document.getElementById('chessGameOver');
+  if(go){ go.style.display='none'; go.innerHTML=''; }
+  const pr = document.getElementById('chessPromotion');
+  if(pr){ pr.style.display='none'; pr.innerHTML=''; }
   renderChessBoard();
   renderChessInfo();
 }
 
 function closeChessModal(){
   document.getElementById('chessModal').classList.remove('open');
+}
+
+function chessPlayAgain(){
+  // Hide game over overlay and reset game state
+  const go = document.getElementById('chessGameOver');
+  if(go){ go.style.display='none'; go.innerHTML=''; }
+  chessGame = null;
+  // Close modal then join queue
+  document.getElementById('chessModal').classList.remove('open');
+  if(typeof chessJoinQueue==='function') chessJoinQueue();
 }
 
 // ── Render full board ─────────────────────────────────
@@ -537,7 +552,7 @@ function chessShowResult(emoji, title, sub, type){
       <div class="chess-gameover-sub">${title} — ${sub}</div>
       <div style="display:flex;gap:8px;margin-top:14px">
         <button class="chess-btn" style="background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(192,132,252,.25));border-color:rgba(192,132,252,.5);color:var(--accent)"
-          onclick="closeChessModal();chessGame=null;chessJoinQueue()">♟️ Play Again</button>
+          onclick="chessPlayAgain()">♟️ Play Again</button>
         <button class="chess-btn" onclick="closeChessModal();chessGame=null;">Close</button>
       </div>
     </div>`;
