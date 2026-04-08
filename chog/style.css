@@ -454,7 +454,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   max-width: 520px;
   padding: 0;
   overflow: hidden;
-  background-image: url('../img/chess-board-bg.jpg');
+  background-image: url('../img/chess-board-bg.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
