@@ -1653,6 +1653,29 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
       <button class="btn-profile-action" onclick="copyAddr('${addrFull}')">📋 Copy Address</button>
     </div>
 
+    <!-- Chess Stats -->
+    <div id="profileChessStats" style="margin:8px 0;padding:8px 12px;background:rgba(139,92,246,0.08);border:1px solid rgba(192,132,252,0.2);border-radius:10px">
+      <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:6px;letter-spacing:0.5px">♟️ CHESS RECORD</div>
+      <div style="display:flex;gap:12px;justify-content:center">
+        <div style="text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--green)" id="profileChessW">—</div>
+          <div style="font-size:9px;color:var(--muted)">WINS</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:16px;font-weight:700;color:#fca5a5" id="profileChessL">—</div>
+          <div style="font-size:9px;color:var(--muted)">LOSSES</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--gold)" id="profileChessRate">—</div>
+          <div style="font-size:9px;color:var(--muted)">WIN%</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:16px;font-weight:700;color:var(--accent)" id="profileChessPts">—</div>
+          <div style="font-size:9px;color:var(--muted)">PTS</div>
+        </div>
+      </div>
+    </div>
+
     ${!isMe && wallet ? `
     <div class="send-amount-wrap">
       <label>Amount to Send (CHOG)</label>
@@ -1663,6 +1686,9 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
     </div>
     <button class="btn-send-chog" onclick="sendChogTo('${addrFull}')">
       💜 CHOG Send
+    </button>
+    <button class="btn-chess-challenge" onclick="closeProfileModal();chessSendInvite('${addrFull}')">
+      ♟️ Challenge to Chess
     </button>
     ` : isMe ? `
     <div style="text-align:center;padding:12px;background:rgba(192,132,252,0.08);border-radius:10px;font-size:12px;color:var(--accent)">
@@ -1699,6 +1725,26 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
       const el = document.getElementById('profileRank');
       if(el) el.textContent = rank ? '#'+rank : '—';
     });
+    // 체스 전적 조회
+    if(typeof chessLoadStats === 'function'){
+      chessLoadStats(addrFull).then(stats => {
+        const wEl   = document.getElementById('profileChessW');
+        const lEl   = document.getElementById('profileChessL');
+        const rEl   = document.getElementById('profileChessRate');
+        const ptEl  = document.getElementById('profileChessPts');
+        if(!wEl) return;
+        if(stats){
+          const total = stats.wins + stats.losses;
+          const rate  = total > 0 ? Math.round(stats.wins / total * 100) : 0;
+          wEl.textContent  = stats.wins;
+          lEl.textContent  = stats.losses;
+          rEl.textContent  = total > 0 ? rate + '%' : '—';
+          ptEl.textContent = stats.pts || 0;
+        } else {
+          wEl.textContent = lEl.textContent = rEl.textContent = ptEl.textContent = '0';
+        }
+      });
+    }
   }
 }
 
@@ -2495,6 +2541,8 @@ async function connectWallet(name){
       }, 600);
     });
     provider.on('accountsChanged',accs=>{if(!accs.length){wallet=null;location.reload();}else connectWallet(name);});
+    // 체스 초대 구독 활성화 (지갑 연결 후)
+    if(typeof _subscribeToChessInvites === 'function') _subscribeToChessInvites();
   }catch(err){console.error('connectWallet error:',err);alert('Connection failed: '+(err.message||err));}
 }
 

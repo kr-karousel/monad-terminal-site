@@ -28,6 +28,8 @@ async function initSync(){
     _subscribeToMessages();
     _subscribeToContributions();
     _subscribeToConfig();
+    // 체스 매칭 초기화 (지갑 연결 후 호출)
+    if(typeof initChessSync === 'function') initChessSync();
   }catch(e){
     console.warn('[Sync] 초기화 실패:', e.message);
     _sbClient = null;

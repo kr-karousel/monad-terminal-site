@@ -80,7 +80,8 @@ function calcUserPoints(entry) {
   const chatPts  = entry.chat_pts  ?? (entry.chatHours?.length ?? 0);
   const nickPts  = (entry.nick_count  ?? entry.nickCount  ?? 0) * 10;
   const shoutPts = (entry.shout_count ?? entry.shoutCount ?? 0) * 10;
-  return { chatPts, nickPts, shoutPts, total: chatPts + nickPts + shoutPts };
+  const chessPts = entry.chess_pts ?? entry.chessPts ?? 0;
+  return { chatPts, nickPts, shoutPts, chessPts, total: chatPts + nickPts + shoutPts + chessPts };
 }
 
 // ── Supabase에서 전체 기여도 로드 ────────────────────────
@@ -213,6 +214,7 @@ function renderContribTable(devBal, serverContribs) {
       <td class="rev-td rev-tc">${e.chatPts} <span class="rev-pt">pt</span></td>
       <td class="rev-td rev-tc">${e.nickCount} <span class="rev-pt">(${e.nickPts}pt)</span></td>
       <td class="rev-td rev-tc">${e.shoutCount} <span class="rev-pt">(${e.shoutPts}pt)</span></td>
+      <td class="rev-td rev-tc" style="color:#a78bfa">${e.chessPts||0} <span class="rev-pt">pt</span></td>
       <td class="rev-td rev-tc rev-bold rev-gold">${e.total}</td>
       <td class="rev-td rev-tc rev-pct">${pct.toFixed(1)}%</td>
       <td class="rev-td rev-tr rev-est">${est!=null?'~'+Math.floor(est).toLocaleString()+' CHOG':'—'}</td>
