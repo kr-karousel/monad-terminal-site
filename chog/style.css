@@ -503,28 +503,31 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   50%     { background: rgba(239,68,68,0.92);  }
 }
 
-/* ── Pieces (sprite sheet: 6 pieces L→R = P R N B Q K) ── */
+/* ── Pieces (individual cropped PNGs with transparent bg) ── */
 .chess-piece {
   width: 88%;
   height: 88%;
-  background-size: 600% auto;
+  background-size: contain;
   background-repeat: no-repeat;
-  background-position-y: center;
+  background-position: center bottom;
   user-select: none;
   pointer-events: none;
   transition: transform 0.12s;
   z-index: 2;
   position: relative;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
-.chess-piece-white { background-image: url('img/chess-pieces-w.png'); }
-.chess-piece-black { background-image: url('img/chess-pieces-b.png'); }
-.chess-pc-P { background-position-x: 0%; }
-.chess-pc-R { background-position-x: 20%; }
-.chess-pc-N { background-position-x: 40%; }
-.chess-pc-B { background-position-x: 60%; }
-.chess-pc-Q { background-position-x: 80%; }
-.chess-pc-K { background-position-x: 100%; }
+.chess-piece-white.chess-pc-P { background-image: url('img/cp-p-w.png'); }
+.chess-piece-white.chess-pc-R { background-image: url('img/cp-r-w.png'); }
+.chess-piece-white.chess-pc-N { background-image: url('img/cp-n-w.png'); }
+.chess-piece-white.chess-pc-B { background-image: url('img/cp-b-w.png'); }
+.chess-piece-white.chess-pc-Q { background-image: url('img/cp-q-w.png'); }
+.chess-piece-white.chess-pc-K { background-image: url('img/cp-k-w.png'); }
+.chess-piece-black.chess-pc-P { background-image: url('img/cp-p-b.png'); }
+.chess-piece-black.chess-pc-R { background-image: url('img/cp-r-b.png'); }
+.chess-piece-black.chess-pc-N { background-image: url('img/cp-n-b.png'); }
+.chess-piece-black.chess-pc-B { background-image: url('img/cp-b-b.png'); }
+.chess-piece-black.chess-pc-Q { background-image: url('img/cp-q-b.png'); }
+.chess-piece-black.chess-pc-K { background-image: url('img/cp-k-b.png'); }
 .chess-sq:hover .chess-piece { transform: scale(1.15); }
 
 /* ── Valid move indicators ── */
