@@ -616,18 +616,9 @@
 
 <!-- ♟️ CHESS MODAL -->
 <div class="modal-overlay" id="chessModal" onclick="chessOverlayClick(event)">
-  <div class="modal" style="max-width:520px;padding:0;overflow:hidden" onclick="event.stopPropagation()">
-    <div class="modal-hdr" style="padding:10px 14px">
-      <div style="font-family:'Bangers',cursive;font-size:22px;letter-spacing:1px;color:var(--accent)">♟️ CHOG Chess</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="modal-close" onclick="chessMinimize()" title="Minimize">▾</button>
-        <button class="modal-close" onclick="closeChessModal()">✕</button>
-      </div>
-    </div>
-    <!-- Player info + turn status -->
+  <div class="modal chess-modal-clean" onclick="event.stopPropagation()">
+    <!-- Info bar: player names + turn + timer + minimize/close (transparent glass) -->
     <div id="chessInfo"></div>
-    <!-- Move history -->
-    <div id="chessMoveList"></div>
     <!-- Board -->
     <div class="chess-board-wrap">
       <div style="position:relative;display:inline-block">

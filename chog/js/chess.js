@@ -325,6 +325,12 @@ function renderChessBoard(){
       boardEl.appendChild(sq);
     }
   }
+
+  // CHOG CHESS watermark (behind pieces via z-index)
+  const wm = document.createElement('div');
+  wm.className = 'chess-watermark';
+  wm.textContent = 'CHOG CHESS';
+  boardEl.appendChild(wm);
 }
 
 // ── Player info bar ───────────────────────────────────
@@ -364,17 +370,11 @@ function renderChessInfo(){
       ${g.myColor==='white'?'<span class="chess-you-badge">YOU</span>':''}
       <span class="chess-player-name">${wNick}</span>
       <span class="chess-player-icon">♔</span>
+    </div>
+    <div style="display:flex;gap:2px;padding-left:6px;flex-shrink:0">
+      <button class="modal-close" onclick="chessMinimize()" title="Minimize">▾</button>
+      <button class="modal-close" onclick="closeChessModal()" title="Close">✕</button>
     </div>`;
-
-  // Move history
-  const histEl = document.getElementById('chessMoveList');
-  if(histEl && g.moveHistory){
-    histEl.innerHTML = g.moveHistory.map((m,i)=>{
-      if(i%2===0) return `<span class="chess-move-pair"><span class="chess-move-num">${Math.floor(i/2)+1}.</span> <span class="chess-move">${m}</span>`;
-      return ` <span class="chess-move">${m}</span></span>`;
-    }).join('');
-    histEl.scrollTop = histEl.scrollHeight;
-  }
 }
 
 // ── Square click handler ──────────────────────────────

@@ -215,11 +215,16 @@ function _subscribeToChessMatch(matchId){
         const myAddr = wallet?wallet.addr.toLowerCase():null;
         const justMoved = row.game_state&&row.game_state.turn;
         // If current turn switched to us, opponent just moved
-        if(justMoved===chessGame.myColor && row.game_state.turn!==chessGame.turn){
+        const opponentMoved = justMoved===chessGame.myColor && row.game_state.turn!==chessGame.turn;
+        if(opponentMoved){
           chessApplyOpponentMove(row.game_state);
         }
-        // Handle resign/game over from opponent
-        if(row.status==='finished'&&chessGame.status!=='checkmate'&&chessGame.status!=='stalemate'){
+        // Handle resign/game over from opponent — only if not already handled above
+        // Also exclude 'resigned' to prevent echo when we resign (our own subscription fires back)
+        if(!opponentMoved && row.status==='finished'
+           && chessGame.status!=='checkmate'
+           && chessGame.status!=='stalemate'
+           && chessGame.status!=='resigned'){
           chessApplyOpponentMove(row.game_state);
         }
       }
