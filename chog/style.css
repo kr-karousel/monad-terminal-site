@@ -451,42 +451,35 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
    ♟️ CHESS GAME STYLES
    ══════════════════════════════════════════════════════ */
 
-/* ── Chess modal (frameless — no inner padding, bg shows through) ── */
-#chessModal .modal,
-#chessModal .modal.chess-modal-clean {
-  max-width: 500px;
-  padding: 0;
-  overflow: hidden;
+/* ── Chess frame (full 1024×1024 carnival image, game board overlaid) ── */
+.chess-frame {
+  position: relative;
+  width: min(96vw, 88vh, 620px);
+  aspect-ratio: 1;
   background-image: url('img/chess-board-bg.png');
-  background-size: cover;
-  background-position: center top;
+  background-size: 100% 100%;
   background-repeat: no-repeat;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.75);
 }
 
-/* ── Board container ── */
-.chess-board-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 4px 8px 2px;
-  background: transparent;
-}
-
+/* ── Game board — absolutely positioned at image's chess board coordinates ──
+   Chess board in the 1024×1024 source: x=265-757, y=302-751
+   left = 265/1024 = 25.879%   top = 302/1024 = 29.492%
+   width = 493/1024 = 48.145%  height = 450/1024 = 43.945%          ── */
 #chessBoard {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  width: min(420px, 85vw);
-  aspect-ratio: 1;
+  grid-template-rows: repeat(8, 1fr);
+  position: absolute;
+  left: 25.879%;
+  top: 29.492%;
+  width: 48.145%;
+  height: 43.945%;
+  background: none;
   border: none;
-  border-radius: 2px;
   overflow: hidden;
-  position: relative;
-  /* Board background zoomed so the image's chess squares (x=272-752, y=304-736
-     in the 1024×1024 source) exactly fill the 8×8 game grid.
-     213% × 237% = each image square becomes exactly one game cell.
-     Position 50% 51.5% aligns top-left of image board to top-left of element. */
-  background-image: url('img/chess-board-bg.png');
-  background-size: 213% 237%;
-  background-position: 50% 51.5%;
 }
 
 /* ── CHOG CHESS watermark (inside board grid, z-index below pieces) ── */
@@ -515,7 +508,6 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   position: relative;
   z-index: 1;        /* above the watermark */
   transition: background 0.15s;
-  aspect-ratio: 1;
 }
 /* Transparent — board pattern comes from the zoomed background image */
 .chess-sq-light { background: transparent; }
@@ -583,16 +575,22 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 }
 .chess-anim-check { animation: chessBoardCheck .8s ease-in-out; }
 
-/* ── Info bar (fully transparent — bg image shows through from modal) ── */
+/* ── Info bar — floating at top of chess-frame ── */
 #chessInfo {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 6px 10px;
-  background: transparent;
-  border-bottom: none;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
   min-height: 40px;
   gap: 4px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
 }
 .chess-player {
   display: flex;
@@ -630,14 +628,20 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .chess-move { color: var(--text); margin: 0 3px; }
 .chess-move-pair { margin-right: 6px; }
 
-/* ── Controls (transparent — bg image shows through from modal) ── */
+/* ── Controls — floating at bottom of chess-frame ── */
 #chessControls {
   display: flex;
   gap: 8px;
   justify-content: center;
   padding: 8px 12px;
-  border-top: none;
-  background: transparent;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(6px);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
 }
 .chess-btn {
   padding: 6px 16px;
@@ -661,12 +665,15 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 }
 .chess-btn-danger:hover { background: rgba(239,68,68,0.2); }
 
-/* ── Promotion dialog ── */
+/* ── Promotion dialog — covers same region as #chessBoard ── */
 #chessPromotion {
   display: none;
   position: absolute;
-  inset: 0;
-  z-index: 20;
+  left: 25.879%;
+  top: 29.492%;
+  width: 48.145%;
+  height: 43.945%;
+  z-index: 25;
   align-items: center;
   justify-content: center;
 }
@@ -700,7 +707,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 }
 .chess-promo-btn:hover { background: rgba(192,132,252,0.25); transform: scale(1.05); }
 
-/* ── Game over overlay ── */
+/* ── Game over overlay — covers full frame for dramatic effect ── */
 #chessGameOver {
   display: none;
   position: absolute;
@@ -708,7 +715,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   z-index: 30;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.70);
   backdrop-filter: blur(4px);
 }
 .chess-gameover-box {

@@ -616,20 +616,16 @@
 
 <!-- ♟️ CHESS MODAL -->
 <div class="modal-overlay" id="chessModal" onclick="chessOverlayClick(event)">
-  <div class="modal chess-modal-clean" onclick="event.stopPropagation()">
-    <!-- Info bar: player names + turn + timer + minimize/close (transparent glass) -->
+  <div class="chess-frame" onclick="event.stopPropagation()">
+    <!-- Game grid absolutely positioned over image's chess board region -->
+    <div id="chessBoard"></div>
+    <!-- Promotion picker — same position as board -->
+    <div id="chessPromotion"></div>
+    <!-- Game over overlay — same position as board -->
+    <div id="chessGameOver"></div>
+    <!-- Info bar floating at top -->
     <div id="chessInfo"></div>
-    <!-- Board -->
-    <div class="chess-board-wrap">
-      <div style="position:relative;display:inline-block">
-        <div id="chessBoard"></div>
-        <!-- Promotion picker -->
-        <div id="chessPromotion"></div>
-        <!-- Game over overlay -->
-        <div id="chessGameOver"></div>
-      </div>
-    </div>
-    <!-- Controls -->
+    <!-- Controls floating at bottom -->
     <div id="chessControls">
       <button class="chess-btn chess-btn-danger" onclick="chessResign()">🏳️ Resign</button>
     </div>
