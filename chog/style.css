@@ -454,9 +454,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   max-width: 480px;
   padding: 0;
   overflow: hidden;
+  /* Carnival scene as modal background; board element has its own zoomed bg */
   background-image: url('img/chess-board-bg.png');
   background-size: cover;
-  background-position: center;
+  background-position: center top;
   background-repeat: no-repeat;
 }
 
@@ -480,6 +481,13 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   overflow: hidden;
   position: relative;
   box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+  /* Background zoomed into the board region of the carnival image.
+     Board occupies x=272-752, y=304-736 in the 1024x1024 source image.
+     background-size: 213% 237% scales image so board fills the element exactly.
+     background-position: 50% 51% aligns board top-left to element top-left. */
+  background-image: url('img/chess-board-bg.png');
+  background-size: 213% 237%;
+  background-position: 50% 51%;
 }
 
 /* ── Squares ── */
@@ -492,8 +500,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   transition: background 0.15s;
   aspect-ratio: 1;
 }
-.chess-sq-light { background: rgba(255,248,235,0.50); }
-.chess-sq-dark  { background: rgba(88,28,135,0.58); }
+/* Transparent - board pattern comes from the zoomed background image */
+.chess-sq-light { background: transparent; }
+.chess-sq-dark  { background: rgba(0,0,0,0.06); }
 .chess-sq:hover { filter: brightness(1.18); }
 .chess-sq-selected  { background: rgba(250,204,21,0.60) !important; }
 .chess-sq-lastmove  { background: rgba(250,204,21,0.28) !important; }
