@@ -451,53 +451,45 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
    ♟️ CHESS GAME STYLES
    ══════════════════════════════════════════════════════ */
 
-/* ── Chess frame (full 1024×1024 carnival image, game board overlaid) ── */
+/* ── Chess modal wrapper — column: info + image + controls ── */
+.chess-modal-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: min(96vw, 88vh, 580px);
+}
+
+/* ── Chess frame (full 1024×1024 carnival image) ── */
 .chess-frame {
   position: relative;
-  width: min(96vw, 88vh, 620px);
+  width: 100%;
   aspect-ratio: 1;
   background-image: url('img/chess-board-bg.png');
   background-size: 100% 100%;
   background-repeat: no-repeat;
-  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.75);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
 }
 
 /* ── Game board — absolutely positioned at image's chess board coordinates ──
-   Chess board in the 1024×1024 source: x=265-757, y=302-751
-   left = 265/1024 = 25.879%   top = 302/1024 = 29.492%
-   width = 493/1024 = 48.145%  height = 450/1024 = 43.945%          ── */
+   New PNG scanned: x=262-758, y=300-751
+   left = 262/1024 = 25.586%   top = 300/1024 = 29.297%
+   width = 496/1024 = 48.438%  height = 451/1024 = 44.043%          ── */
 #chessBoard {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
   position: absolute;
-  left: 25.879%;
-  top: 29.492%;
-  width: 48.145%;
-  height: 43.945%;
+  left: 25.586%;
+  top: 29.297%;
+  width: 48.438%;
+  height: 44.043%;
   background: none;
   border: none;
   overflow: hidden;
 }
 
-/* ── CHOG CHESS watermark (inside board grid, z-index below pieces) ── */
-.chess-watermark {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Bangers', cursive;
-  font-size: min(11vw, 46px);
-  letter-spacing: 5px;
-  color: rgba(255,255,255,0.22);
-  text-shadow: 0 2px 8px rgba(0,0,0,0.35);
-  pointer-events: none;
-  z-index: 0;
-  user-select: none;
-}
+.chess-watermark { display: none; }
 
 /* ── Squares ── */
 .chess-sq {
@@ -575,22 +567,18 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 }
 .chess-anim-check { animation: chessBoardCheck .8s ease-in-out; }
 
-/* ── Info bar — floating at top of chess-frame ── */
+/* ── Info bar — above the image frame ── */
 #chessInfo {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(6px);
+  padding: 6px 12px;
+  background: rgba(10,8,20,0.85);
+  backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(255,255,255,0.08);
-  min-height: 40px;
+  min-height: 42px;
   gap: 4px;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 20;
+  border-radius: 14px 14px 0 0;
 }
 .chess-player {
   display: flex;
@@ -628,20 +616,16 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .chess-move { color: var(--text); margin: 0 3px; }
 .chess-move-pair { margin-right: 6px; }
 
-/* ── Controls — floating at bottom of chess-frame ── */
+/* ── Controls — below the image frame ── */
 #chessControls {
   display: flex;
   gap: 8px;
   justify-content: center;
   padding: 8px 12px;
   border-top: 1px solid rgba(255,255,255,0.08);
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(6px);
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 20;
+  background: rgba(10,8,20,0.85);
+  backdrop-filter: blur(8px);
+  border-radius: 0 0 14px 14px;
 }
 .chess-btn {
   padding: 6px 16px;
@@ -669,10 +653,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 #chessPromotion {
   display: none;
   position: absolute;
-  left: 25.879%;
-  top: 29.492%;
-  width: 48.145%;
-  height: 43.945%;
+  left: 25.586%;
+  top: 29.297%;
+  width: 48.438%;
+  height: 44.043%;
   z-index: 25;
   align-items: center;
   justify-content: center;

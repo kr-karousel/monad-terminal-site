@@ -616,16 +616,19 @@
 
 <!-- ♟️ CHESS MODAL -->
 <div class="modal-overlay" id="chessModal" onclick="chessOverlayClick(event)">
-  <div class="chess-frame" onclick="event.stopPropagation()">
-    <!-- Game grid absolutely positioned over image's chess board region -->
-    <div id="chessBoard"></div>
-    <!-- Promotion picker — same position as board -->
-    <div id="chessPromotion"></div>
-    <!-- Game over overlay — same position as board -->
-    <div id="chessGameOver"></div>
-    <!-- Info bar floating at top -->
+  <div class="chess-modal-wrap" onclick="event.stopPropagation()">
+    <!-- Info bar above the image -->
     <div id="chessInfo"></div>
-    <!-- Controls floating at bottom -->
+    <!-- Full carnival image frame -->
+    <div class="chess-frame">
+      <!-- Game grid absolutely positioned over image's chess board region -->
+      <div id="chessBoard"></div>
+      <!-- Promotion picker — same position as board -->
+      <div id="chessPromotion"></div>
+      <!-- Game over overlay -->
+      <div id="chessGameOver"></div>
+    </div>
+    <!-- Controls below the image -->
     <div id="chessControls">
       <button class="chess-btn chess-btn-danger" onclick="chessResign()">🏳️ Resign</button>
     </div>
