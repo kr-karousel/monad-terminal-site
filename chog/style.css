@@ -190,6 +190,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .modal-sub{text-align:center;font-size:12px;color:var(--muted);margin-bottom:16px}
 .modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
 .modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer}
+#chessInfo .modal-close{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.9);font-size:18px;opacity:0.8}
+#chessInfo .modal-close:hover{opacity:1}
 /* TRADE ALERT FLOATING - 중앙 팝업 */
 #tradeFloatContainer{
   position:fixed;top:0;left:0;right:0;bottom:0;
@@ -474,18 +476,17 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   grid-template-columns: repeat(8, 1fr);
   width: min(420px, 85vw);
   aspect-ratio: 1;
-  border: 2px solid rgba(255,255,255,0.2);
+  border: none;
   border-radius: 2px;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
-  /* Zoomed into the chess board region of the carnival image
-     (x≈212-812, y≈250-790 in the 1024×1024 source, includes rank/file labels).
-     background-size: 171% 190% → board + label border fills the element.
-     background-position: 50% 52% → aligns image board to game grid. */
+  /* Board background zoomed so the image's chess squares (x=272-752, y=304-736
+     in the 1024×1024 source) exactly fill the 8×8 game grid.
+     213% × 237% = each image square becomes exactly one game cell.
+     Position 50% 51.5% aligns top-left of image board to top-left of element. */
   background-image: url('img/chess-board-bg.png');
-  background-size: 171% 190%;
-  background-position: 50% 52%;
+  background-size: 213% 237%;
+  background-position: 50% 51.5%;
 }
 
 /* ── CHOG CHESS watermark (inside board grid, z-index below pieces) ── */
@@ -582,16 +583,15 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 }
 .chess-anim-check { animation: chessBoardCheck .8s ease-in-out; }
 
-/* ── Info bar (transparent glass — replaces old title bar) ── */
+/* ── Info bar (fully transparent — bg image shows through from modal) ── */
 #chessInfo {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 7px 10px;
-  background: rgba(0,0,0,0.38);
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  min-height: 42px;
+  padding: 6px 10px;
+  background: transparent;
+  border-bottom: none;
+  min-height: 40px;
   gap: 4px;
 }
 .chess-player {
@@ -602,16 +602,16 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   color: var(--muted);
   max-width: 38%;
 }
-.chess-player-icon { font-size: 18px; }
-.chess-player-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chess-me .chess-player-name { color: var(--accent); }
+.chess-player-icon { font-size: 18px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.9)); }
+.chess-player-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7); }
+.chess-me .chess-player-name { color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(192,132,252,0.8); }
 .chess-status-center {
-  font-size: 12px;
   font-family: 'Bangers', cursive;
   font-size: 15px;
   letter-spacing: 0.5px;
   text-align: center;
   flex: 1;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.7);
 }
 .chess-you-badge {
   font-size: 9px;
@@ -630,15 +630,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .chess-move { color: var(--text); margin: 0 3px; }
 .chess-move-pair { margin-right: 6px; }
 
-/* ── Controls ── */
+/* ── Controls (transparent — bg image shows through from modal) ── */
 #chessControls {
   display: flex;
   gap: 8px;
   justify-content: center;
   padding: 8px 12px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  background: rgba(0,0,0,0.32);
-  backdrop-filter: blur(6px);
+  border-top: none;
+  background: transparent;
 }
 .chess-btn {
   padding: 6px 16px;
@@ -647,16 +646,18 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   font-size: 14px;
   letter-spacing: 0.5px;
   cursor: pointer;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.3);
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
   color: var(--text);
   transition: all .15s;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
-.chess-btn:hover { background: rgba(255,255,255,0.1); }
+.chess-btn:hover { background: rgba(0,0,0,0.72); }
 .chess-btn-danger {
-  border-color: rgba(239,68,68,0.4);
+  border-color: rgba(239,68,68,0.6);
   color: #fca5a5;
-  background: rgba(239,68,68,0.1);
+  background: rgba(139,0,0,0.55);
 }
 .chess-btn-danger:hover { background: rgba(239,68,68,0.2); }
 
@@ -878,11 +879,13 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   letter-spacing: 1px;
   padding: 2px 10px;
   border-radius: 8px;
-  background: rgba(0,0,0,0.4);
-  border: 1px solid rgba(192,132,252,0.3);
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(192,132,252,0.5);
   min-width: 52px;
   text-align: center;
   transition: color .3s, border-color .3s;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
 }
 .chess-timer-warn { color: #f59e0b !important; border-color: rgba(245,158,11,0.6) !important; animation: chessTimerPulse .5s infinite; }
 .chess-timer-danger { color: #ef4444 !important; border-color: rgba(239,68,68,0.7) !important; animation: chessTimerPulse .3s infinite; }
