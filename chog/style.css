@@ -498,8 +498,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   justify-content: center;
   cursor: pointer;
   position: relative;
-  z-index: 1;        /* above the watermark */
+  z-index: 1;
   transition: background 0.15s;
+  overflow: hidden;
 }
 /* Subtle tint on dark squares so the grid is perceptible */
 .chess-sq-light { background: transparent; }
@@ -515,19 +516,27 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   50%     { background: rgba(239,68,68,0.92);  }
 }
 
-/* ── Pieces (<img> tag, object-fit: contain) ── */
+/* ── Pieces — absolutely centered in cell, constrained by both axes ──
+   Cells are landscape (wider than tall, ~1.1 ratio) but piece PNGs are
+   portrait (queen 126×206, bishop 114×190, etc.). height: X% in a flex
+   child can silently resolve to auto on some browsers, causing pieces to
+   scale by width only and overflow the cell. Fix: position:absolute +
+   max-height so the containing-block height (grid row) is the constraint. */
 .chess-piece {
-  width: 88%;
-  height: 88%;
-  object-fit: contain;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: auto;
+  height: auto;
+  max-width: 88%;
+  max-height: 88%;
   display: block;
   user-select: none;
   pointer-events: none;
-  transition: transform 0.12s;
   z-index: 2;
-  position: relative;
 }
-.chess-sq:hover .chess-piece { transform: scale(1.12); }
+.chess-sq:hover .chess-piece { transform: translate(-50%, -50%) scale(1.1); }
 
 /* ── Valid move indicators ── */
 .chess-valid-dot {
