@@ -286,10 +286,15 @@ function renderChessBoard(){
 
       // Piece
       if(piece){
-        const el = document.createElement('div');
         const isW = chessIsWhite(piece);
-        el.className = `chess-piece chess-piece-${isW?'white':'black'} chess-pc-${piece.toUpperCase()}`;
-        sq.appendChild(el);
+        const color = isW?'w':'b';
+        const typeMap = {P:'p',R:'r',N:'n',B:'b',Q:'q',K:'k'};
+        const t = typeMap[piece.toUpperCase()]||'p';
+        const img = document.createElement('img');
+        img.src = `img/cp-${t}-${color}.png`;
+        img.className = 'chess-piece';
+        img.draggable = false;
+        sq.appendChild(img);
       }
 
       // File/rank labels
@@ -461,8 +466,9 @@ function showChessPromotion(){
   if(!el) return;
   const color = chessGame?chessGame.turn:'white';
   const pieces = color==='white'?['Q','R','B','N']:['q','r','b','n'];
-  const colorClass = color==='white'?'chess-piece-white':'chess-piece-black';
-  const NAMES = {Q:'Queen',R:'Rook',B:'Bishop',N:'Knight',q:'Queen',r:'Rook',b:'Bishop',n:'Knight'};
+  const colorSuffix = color==='white'?'w':'b';
+  const typeMap = {Q:'q',R:'r',B:'b',N:'n'};
+  const NAMES = {Q:'Queen',R:'Rook',B:'Bishop',N:'Knight'};
   el.innerHTML = `
     <div class="chess-promo-bg" onclick="closeChessPromotion()"></div>
     <div class="chess-promo-box">
@@ -470,8 +476,8 @@ function showChessPromotion(){
       <div style="display:flex;gap:8px">
         ${pieces.map(p=>`
           <button class="chess-promo-btn" onclick="chessFinishPromotion('${p}')">
-            <div style="width:48px;height:48px;background-size:600% auto;background-repeat:no-repeat;background-position-y:center" class="${colorClass} chess-pc-${p.toUpperCase()}"></div>
-            <span style="font-size:10px;color:var(--muted)">${NAMES[p]}</span>
+            <img src="img/cp-${typeMap[p.toUpperCase()]}-${colorSuffix}.png" style="width:48px;height:48px;object-fit:contain">
+            <span style="font-size:10px;color:var(--muted)">${NAMES[p.toUpperCase()]}</span>
           </button>
         `).join('')}
       </div>

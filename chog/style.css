@@ -451,7 +451,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 
 /* ── Chess modal ── */
 #chessModal .modal {
-  max-width: 520px;
+  max-width: 480px;
   padding: 0;
   overflow: hidden;
   background-image: url('img/chess-board-bg.png');
@@ -464,20 +464,22 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .chess-board-wrap {
   display: flex;
   justify-content: center;
-  padding: 10px 14px 6px;
+  /* 배경 이미지의 보드 영역에 맞게 padding 조정 */
+  padding: 6px 8px 4px;
   background: transparent;
 }
 
 #chessBoard {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  width: min(400px, 88vw);
+  /* 모바일: 화면 너비의 85%, 데스크탑: 최대 420px */
+  width: min(420px, 85vw);
   aspect-ratio: 1;
-  border: 3px solid rgba(255,255,255,0.25);
-  border-radius: 3px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 2px;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 4px 32px rgba(0,0,0,0.7), 0 0 0 1px rgba(139,92,246,0.3);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
 }
 
 /* ── Squares ── */
@@ -503,32 +505,19 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   50%     { background: rgba(239,68,68,0.92);  }
 }
 
-/* ── Pieces (individual cropped PNGs with transparent bg) ── */
+/* ── Pieces (<img> tag, object-fit: contain) ── */
 .chess-piece {
-  width: 92%;
-  height: 92%;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
+  width: 88%;
+  height: 88%;
+  object-fit: contain;
+  display: block;
   user-select: none;
   pointer-events: none;
   transition: transform 0.12s;
   z-index: 2;
   position: relative;
 }
-.chess-piece-white.chess-pc-P { background-image: url('img/cp-p-w.png'); }
-.chess-piece-white.chess-pc-R { background-image: url('img/cp-r-w.png'); }
-.chess-piece-white.chess-pc-N { background-image: url('img/cp-n-w.png'); }
-.chess-piece-white.chess-pc-B { background-image: url('img/cp-b-w.png'); }
-.chess-piece-white.chess-pc-Q { background-image: url('img/cp-q-w.png'); }
-.chess-piece-white.chess-pc-K { background-image: url('img/cp-k-w.png'); }
-.chess-piece-black.chess-pc-P { background-image: url('img/cp-p-b.png'); }
-.chess-piece-black.chess-pc-R { background-image: url('img/cp-r-b.png'); }
-.chess-piece-black.chess-pc-N { background-image: url('img/cp-n-b.png'); }
-.chess-piece-black.chess-pc-B { background-image: url('img/cp-b-b.png'); }
-.chess-piece-black.chess-pc-Q { background-image: url('img/cp-q-b.png'); }
-.chess-piece-black.chess-pc-K { background-image: url('img/cp-k-b.png'); }
-.chess-sq:hover .chess-piece { transform: scale(1.15); }
+.chess-sq:hover .chess-piece { transform: scale(1.12); }
 
 /* ── Valid move indicators ── */
 .chess-valid-dot {
