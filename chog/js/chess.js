@@ -8,6 +8,16 @@
 var chessGame = null;       // Active game object
 var chessPending = null;    // Pending move for promotion
 
+// ── Turn Timer state ──────────────────────────────────
+var _chessTurnTimer    = null;   // setInterval handle
+var _chessTimeLeft     = 90;     // seconds remaining
+var _chessTimeouts     = 0;      // consecutive timeouts by current turn player
+const CHESS_TURN_SECS  = 90;     // seconds per turn
+const CHESS_MAX_TIMEOUTS = 2;    // timeouts before auto-forfeit
+
+// ── Mini-pip state ────────────────────────────────────
+var _chessPipActive = false;
+
 // ── Piece unicode ─────────────────────────────────────
 const CHESS_SYMBOLS = {
   'K':'♔','Q':'♕','R':'♖','B':'♗','N':'♘','P':'♙',
@@ -336,13 +346,20 @@ function renderChessInfo(){
   else if(g.status==='resigned')  statusText = `<span style="color:var(--muted)">🏳️ RESIGNED</span>`;
   else statusText = `<span style="${g.turn==='white'?'color:#f3f4f6':'color:#c084fc'}">${turnIcon} ${g.turn.toUpperCase()}'s turn</span>`;
 
+  const isMyTurn = wallet && wallet.addr.toLowerCase() ===
+    (g.turn==='white'?g.whiteAddr:g.blackAddr).toLowerCase();
+  const timerClass = isMyTurn ? 'chess-timer' : 'chess-timer chess-timer-inactive';
+
   infoEl.innerHTML = `
     <div class="chess-player ${g.myColor==='black'?'chess-me':''}" title="${g.blackAddr}">
       <span class="chess-player-icon">♚</span>
       <span class="chess-player-name">${bNick}</span>
       ${g.myColor==='black'?'<span class="chess-you-badge">YOU</span>':''}
     </div>
-    <div class="chess-status-center">${statusText}</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1">
+      <div class="chess-status-center">${statusText}</div>
+      <div id="chessTimer" class="${timerClass}">--</div>
+    </div>
     <div class="chess-player ${g.myColor==='white'?'chess-me':''}" title="${g.whiteAddr}">
       ${g.myColor==='white'?'<span class="chess-you-badge">YOU</span>':''}
       <span class="chess-player-name">${wNick}</span>
@@ -450,6 +467,14 @@ function chessMakeMove(fr, fc, tr, tc, special, promoteTo){
   if(g.status==='stalemate') setTimeout(()=>chessShowResult('🤝','Stalemate!','Draw — well played both!','draw'),300);
   if(captured) chessAnimCapture();
 
+  // Reset timeout counter on successful move, restart timer
+  _chessTimeouts = 0;
+  if(g.status==='normal'||g.status==='check') chessStartTurnTimer();
+  else chessClearTurnTimer();
+
+  // Update pip if minimized
+  _chessPipUpdateTurn();
+
   // Sync to Supabase
   if(typeof chessSyncMove==='function') chessSyncMove(g);
 
@@ -527,8 +552,10 @@ function chessStartGame(matchId, whiteAddr, blackAddr, myColor, existingState){
     selected:   null,
     validMoves: [],
   };
+  _chessTimeouts = 0;
   openChessModal();
   if(typeof _subscribeToChessMatch==='function') _subscribeToChessMatch(matchId);
+  chessStartTurnTimer();
 }
 
 // ── Resign ────────────────────────────────────────────
@@ -629,7 +656,129 @@ function chessApplyOpponentMove(state){
   if(chessGame.status==='stalemate') setTimeout(()=>chessShowResult('🤝','Stalemate!','Draw — well played both!','draw'),300);
   if(chessGame.status==='resigned'){
     const winner = chessGame.winner;
+    chessClearTurnTimer();
     chessShowResult('🏳️','Opponent Resigned',`${winner?winner.toUpperCase():''} wins!`,'resigned');
     if(typeof chessAwardPoints==='function') chessAwardPoints(winner,chessGame);
+    return;
   }
+
+  // Opponent moved → restart timer for our turn
+  _chessTimeouts = 0;
+  if(chessGame.status==='normal'||chessGame.status==='check') chessStartTurnTimer();
+  else chessClearTurnTimer();
+
+  // Update pip
+  _chessPipUpdateTurn();
+  if(_chessPipActive) chessRestore(); // Auto-restore pip if opponent moved
+}
+
+// ══════════════════════════════════════════════════════
+//  ⏱️ TURN TIMER
+// ══════════════════════════════════════════════════════
+
+function chessStartTurnTimer(){
+  chessClearTurnTimer();
+  _chessTimeLeft = CHESS_TURN_SECS;
+  _chessUpdateTimerUI();
+
+  _chessTurnTimer = setInterval(()=>{
+    _chessTimeLeft--;
+    _chessUpdateTimerUI();
+    if(_chessTimeLeft <= 0){
+      chessClearTurnTimer();
+      _chessHandleTimeout();
+    }
+  }, 1000);
+}
+
+function chessClearTurnTimer(){
+  if(_chessTurnTimer){ clearInterval(_chessTurnTimer); _chessTurnTimer=null; }
+}
+
+function _chessUpdateTimerUI(){
+  const t = _chessTimeLeft;
+  const mmss = (Math.floor(t/60)+':'+String(t%60).padStart(2,'0'));
+  // Main modal timer
+  const el = document.getElementById('chessTimer');
+  if(el){
+    el.textContent = mmss;
+    el.className = 'chess-timer';
+    if(t <= 15) el.classList.add('chess-timer-danger');
+    else if(t <= 30) el.classList.add('chess-timer-warn');
+  }
+  // Mini pip timer
+  const pip = document.getElementById('chessPipTimer');
+  if(pip){
+    pip.textContent = mmss;
+    pip.className = 'chess-pip-timer';
+    if(t <= 15) pip.classList.add('danger');
+    else if(t <= 30) pip.classList.add('warn');
+  }
+}
+
+function _chessHandleTimeout(){
+  if(!chessGame) return;
+  // Only handle timeout if it's YOUR turn
+  const myAddr = wallet ? wallet.addr.toLowerCase() : null;
+  const turnAddr = chessGame.turn==='white' ? chessGame.whiteAddr : chessGame.blackAddr;
+  if(!myAddr || myAddr !== turnAddr) return;
+
+  _chessTimeouts++;
+  if(_chessTimeouts >= CHESS_MAX_TIMEOUTS){
+    // Auto-forfeit by timeout
+    _chessTimeouts = 0;
+    const winner = chessOpponent(chessGame.myColor);
+    chessGame.status = 'resigned';
+    chessGame.winner = winner;
+    chessShowResult('⏰','Time\'s Up!',`You ran out of time — ${winner.toUpperCase()} wins!`,'resigned');
+    if(typeof chessSyncResign==='function') chessSyncResign(chessGame);
+    if(typeof chessAwardPoints==='function') chessAwardPoints(winner, chessGame);
+  } else {
+    // Warning: restart with same limit
+    chessSpawnFloater('⏰ TIME WARNING!','#f59e0b');
+    _chessTimeLeft = CHESS_TURN_SECS;
+    chessStartTurnTimer();
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  🪟 MINI PIP (minimize / restore)
+// ══════════════════════════════════════════════════════
+
+function chessOverlayClick(e){
+  // Click on the overlay (outside the modal card) → minimize if game active
+  if(chessGame && (chessGame.status==='normal'||chessGame.status==='check')){
+    chessMinimize();
+  } else {
+    closeChessModal();
+  }
+}
+
+function chessMinimize(){
+  const modal = document.getElementById('chessModal');
+  if(modal) modal.classList.remove('open');
+  const pip = document.getElementById('chessPip');
+  if(pip) pip.classList.add('active');
+  _chessPipActive = true;
+  _chessPipUpdateTurn();
+}
+
+function chessRestore(){
+  const pip = document.getElementById('chessPip');
+  if(pip) pip.classList.remove('active');
+  _chessPipActive = false;
+  const modal = document.getElementById('chessModal');
+  if(modal) modal.classList.add('open');
+  renderChessBoard();
+  renderChessInfo();
+}
+
+function _chessPipUpdateTurn(){
+  if(!chessGame) return;
+  const pip = document.getElementById('chessPipTurn');
+  if(!pip) return;
+  const isMyTurn = wallet && wallet.addr.toLowerCase() ===
+    (chessGame.turn==='white'?chessGame.whiteAddr:chessGame.blackAddr).toLowerCase();
+  pip.textContent = isMyTurn ? 'YOUR TURN' : 'WAITING...';
+  pip.style.color = isMyTurn ? '#4ade80' : 'rgba(192,132,252,0.6)';
 }

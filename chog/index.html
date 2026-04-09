@@ -615,11 +615,14 @@
 <!-- SWAP MODAL duplicate removed -->
 
 <!-- ♟️ CHESS MODAL -->
-<div class="modal-overlay" id="chessModal">
-  <div class="modal" style="max-width:520px;padding:0;overflow:hidden">
+<div class="modal-overlay" id="chessModal" onclick="chessOverlayClick(event)">
+  <div class="modal" style="max-width:520px;padding:0;overflow:hidden" onclick="event.stopPropagation()">
     <div class="modal-hdr" style="padding:10px 14px">
       <div style="font-family:'Bangers',cursive;font-size:22px;letter-spacing:1px;color:var(--accent)">♟️ CHOG Chess</div>
-      <button class="modal-close" onclick="closeChessModal()">✕</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="modal-close" onclick="chessMinimize()" title="Minimize">▾</button>
+        <button class="modal-close" onclick="closeChessModal()">✕</button>
+      </div>
     </div>
     <!-- Player info + turn status -->
     <div id="chessInfo"></div>
@@ -640,6 +643,13 @@
       <button class="chess-btn chess-btn-danger" onclick="chessResign()">🏳️ Resign</button>
     </div>
   </div>
+</div>
+
+<!-- ♟️ CHESS MINI PIP (minimized state) -->
+<div id="chessPip" onclick="chessRestore()" title="Click to restore chess game">
+  <div class="chess-pip-icon">♟️</div>
+  <div class="chess-pip-turn" id="chessPipTurn">●</div>
+  <div class="chess-pip-timer" id="chessPipTimer">--</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
