@@ -462,8 +462,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 /* ── Chess frame (full 1024×1024 carnival image) ── */
 .chess-frame {
   position: relative;
-  width: 100%;
-  aspect-ratio: 1;
+  width: min(96vw, 88vh, 580px);
+  height: min(96vw, 88vh, 580px); /* explicit square — aspect-ratio unreliable on some Android */
+  flex-shrink: 0;
   background-image: url('img/chess-board-bg.png');
   background-size: 100% 100%;
   background-repeat: no-repeat;
@@ -501,9 +502,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   z-index: 1;        /* above the watermark */
   transition: background 0.15s;
 }
-/* Transparent — board pattern comes from the zoomed background image */
+/* Subtle tint on dark squares so the grid is perceptible */
 .chess-sq-light { background: transparent; }
-.chess-sq-dark  { background: rgba(0,0,0,0.05); }
+.chess-sq-dark  { background: rgba(0,0,0,0.10); }
 .chess-sq:hover { filter: brightness(1.18); }
 .chess-sq-selected  { background: rgba(250,204,21,0.60) !important; }
 .chess-sq-lastmove  { background: rgba(250,204,21,0.28) !important; }

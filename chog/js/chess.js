@@ -307,19 +307,6 @@ function renderChessBoard(){
         sq.appendChild(img);
       }
 
-      // File/rank labels
-      if(displayRow===7){
-        const fl=document.createElement('div');
-        fl.className='chess-label chess-file-label';
-        fl.textContent=String.fromCharCode(97+(flip?7-displayCol:displayCol));
-        sq.appendChild(fl);
-      }
-      if(displayCol===0){
-        const rl=document.createElement('div');
-        rl.className='chess-label chess-rank-label';
-        rl.textContent=flip?displayRow+1:8-displayRow;
-        sq.appendChild(rl);
-      }
 
       sq.onclick = () => onChessSquareClick(row,col);
       boardEl.appendChild(sq);
