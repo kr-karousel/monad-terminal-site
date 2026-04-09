@@ -472,18 +472,18 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 }
 
 /* ── Game board — absolutely positioned at image's chess board coordinates ──
-   New PNG scanned: x=262-758, y=300-751
-   left = 262/1024 = 25.586%   top = 300/1024 = 29.297%
-   width = 496/1024 = 48.438%  height = 451/1024 = 44.043%          ── */
+   Multi-row pixel scan averages: left=263.6, right=759.7, top=300.8, bot=752.2
+   left = 263.6/1024 = 25.742%  top = 300.8/1024 = 29.375%
+   width = 496.1/1024 = 48.447% height = 451.4/1024 = 44.082%       ── */
 #chessBoard {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
   position: absolute;
-  left: 25.586%;
-  top: 29.297%;
-  width: 48.438%;
-  height: 44.043%;
+  left: 25.742%;
+  top: 29.375%;
+  width: 48.447%;
+  height: 44.082%;
   background: none;
   border: none;
   overflow: hidden;
@@ -653,10 +653,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 #chessPromotion {
   display: none;
   position: absolute;
-  left: 25.586%;
-  top: 29.297%;
-  width: 48.438%;
-  height: 44.043%;
+  left: 25.742%;
+  top: 29.375%;
+  width: 48.447%;
+  height: 44.082%;
   z-index: 25;
   align-items: center;
   justify-content: center;
