@@ -462,8 +462,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 /* ── Chess frame (full 1024×1024 carnival image) ── */
 .chess-frame {
   position: relative;
-  width: min(96vw, 88vh, 580px);
-  height: min(96vw, 88vh, 580px); /* explicit square — aspect-ratio unreliable on some Android */
+  width: 100%; /* fill wrap width; height enforced = width by JS */
   flex-shrink: 0;
   background-image: url('img/chess-board-bg.png');
   background-size: 100% 100%;

@@ -228,8 +228,17 @@ function chessMoveNote(piece, fr, fc, tr, tc, captured, special, promoteTo){
 //  UI FUNCTIONS
 // ══════════════════════════════════════════════════════
 
+function _chessSquareFrame(){
+  // Force the chess frame to be a perfect square (height = actual computed width).
+  // aspect-ratio:1 is unreliable on some Android browsers when mixed vw/vh units
+  // compute differently for width vs height.
+  const frame = document.querySelector('.chess-frame');
+  if(frame){ frame.style.height = frame.offsetWidth + 'px'; }
+}
+
 function openChessModal(){
   document.getElementById('chessModal').classList.add('open');
+  _chessSquareFrame();
   // Reset overlays from previous game
   const go = document.getElementById('chessGameOver');
   if(go){ go.style.display='none'; go.innerHTML=''; }
