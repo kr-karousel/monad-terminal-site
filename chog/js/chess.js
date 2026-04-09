@@ -13,7 +13,7 @@ var _chessTurnTimer    = null;   // setInterval handle
 var _chessTimeLeft     = 90;     // seconds remaining
 var _chessTimeouts     = 0;      // consecutive timeouts by current turn player
 const CHESS_TURN_SECS  = 90;     // seconds per turn
-const CHESS_MAX_TIMEOUTS = 2;    // timeouts before auto-forfeit
+const CHESS_MAX_TIMEOUTS = 1;    // timeouts before auto-forfeit (1 = immediate)
 
 // ── Mini-pip state ────────────────────────────────────
 var _chessPipActive = false;
@@ -227,6 +227,27 @@ function chessMoveNote(piece, fr, fc, tr, tc, captured, special, promoteTo){
 // ══════════════════════════════════════════════════════
 //  UI FUNCTIONS
 // ══════════════════════════════════════════════════════
+
+// ── Piece slide animation ─────────────────────────────
+function chessAnimatePieceSlide(fr, fc, tr, tc){
+  // Source square element (now empty after board re-render)
+  const srcEl = document.querySelector(`#chessBoard [data-row="${fr}"][data-col="${fc}"]`);
+  // Piece at target square (just rendered there)
+  const trgPiece = document.querySelector(`#chessBoard [data-row="${tr}"][data-col="${tc}"] .chess-piece`);
+  if(!srcEl || !trgPiece) return;
+  const sr = srcEl.getBoundingClientRect();
+  const tr2 = trgPiece.parentElement.getBoundingClientRect();
+  const dx = sr.left - tr2.left;
+  const dy = sr.top  - tr2.top;
+  trgPiece.style.setProperty('--slide-x', dx + 'px');
+  trgPiece.style.setProperty('--slide-y', dy + 'px');
+  trgPiece.classList.add('chess-piece-slide');
+  trgPiece.addEventListener('animationend', ()=>{
+    trgPiece.classList.remove('chess-piece-slide');
+    trgPiece.style.removeProperty('--slide-x');
+    trgPiece.style.removeProperty('--slide-y');
+  }, {once:true});
+}
 
 function _chessSquareFrame(){
   // Force the chess frame to be a perfect square (height = actual computed width).
@@ -460,6 +481,7 @@ function chessMakeMove(fr, fc, tr, tc, special, promoteTo){
 
   // Re-render
   renderChessBoard();
+  chessAnimatePieceSlide(fr, fc, tr, tc);
   renderChessInfo();
 
   // Animations
@@ -639,6 +661,7 @@ function chessSpawnConfetti(){
 // ── Receive opponent move (from Supabase) ─────────────
 function chessApplyOpponentMove(state){
   if(!chessGame) return;
+  const prevLastMove = chessGame.lastMove; // capture before overwrite
   // Update game from server state
   chessGame.board       = state.board;
   chessGame.turn        = state.turn;
@@ -650,6 +673,7 @@ function chessApplyOpponentMove(state){
   chessGame.winner      = state.winner||null;
 
   renderChessBoard();
+  if(state.lastMove) chessAnimatePieceSlide(...state.lastMove);
   renderChessInfo();
 
   if(chessGame.status==='check') chessAnimCheck();

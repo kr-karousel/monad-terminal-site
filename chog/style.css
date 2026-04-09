@@ -651,6 +651,26 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   text-shadow: 0 1px 3px rgba(0,0,0,0.8);
 }
 .chess-btn:hover { background: rgba(0,0,0,0.72); }
+
+.chess-forfeit-hint {
+  font-size: 10px;
+  color: rgba(192,132,252,0.55);
+  text-align: center;
+  letter-spacing: 0.3px;
+  padding-bottom: 2px;
+  width: 100%;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* ── Piece slide animation ── */
+@keyframes chessPieceSlide {
+  from { transform: translate(calc(-50% + var(--slide-x, 0px)), calc(-50% + var(--slide-y, 0px))); }
+  to   { transform: translate(-50%, -50%); }
+}
+.chess-piece-slide {
+  animation: chessPieceSlide 0.16s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
 .chess-btn-danger {
   border-color: rgba(239,68,68,0.6);
   color: #fca5a5;
