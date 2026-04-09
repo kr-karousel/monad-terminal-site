@@ -230,22 +230,27 @@ function chessMoveNote(piece, fr, fc, tr, tc, captured, special, promoteTo){
 
 function _chessSquareFrame(){
   // Force the chess frame to be a perfect square (height = actual computed width).
-  // aspect-ratio:1 is unreliable on some Android browsers when mixed vw/vh units
-  // compute differently for width vs height.
+  // Must run after layout — use requestAnimationFrame so the browser has laid
+  // out the modal before we read offsetWidth.
   const frame = document.querySelector('.chess-frame');
-  if(frame){ frame.style.height = frame.offsetWidth + 'px'; }
+  if(!frame) return;
+  const sz = frame.offsetWidth;
+  if(sz > 0) frame.style.height = sz + 'px';
 }
 
 function openChessModal(){
   document.getElementById('chessModal').classList.add('open');
-  _chessSquareFrame();
   // Reset overlays from previous game
   const go = document.getElementById('chessGameOver');
   if(go){ go.style.display='none'; go.innerHTML=''; }
   const pr = document.getElementById('chessPromotion');
   if(pr){ pr.style.display='none'; pr.innerHTML=''; }
-  renderChessBoard();
-  renderChessInfo();
+  // Set square frame after layout, then render board into correct dimensions
+  requestAnimationFrame(() => {
+    _chessSquareFrame();
+    renderChessBoard();
+    renderChessInfo();
+  });
 }
 
 function closeChessModal(){
@@ -765,9 +770,19 @@ function chessRestore(){
   _chessPipActive = false;
   const modal = document.getElementById('chessModal');
   if(modal) modal.classList.add('open');
-  renderChessBoard();
-  renderChessInfo();
+  requestAnimationFrame(() => {
+    _chessSquareFrame();
+    renderChessBoard();
+    renderChessInfo();
+  });
 }
+
+// Keep frame square on orientation change / resize
+window.addEventListener('resize', () => {
+  if(document.getElementById('chessModal')?.classList.contains('open')){
+    _chessSquareFrame();
+  }
+});
 
 function _chessPipUpdateTurn(){
   if(!chessGame) return;
