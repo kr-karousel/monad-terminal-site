@@ -228,6 +228,41 @@ function chessMoveNote(piece, fr, fc, tr, tc, captured, special, promoteTo){
 //  UI FUNCTIONS
 // ══════════════════════════════════════════════════════
 
+// ── Move sound (Web Audio API — no file needed) ───────
+let _chessAudioCtx = null;
+function _chessGetAudioCtx(){
+  if(!_chessAudioCtx || _chessAudioCtx.state==='closed'){
+    _chessAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  }
+  if(_chessAudioCtx.state==='suspended') _chessAudioCtx.resume();
+  return _chessAudioCtx;
+}
+function chessPlayMoveSound(isCapture){
+  try {
+    const ctx = _chessGetAudioCtx();
+    const sr  = ctx.sampleRate;
+    const dur = isCapture ? 0.10 : 0.07;          // capture slightly longer
+    const buf = ctx.createBuffer(1, Math.ceil(sr*dur), sr);
+    const data= buf.getChannelData(0);
+    for(let i=0; i<data.length; i++){
+      const t     = i/sr;
+      const decay = Math.exp(-t * (isCapture ? 38 : 55)); // slower decay for capture
+      data[i] = (Math.random()*2-1) * decay;
+    }
+    const src  = ctx.createBufferSource();
+    src.buffer = buf;
+    // Bandpass: 900–1400 Hz gives a wood-on-wood "tock" character
+    const bp   = ctx.createBiquadFilter();
+    bp.type           = 'bandpass';
+    bp.frequency.value= isCapture ? 900 : 1200;
+    bp.Q.value        = 1.2;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(isCapture ? 0.75 : 0.55, ctx.currentTime);
+    src.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
+    src.start();
+  } catch(e){}
+}
+
 // ── Piece slide animation ─────────────────────────────
 function chessAnimatePieceSlide(fr, fc, tr, tc){
   // Source square element (now empty after board re-render)
@@ -482,6 +517,7 @@ function chessMakeMove(fr, fc, tr, tc, special, promoteTo){
   // Re-render
   renderChessBoard();
   chessAnimatePieceSlide(fr, fc, tr, tc);
+  chessPlayMoveSound(!!captured);
   renderChessInfo();
 
   // Animations
@@ -674,6 +710,7 @@ function chessApplyOpponentMove(state){
 
   renderChessBoard();
   if(state.lastMove) chessAnimatePieceSlide(...state.lastMove);
+  if(state.lastMove) chessPlayMoveSound(false);
   renderChessInfo();
 
   if(chessGame.status==='check') chessAnimCheck();
