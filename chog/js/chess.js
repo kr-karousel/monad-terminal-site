@@ -432,7 +432,6 @@ function renderChessInfo(){
     </div>
     <div style="display:flex;gap:2px;padding-left:6px;flex-shrink:0">
       <button class="modal-close" onclick="chessMinimize()" title="Minimize">▾</button>
-      <button class="modal-close" onclick="closeChessModal()" title="Close">✕</button>
     </div>`;
 }
 
