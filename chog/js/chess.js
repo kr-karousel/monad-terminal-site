@@ -310,10 +310,12 @@ function openChessModal(){
 }
 
 function closeChessModal(){
+  chessClearTurnTimer();
   document.getElementById('chessModal').classList.remove('open');
 }
 
 function chessPlayAgain(){
+  chessClearTurnTimer();
   // Hide game over overlay and reset game state
   const go = document.getElementById('chessGameOver');
   if(go){ go.style.display='none'; go.innerHTML=''; }
@@ -415,7 +417,7 @@ function renderChessInfo(){
 
   infoEl.innerHTML = `
     <div class="chess-player ${g.myColor==='black'?'chess-me':''}" title="${g.blackAddr}">
-      <span class="chess-player-icon">♚</span>
+      <span class="chess-player-icon chess-icon-black">♚</span>
       <span class="chess-player-name">${bNick}</span>
       ${g.myColor==='black'?'<span class="chess-you-badge">YOU</span>':''}
     </div>
@@ -426,7 +428,7 @@ function renderChessInfo(){
     <div class="chess-player ${g.myColor==='white'?'chess-me':''}" title="${g.whiteAddr}">
       ${g.myColor==='white'?'<span class="chess-you-badge">YOU</span>':''}
       <span class="chess-player-name">${wNick}</span>
-      <span class="chess-player-icon">♔</span>
+      <span class="chess-player-icon chess-icon-white">♔</span>
     </div>
     <div style="display:flex;gap:2px;padding-left:6px;flex-shrink:0">
       <button class="modal-close" onclick="chessMinimize()" title="Minimize">▾</button>
@@ -621,6 +623,7 @@ function chessStartGame(matchId, whiteAddr, blackAddr, myColor, existingState){
 function chessResign(){
   if(!chessGame||!wallet) return;
   if(!confirm('Resign this game? You will lose the match.')) return;
+  chessClearTurnTimer();
   const winner = chessGame.whiteAddr===wallet.addr.toLowerCase()?'black':'white';
   chessGame.status = 'resigned';
   chessGame.winner = winner;
@@ -780,26 +783,39 @@ function _chessUpdateTimerUI(){
 
 function _chessHandleTimeout(){
   if(!chessGame) return;
-  // Only handle timeout if it's YOUR turn
-  const myAddr = wallet ? wallet.addr.toLowerCase() : null;
-  const turnAddr = chessGame.turn==='white' ? chessGame.whiteAddr : chessGame.blackAddr;
-  if(!myAddr || myAddr !== turnAddr) return;
+  // Game already finished — don't double-forfeit
+  if(chessGame.status!=='normal' && chessGame.status!=='check') return;
 
-  _chessTimeouts++;
-  if(_chessTimeouts >= CHESS_MAX_TIMEOUTS){
-    // Auto-forfeit by timeout
+  const myAddr  = wallet ? wallet.addr.toLowerCase() : null;
+  const turnAddr = chessGame.turn==='white' ? chessGame.whiteAddr : chessGame.blackAddr;
+
+  if(!myAddr) return; // wallet disconnected — can't act
+
+  if(myAddr === turnAddr){
+    // MY turn timed out → I forfeit
+    _chessTimeouts++;
+    if(_chessTimeouts >= CHESS_MAX_TIMEOUTS){
+      _chessTimeouts = 0;
+      const winner = chessOpponent(chessGame.myColor);
+      chessGame.status = 'resigned';
+      chessGame.winner = winner;
+      chessShowResult('⏰','Time\'s Up!',`You ran out of time — ${winner.toUpperCase()} wins!`,'resigned');
+      if(typeof chessSyncResign==='function') chessSyncResign(chessGame);
+      if(typeof chessAwardPoints==='function') chessAwardPoints(winner, chessGame);
+    } else {
+      chessSpawnFloater('⏰ TIME WARNING!','#f59e0b');
+      _chessTimeLeft = CHESS_TURN_SECS;
+      chessStartTurnTimer();
+    }
+  } else {
+    // OPPONENT's turn timed out — claim win on their behalf
     _chessTimeouts = 0;
-    const winner = chessOpponent(chessGame.myColor);
+    const winner = chessGame.myColor;
     chessGame.status = 'resigned';
     chessGame.winner = winner;
-    chessShowResult('⏰','Time\'s Up!',`You ran out of time — ${winner.toUpperCase()} wins!`,'resigned');
+    chessShowResult('⏰','Opponent Timed Out!',`${winner.toUpperCase()} wins by timeout!`,'resigned');
     if(typeof chessSyncResign==='function') chessSyncResign(chessGame);
     if(typeof chessAwardPoints==='function') chessAwardPoints(winner, chessGame);
-  } else {
-    // Warning: restart with same limit
-    chessSpawnFloater('⏰ TIME WARNING!','#f59e0b');
-    _chessTimeLeft = CHESS_TURN_SECS;
-    chessStartTurnTimer();
   }
 }
 

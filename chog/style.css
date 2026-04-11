@@ -598,6 +598,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   max-width: 38%;
 }
 .chess-player-icon { font-size: 18px; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.9)); }
+.chess-icon-white { color: #f8fafc; text-shadow: 0 0 6px rgba(255,255,255,0.9), 0 0 12px rgba(255,255,255,0.5), 0 1px 3px rgba(0,0,0,0.8); filter: none; }
+.chess-icon-black { color: #111827; text-shadow: 0 0 4px rgba(255,255,255,1), 0 0 8px rgba(255,255,255,0.8), 0 0 14px rgba(255,255,255,0.5); filter: none; }
 .chess-player-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7); }
 .chess-me .chess-player-name { color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(192,132,252,0.8); }
 .chess-status-center {
@@ -678,14 +680,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 }
 .chess-btn-danger:hover { background: rgba(239,68,68,0.2); }
 
-/* ── Promotion dialog — covers same region as #chessBoard ── */
+/* ── Promotion dialog — covers entire frame so promo box isn't clipped ── */
 #chessPromotion {
   display: none;
   position: absolute;
-  left: 25.742%;
-  top: 29.375%;
-  width: 48.447%;
-  height: 44.082%;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
   z-index: 25;
   align-items: center;
   justify-content: center;

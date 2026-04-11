@@ -61,6 +61,9 @@ function toggleDevPanel(){
     const isMainDev = wallet && wallet.addr.toLowerCase() === DEV_WALLET.toLowerCase();
     const feeSection = document.getElementById('devFeeSection');
     if(feeSection) feeSection.style.display = isMainDev ? '' : 'none';
+    // Chess reset: strictly DEV only (not test wallets, not custom tier wallets)
+    const chessSection = document.getElementById('devChessSection');
+    if(chessSection) chessSection.style.display = isMainDev ? '' : 'none';
     if(isMainDev){
       const ni = document.getElementById('devNickCostInput');
       const si = document.getElementById('devShoutCostInput');
@@ -68,6 +71,54 @@ function toggleDevPanel(){
       if(si) si.value = SHOUT_COST;
     }
   }
+}
+
+// ── Chess Records Reset (DEV wallet only, never test/custom-tier wallets) ──
+async function devResetChessRecords(){
+  if(!wallet || wallet.addr.toLowerCase() !== DEV_WALLET.toLowerCase()){
+    alert('Access denied.');
+    return;
+  }
+  if(!confirm('⚠️ Delete ALL chess matches, invites and reset all chess points?\nThis CANNOT be undone.')) return;
+
+  const results = [];
+
+  if(typeof _sbClient !== 'undefined' && _sbClient){
+    // Delete all chess_matches
+    try{
+      const {error} = await _sbClient.from('chess_matches').delete().not('id','is',null);
+      results.push(error ? '❌ chess_matches: '+error.message : '✅ chess_matches: cleared');
+    }catch(e){ results.push('❌ chess_matches: '+e.message); }
+
+    // Delete all chess_invites
+    try{
+      const {error} = await _sbClient.from('chess_invites').delete().not('id','is',null);
+      results.push(error ? '❌ chess_invites: '+error.message : '✅ chess_invites: cleared');
+    }catch(e){ results.push('❌ chess_invites: '+e.message); }
+
+    // Reset chess_pts to 0 for all contributions rows
+    try{
+      const {error} = await _sbClient.from('contributions').update({chess_pts:0}).not('address','is',null);
+      results.push(error ? '❌ chess_pts: '+error.message : '✅ chess_pts: reset to 0');
+    }catch(e){ results.push('❌ chess_pts: '+e.message); }
+  } else {
+    results.push('⚠️ Supabase not connected — skipped DB');
+  }
+
+  // Also wipe localStorage chess data for all users
+  try{
+    const db = JSON.parse(localStorage.getItem('chog_contrib_v1')||'{}');
+    Object.keys(db).forEach(k=>{
+      db[k].chessPts    = 0;
+      db[k].chessWins   = 0;
+      db[k].chessLosses = 0;
+      db[k].chessDraws  = 0;
+    });
+    localStorage.setItem('chog_contrib_v1', JSON.stringify(db));
+    results.push('✅ localStorage: chess data cleared');
+  }catch(e){ results.push('❌ localStorage: '+e.message); }
+
+  alert('Chess records reset:\n'+results.join('\n'));
 }
 
 function checkDevAccess(){

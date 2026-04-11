@@ -208,7 +208,7 @@ function initChart(){
         zIndex        : '9998',
         width         : '72px',
         pointerEvents : 'none',
-        transition    : 'none',
+        transition    : 'opacity 0.25s',
         willChange    : 'transform',
       });
 
@@ -230,6 +230,15 @@ function initChart(){
       }, {passive:true});
 
       function animateChog(){
+        // 체스 모달이 열려 있으면 캐릭터 숨김
+        const chessOpen = document.getElementById('chessModal')?.classList.contains('open');
+        if(chessOpen){
+          chog.style.opacity = '0';
+          rafId = requestAnimationFrame(animateChog);
+          return;
+        }
+        chog.style.opacity = '1';
+
         // 부드러운 lerp (12% 씩 따라가기)
         curX += (targetX - curX) * 0.12;
         curY += (targetY - curY) * 0.12;
