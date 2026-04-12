@@ -583,10 +583,10 @@ function closeChessPromotion(){
 }
 
 function chessFinishPromotion(promoteTo){
+  const pending = chessPending;   // closeChessPromotion이 null로 지우기 전에 저장
   closeChessPromotion();
-  if(!chessPending) return;
-  const {fr,fc,tr,tc,sp} = chessPending;
-  chessPending = null;
+  if(!pending) return;
+  const {fr,fc,tr,tc,sp} = pending;
   chessMakeMove(fr,fc,tr,tc,sp,promoteTo.toUpperCase());
 }
 
