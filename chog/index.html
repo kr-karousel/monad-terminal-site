@@ -636,8 +636,18 @@
     </div>
     <!-- Controls below the image -->
     <div id="chessControls">
-      <div class="chess-forfeit-hint">⏱ No move in time · Resign = forfeit</div>
-      <button class="chess-btn chess-btn-danger" onclick="chessResign()">🏳️ Resign</button>
+      <!-- BGM 컨트롤 바 -->
+      <div class="chess-bgm-bar">
+        <button id="chessBgmMute" class="chess-bgm-btn" onclick="chessBGMToggleMute()" title="Toggle BGM">🔊</button>
+        <button class="chess-bgm-nav" onclick="chessBGMSelectTrack(-1)" title="Prev track">‹</button>
+        <span id="chessBgmTrackName" class="chess-bgm-name">Main Theme</span>
+        <button class="chess-bgm-nav" onclick="chessBGMSelectTrack(1)" title="Next track">›</button>
+      </div>
+      <!-- 기권 + 힌트 -->
+      <div class="chess-controls-row">
+        <div class="chess-forfeit-hint">⏱ No move in time · Resign = forfeit</div>
+        <button class="chess-btn chess-btn-danger" onclick="chessResign()">🏳️ Resign</button>
+      </div>
     </div>
   </div>
 </div>

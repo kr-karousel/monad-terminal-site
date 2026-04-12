@@ -311,11 +311,13 @@ function openChessModal(){
 
 function closeChessModal(){
   chessClearTurnTimer();
+  chessStopBGM();
   document.getElementById('chessModal').classList.remove('open');
 }
 
 function chessPlayAgain(){
   chessClearTurnTimer();
+  chessStopBGM();
   // Hide game over overlay and reset game state
   const go = document.getElementById('chessGameOver');
   if(go){ go.style.display='none'; go.innerHTML=''; }
@@ -614,6 +616,7 @@ function chessStartGame(matchId, whiteAddr, blackAddr, myColor, existingState){
   };
   _chessTimeouts = 0;
   openChessModal();
+  chessStartBGM();
   if(typeof _subscribeToChessMatch==='function') _subscribeToChessMatch(matchId);
   chessStartTurnTimer();
 }
@@ -868,4 +871,79 @@ function _chessPipUpdateTurn(){
     (chessGame.turn==='white'?chessGame.whiteAddr:chessGame.blackAddr).toLowerCase();
   pip.textContent = isMyTurn ? 'YOUR TURN' : 'WAITING...';
   pip.style.color = isMyTurn ? '#4ade80' : 'rgba(192,132,252,0.6)';
+}
+
+// ══════════════════════════════════════════════════════
+//  🎵 CHESS BGM
+//  오디오 파일은 chog/audio/ 에 업로드하면 즉시 적용
+//  트랙 순서: 0=메인, 1=서브1, 2=서브2
+// ══════════════════════════════════════════════════════
+
+const CHESS_BGM_TRACKS = [
+  { name: 'Main Theme',   src: 'audio/chess-bgm-main.mp3' },
+  { name: 'Arena Vibes',  src: 'audio/chess-bgm-sub1.mp3' },
+  { name: 'Night Duel',   src: 'audio/chess-bgm-sub2.mp3' },
+];
+
+let _chessBgmAudio    = null;
+let _chessBgmMuted    = false;
+let _chessBgmTrackIdx = 0;
+let _chessBgmActive   = false;
+
+function _chessBgmLoadPrefs(){
+  try{
+    const s = JSON.parse(localStorage.getItem('chog_chess_bgm')||'{}');
+    if(typeof s.muted === 'boolean') _chessBgmMuted    = s.muted;
+    if(typeof s.track === 'number')  _chessBgmTrackIdx = Math.min(Math.max(0,s.track), CHESS_BGM_TRACKS.length-1);
+  }catch(e){}
+}
+
+function _chessBgmSavePrefs(){
+  try{ localStorage.setItem('chog_chess_bgm', JSON.stringify({muted:_chessBgmMuted, track:_chessBgmTrackIdx})); }catch(e){}
+}
+
+function chessStartBGM(){
+  _chessBgmLoadPrefs();
+  chessStopBGM();
+  const track = CHESS_BGM_TRACKS[_chessBgmTrackIdx];
+  _chessBgmAudio        = new Audio(track.src);
+  _chessBgmAudio.loop   = true;
+  _chessBgmAudio.volume = 0.4;
+  _chessBgmAudio.muted  = _chessBgmMuted;
+  _chessBgmAudio.play().catch(()=>{}); // 파일 없거나 autoplay 차단 시 무시
+  _chessBgmActive = true;
+  _chessBgmUpdateUI();
+}
+
+function chessStopBGM(){
+  if(_chessBgmAudio){
+    _chessBgmAudio.pause();
+    _chessBgmAudio.src = '';
+    _chessBgmAudio = null;
+  }
+  _chessBgmActive = false;
+}
+
+function chessBGMToggleMute(){
+  _chessBgmMuted = !_chessBgmMuted;
+  if(_chessBgmAudio) _chessBgmAudio.muted = _chessBgmMuted;
+  if(!_chessBgmMuted && _chessBgmActive && _chessBgmAudio)
+    _chessBgmAudio.play().catch(()=>{});
+  _chessBgmSavePrefs();
+  _chessBgmUpdateUI();
+}
+
+function chessBGMSelectTrack(delta){
+  const len = CHESS_BGM_TRACKS.length;
+  _chessBgmTrackIdx = ((_chessBgmTrackIdx + delta) % len + len) % len;
+  _chessBgmSavePrefs();
+  if(_chessBgmActive) chessStartBGM();
+  else _chessBgmUpdateUI();
+}
+
+function _chessBgmUpdateUI(){
+  const muteBtn   = document.getElementById('chessBgmMute');
+  const trackName = document.getElementById('chessBgmTrackName');
+  if(muteBtn)   muteBtn.textContent = _chessBgmMuted ? '🔇' : '🔊';
+  if(trackName) trackName.textContent = CHESS_BGM_TRACKS[_chessBgmTrackIdx].name;
 }
