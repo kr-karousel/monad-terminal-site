@@ -883,6 +883,7 @@ const CHESS_BGM_TRACKS = [
   { name: 'Main Theme',   src: 'audio/chess-bgm-main.mp3' },
   { name: 'Arena Vibes',  src: 'audio/chess-bgm-sub1.mp3' },
   { name: 'Night Duel',   src: 'audio/chess-bgm-sub2.mp3' },
+  { name: 'Dark Court',   src: 'audio/chess-bgm-sub3.mp3' },
 ];
 
 let _chessBgmAudio    = null;
