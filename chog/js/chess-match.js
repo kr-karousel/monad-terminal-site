@@ -182,7 +182,8 @@ function _subscribeToChessInvites(){
       async payload => {
         const invite = payload.new;
         if(!invite||invite.status!=='accepted') return;
-        if(chessGame) return; // already in a game
+        // 진행 중인 활성 게임이 있으면 스킵 (종료된 게임이면 새 매칭 허용)
+        if(chessGame && (chessGame.status==='normal'||chessGame.status==='check')) return;
         await _chessStartAsWhiteWithRetry(myAddr);
       }
     )
@@ -193,7 +194,9 @@ function _subscribeToChessInvites(){
       payload => {
         const row = payload.new;
         if(!row || row.status !== 'active') return;
-        if(chessGame) return; // already started (e.g. from invite path above)
+        // 같은 매치거나 진행 중인 다른 게임이면 스킵
+        if(chessGame && chessGame.matchId === row.id) return;
+        if(chessGame && (chessGame.status==='normal'||chessGame.status==='check')) return;
         const gs = row.game_state;
         chessStartGame(row.id, row.white_addr, row.black_addr, 'white', gs);
       }
@@ -205,13 +208,15 @@ function _subscribeToChessInvites(){
 async function _chessStartAsWhiteWithRetry(myAddr){
   for(let attempt=0; attempt<=3; attempt++){
     if(attempt > 0) await new Promise(r=>setTimeout(r, 600*attempt));
-    if(chessGame) return; // started by another path in the meantime
+    // 진행 중인 활성 게임이 시작됐으면 중단 (종료된 게임은 override 허용)
+    if(chessGame && (chessGame.status==='normal'||chessGame.status==='check')) return;
     try{
       const {data} = await _sbClient.from('chess_matches')
         .select('*').eq('white_addr',myAddr).eq('status','active')
         .order('created_at',{ascending:false}).limit(1).single();
       if(data){
-        if(chessGame) return;
+        if(chessGame && chessGame.matchId === data.id) return; // 이미 이 매치 중
+        if(chessGame && (chessGame.status==='normal'||chessGame.status==='check')) return;
         const gs = data.game_state;
         chessStartGame(data.id, data.white_addr, data.black_addr, 'white', gs);
         return;

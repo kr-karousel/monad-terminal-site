@@ -313,6 +313,10 @@ function closeChessModal(){
   chessClearTurnTimer();
   chessStopBGM();
   document.getElementById('chessModal').classList.remove('open');
+  // 게임이 끝난 상태면 반드시 null — 다음 매칭 시 구독 핸들러가 막히지 않도록
+  if(chessGame && chessGame.status !== 'normal' && chessGame.status !== 'check'){
+    chessGame = null;
+  }
 }
 
 function chessPlayAgain(){
