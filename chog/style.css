@@ -301,7 +301,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 /* PRICE ALERT TOAST */
 @keyframes alertToastIn{0%{opacity:0;transform:translateX(-50%) translateY(-12px) scale(.92)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
 /* DEV PANEL */
-.dev-panel{position:fixed;top:60px;right:10px;z-index:9999;background:rgba(13,10,26,.96);border:1px solid rgba(251,191,36,.4);border-radius:14px;padding:14px;width:260px;display:none;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,.7)}
+.dev-panel{position:fixed;top:60px;right:10px;z-index:9999;background:rgba(13,10,26,.96);border:1px solid rgba(251,191,36,.4);border-radius:14px;padding:14px;width:260px;display:none;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,.7);max-height:calc(100dvh - 80px);overflow-y:auto;overscroll-behavior:contain}
 .dev-panel.open{display:block}
 .dev-panel h3{font-family:'Bangers',cursive;color:var(--gold);font-size:16px;margin-bottom:10px;letter-spacing:1px}
 .dev-btn{width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.04);color:var(--text);font-size:11px;font-family:'Nunito',sans-serif;cursor:pointer;text-align:left;transition:all .15s}
