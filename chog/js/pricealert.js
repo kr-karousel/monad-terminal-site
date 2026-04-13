@@ -1,25 +1,58 @@
 // ═══════════════════════════════════════
 //  PRICE ALERTS
 // ═══════════════════════════════════════
+
+// ── EmailJS config ─────────────────────
+// Sign up at https://www.emailjs.com (free: 200 emails/month)
+// 1. Create an Email Service (Gmail, Outlook, etc.)
+// 2. Create an Email Template with variables:
+//      {{to_email}}  {{direction}}  {{target}}  {{current}}
+// 3. Fill in the three values below:
+const EMAILJS_PUBLIC_KEY   = '';   // Account → API Keys → Public Key
+const EMAILJS_SERVICE_ID   = '';   // Email Services → Service ID
+const EMAILJS_TEMPLATE_ID  = '';   // Email Templates → Template ID
+// ───────────────────────────────────────
+
 var priceAlerts = [];
 var alertNotifGranted = false;
+var alertEmail = '';
 
 function loadPriceAlerts(){
   try{ priceAlerts = JSON.parse(localStorage.getItem('chog_price_alerts')||'[]'); }
   catch(e){ priceAlerts = []; }
+  alertEmail = localStorage.getItem('chog_alert_email') || '';
+  _initEmailJS();
   updateAlertBellState();
+}
+
+function _initEmailJS(){
+  if(typeof emailjs !== 'undefined' && EMAILJS_PUBLIC_KEY){
+    try{ emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); } catch(e){}
+  }
 }
 
 function savePriceAlerts(){
   localStorage.setItem('chog_price_alerts', JSON.stringify(priceAlerts));
 }
 
+function saveAlertEmail(){
+  const inp = document.getElementById('alertEmailInput');
+  const val = inp ? inp.value.trim() : '';
+  alertEmail = val;
+  localStorage.setItem('chog_alert_email', val);
+  const btn = document.getElementById('alertEmailSaveBtn');
+  if(btn){ btn.textContent = '✓ Saved'; setTimeout(()=>{ btn.textContent = 'Save'; }, 2000); }
+}
+
 function openPriceAlertModal(){
   const m = document.getElementById('priceAlertModal');
   if(!m) return;
-  // 현재 가격 input 기본값으로 세팅
+  // pre-fill current price
   const inp = document.getElementById('alertPriceInput');
   if(inp && livePrice && !inp.value) inp.value = livePrice.toFixed(7);
+  // pre-fill saved email
+  const emailInp = document.getElementById('alertEmailInput');
+  if(emailInp && alertEmail) emailInp.value = alertEmail;
   renderPriceAlertList();
   m.classList.add('open');
   // 브라우저 알림 권한 요청
@@ -112,13 +145,23 @@ function _fireAlert(alert, currentPrice){
   const direction = alert.type === 'above' ? '📈 Above' : '📉 Below';
   const msg = `CHOG ${direction} $${alert.price.toFixed(7)}\nNow: $${currentPrice.toFixed(7)}`;
 
-  // 브라우저 알림 (탭 비활성화 상태에서도 작동)
+  // Browser notification (works while tab is open)
   if(alertNotifGranted && 'Notification' in window){
     try{ new Notification('🔔 CHOG Price Alert', { body: msg, icon: '/chog/img/chog_logo.png' }); }
     catch(e){}
   }
 
-  // 화면 내 토스트
+  // Email via EmailJS
+  if(alertEmail && typeof emailjs !== 'undefined' && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID){
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_email:  alertEmail,
+      direction: alert.type === 'above' ? 'Above 📈' : 'Below 📉',
+      target:    '$' + alert.price.toFixed(7),
+      current:   '$' + currentPrice.toFixed(7),
+    }).catch(e => console.warn('EmailJS send failed:', e));
+  }
+
+  // On-screen toast
   _showAlertToast(alert.type, alert.price, currentPrice);
 }
 

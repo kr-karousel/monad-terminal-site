@@ -68,7 +68,18 @@
     </div>
     <!-- alert list -->
     <div id="priceAlertList"></div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.2);margin-top:10px;text-align:center">Alerts only fire while this tab is open</div>
+    <!-- email -->
+    <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600">📧 Email notification <span style="font-weight:400;font-size:9px">(optional)</span></div>
+      <div style="display:flex;gap:5px;align-items:center">
+        <input id="alertEmailInput" type="email" placeholder="your@email.com"
+          style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-size:11px;color:var(--text);outline:none"
+          onkeydown="if(event.key==='Enter')saveAlertEmail()">
+        <button id="alertEmailSaveBtn" onclick="saveAlertEmail()"
+          style="background:rgba(192,132,252,.15);border:1px solid rgba(192,132,252,.4);border-radius:7px;color:var(--accent);font-size:11px;padding:6px 10px;cursor:pointer;font-weight:700;white-space:nowrap">Save</button>
+      </div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.2);margin-top:6px">Requires EmailJS setup in pricealert.js · tab must be open</div>
+    </div>
   </div>
 </div>
 
@@ -715,6 +726,7 @@
 <script src="js/holders.js"></script>
 <script src="js/effects.js"></script>
 <script src="js/pnl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="js/pricealert.js"></script>
 <script src="js/devpanel.js"></script>
 <script src="js/revenue.js"></script>
