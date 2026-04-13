@@ -58,49 +58,96 @@ async function _rpcBlockNumber(){
   return null;
 }
 
-// ── On-chain transfer fetch ────────────────────────
+// ── MonadVision Blockscout API (primary source) ──
+async function _fetchTradesFromExplorer(addr, maxBlocks){
+  const poolL   = NADFUN_POOL.toLowerCase();
+  const routerL = NADFUN_ROUTER.toLowerCase();
+  const now     = Math.floor(Date.now() / 1000);
+  const cutoff  = now - maxBlocks; // ~2h ago
+
+  const urls = [
+    `https://monadvision.com/api/v2/addresses/${addr}/token-transfers?token=${CHOG_CONTRACT}&filter=ERC-20&limit=50`,
+    `https://explorer.monad.xyz/api/v2/addresses/${addr}/token-transfers?token=${CHOG_CONTRACT}&filter=ERC-20&limit=50`,
+  ];
+
+  for(const url of urls){
+    try{
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      if(!res.ok) continue;
+      const d = await res.json();
+      if(!d.items || !Array.isArray(d.items)) continue;
+
+      const trades = [];
+      d.items.forEach(item => {
+        const from  = (item.from?.hash || '').toLowerCase();
+        const to    = (item.to?.hash   || '').toLowerCase();
+        const raw   = item.total?.value || item.value || '0';
+        const chog  = Number(BigInt(raw.toString().replace('.','').split('.')[0]||'0')) / 1e18;
+        const ts    = item.timestamp ? Math.floor(new Date(item.timestamp).getTime()/1000) : 0;
+        if(chog <= 0 || ts < cutoff) return;
+
+        const isBuy  = from === poolL || from === routerL;
+        const isSell = to   === poolL || to   === routerL;
+        if(isBuy)       trades.push({ type:'buy',  chog, block:0, txHash: item.tx_hash, time: ts });
+        else if(isSell) trades.push({ type:'sell', chog, block:0, txHash: item.tx_hash, time: ts });
+      });
+
+      if(trades.length > 0 || d.items.length >= 0){
+        console.log('✅ Explorer trades:', trades.length, 'from', url.split('/')[2]);
+        return trades.sort((a,b) => b.time - a.time);
+      }
+    } catch(e){ console.warn('Explorer API:', e.message); }
+  }
+  return null; // fallback to RPC
+}
+
+// ── On-chain transfer fetch (explorer → RPC fallback) ─
 async function fetchWalletTrades(addr, maxBlocks){
   maxBlocks = maxBlocks || PNL_BLOCKS;
-  const addrPadded   = '0x' + addr.slice(2).toLowerCase().padStart(64, '0');
+  const addrL = addr.toLowerCase();
+
+  // 1) Try block explorer API first (faster, more reliable)
+  const explorerTrades = await _fetchTradesFromExplorer(addrL, maxBlocks);
+  if(explorerTrades !== null) return explorerTrades;
+
+  // 2) Fallback: direct RPC with 4 explicit queries (no wildcards/arrays)
+  console.log('Explorer failed, falling back to RPC for', addrL.slice(0,8));
+  const addrPadded   = '0x' + addrL.slice(2).padStart(64, '0');
   const poolPadded   = '0x' + NADFUN_POOL.slice(2).toLowerCase().padStart(64, '0');
   const routerPadded = '0x' + NADFUN_ROUTER.slice(2).toLowerCase().padStart(64, '0');
-  // Use array (OR) instead of null wildcard — better RPC compatibility
-  const dexAddrs = [poolPadded, routerPadded];
 
   try {
     const blockHex = await _rpcBlockNumber();
     if(!blockHex) return [];
     const curBlock  = parseInt(blockHex, 16);
     const fromBlock = Math.max(0, curBlock - maxBlocks);
+    const base      = { address: CHOG_CONTRACT };
 
-    const base = { address: CHOG_CONTRACT };
-    const [buyLogs, sellLogs] = await Promise.all([
-      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, dexAddrs, addrPadded] }, fromBlock, curBlock),
-      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, addrPadded, dexAddrs] }, fromBlock, curBlock),
+    // 4 explicit queries — no null, no array topics
+    const [fpLogs, frLogs, tpLogs, trLogs] = await Promise.all([
+      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, poolPadded,   addrPadded]   }, fromBlock, curBlock), // pool→user (buy)
+      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, routerPadded, addrPadded]   }, fromBlock, curBlock), // router→user (buy)
+      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, addrPadded,   poolPadded]   }, fromBlock, curBlock), // user→pool (sell)
+      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, addrPadded,   routerPadded] }, fromBlock, curBlock), // user→router (sell)
     ]);
 
     const trades = [];
     const now    = Math.floor(Date.now() / 1000);
-
-    (buyLogs || []).forEach(log => {
+    const parse  = (log, type) => {
       const chog    = Number(BigInt('0x' + log.data.slice(2))) / 1e18;
       const block   = parseInt(log.blockNumber, 16);
-      const estTime = now - (curBlock - block);
       if(chog <= 0) return;
-      trades.push({ type: 'buy', chog, block, txHash: log.transactionHash, time: estTime });
-    });
+      trades.push({ type, chog, block, txHash: log.transactionHash, time: now - (curBlock - block) });
+    };
+    (fpLogs||[]).forEach(l => parse(l, 'buy'));
+    (frLogs||[]).forEach(l => parse(l, 'buy'));
+    (tpLogs||[]).forEach(l => parse(l, 'sell'));
+    (trLogs||[]).forEach(l => parse(l, 'sell'));
 
-    (sellLogs || []).forEach(log => {
-      const chog    = Number(BigInt('0x' + log.data.slice(2))) / 1e18;
-      const block   = parseInt(log.blockNumber, 16);
-      const estTime = now - (curBlock - block);
-      if(chog <= 0) return;
-      trades.push({ type: 'sell', chog, block, txHash: log.transactionHash, time: estTime });
-    });
-
+    console.log('✅ RPC trades:', trades.length);
     return trades.sort((a, b) => b.block - a.block);
   } catch(e) {
-    console.warn('fetchWalletTrades:', e.message);
+    console.warn('fetchWalletTrades RPC:', e.message);
     return [];
   }
 }
