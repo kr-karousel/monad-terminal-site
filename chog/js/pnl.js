@@ -13,26 +13,49 @@ const PNL_RPC_LIST = [
   'https://monad.drpc.org',
 ];
 
+async function _rpcFetchChunk(filter, fromHex, toHex){
+  const params = [{ ...filter, fromBlock: fromHex, toBlock: toHex }];
+  for(const rpc of PNL_RPC_LIST){
+    try{
+      const res = await fetch(rpc, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({jsonrpc:'2.0', id:1, method:'eth_getLogs', params})
+      });
+      if(!res.ok) continue;
+      const d = await res.json();
+      if(d.error) continue;
+      if(Array.isArray(d.result)) return d.result;
+    } catch(e){}
+  }
+  return [];
+}
+
 async function _rpcGetLogsChunked(filter, fromBlock, toBlock){
-  const all = [];
+  const chunks = [];
   for(let s = fromBlock; s <= toBlock; s += PNL_CHUNK){
     const e = Math.min(s + PNL_CHUNK - 1, toBlock);
-    const params = [{ ...filter, fromBlock: '0x'+s.toString(16), toBlock: '0x'+e.toString(16) }];
-    for(const rpc of PNL_RPC_LIST){
-      try{
-        const res = await fetch(rpc, {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({jsonrpc:'2.0', id:1, method:'eth_getLogs', params})
-        });
-        if(!res.ok) continue;
-        const d = await res.json();
-        if(d.error) continue;
-        if(Array.isArray(d.result)){ all.push(...d.result); break; }
-      } catch(e){}
-    }
+    chunks.push(['0x'+s.toString(16), '0x'+e.toString(16)]);
   }
-  return all;
+  const results = await Promise.all(chunks.map(([fb, tb]) => _rpcFetchChunk(filter, fb, tb)));
+  return results.flat();
+}
+
+// ── Direct RPC eth_blockNumber (skip MetaMask) ────
+async function _rpcBlockNumber(){
+  for(const rpc of PNL_RPC_LIST){
+    try{
+      const res = await fetch(rpc, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({jsonrpc:'2.0', id:1, method:'eth_blockNumber', params:[]})
+      });
+      if(!res.ok) continue;
+      const d = await res.json();
+      if(d.result) return d.result;
+    } catch(e){}
+  }
+  return null;
 }
 
 // ── On-chain transfer fetch ────────────────────────
@@ -41,12 +64,10 @@ async function fetchWalletTrades(addr, maxBlocks){
   const addrPadded = '0x' + addr.slice(2).toLowerCase().padStart(64, '0');
 
   try {
-    const blockHex = await rpcCallAny('eth_blockNumber', []);
+    const blockHex = await _rpcBlockNumber();
     if(!blockHex) return [];
     const curBlock  = parseInt(blockHex, 16);
     const fromBlock = Math.max(0, curBlock - maxBlocks);
-    const from16    = '0x' + fromBlock.toString(16);
-    const to16      = '0x' + curBlock.toString(16);
 
     const baseFilter = { address: CHOG_CONTRACT };
     const [buyLogs, sellLogs] = await Promise.all([
