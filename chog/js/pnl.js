@@ -5,26 +5,34 @@ const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a
 const PNL_BLOCKS     = 7200; // ~2 hours on Monad (~1s/block)
 
 // MetaMask은 null 와일드카드 topic을 빈배열로 반환해서 getLogs는 직접 fetch 사용
-async function _rpcGetLogs(params){
-  const rpcs = [
-    'https://rpc.monad.xyz',
-    'https://monad-mainnet.rpc.thirdweb.com',
-    'https://monad.drpc.org',
-  ];
-  for(const rpc of rpcs){
-    try{
-      const res = await fetch(rpc, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({jsonrpc:'2.0', id:1, method:'eth_getLogs', params})
-      });
-      if(!res.ok) continue;
-      const d = await res.json();
-      if(d.error) continue;
-      if(Array.isArray(d.result)) return d.result;
-    } catch(e){}
+// Monad RPC는 eth_getLogs 한 번에 최대 ~400블록 → CHUNK_SIZE로 분할 요청
+const PNL_CHUNK = 400;
+const PNL_RPC_LIST = [
+  'https://rpc.monad.xyz',
+  'https://monad-mainnet.rpc.thirdweb.com',
+  'https://monad.drpc.org',
+];
+
+async function _rpcGetLogsChunked(filter, fromBlock, toBlock){
+  const all = [];
+  for(let s = fromBlock; s <= toBlock; s += PNL_CHUNK){
+    const e = Math.min(s + PNL_CHUNK - 1, toBlock);
+    const params = [{ ...filter, fromBlock: '0x'+s.toString(16), toBlock: '0x'+e.toString(16) }];
+    for(const rpc of PNL_RPC_LIST){
+      try{
+        const res = await fetch(rpc, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({jsonrpc:'2.0', id:1, method:'eth_getLogs', params})
+        });
+        if(!res.ok) continue;
+        const d = await res.json();
+        if(d.error) continue;
+        if(Array.isArray(d.result)){ all.push(...d.result); break; }
+      } catch(e){}
+    }
   }
-  return [];
+  return all;
 }
 
 // ── On-chain transfer fetch ────────────────────────
@@ -40,9 +48,10 @@ async function fetchWalletTrades(addr, maxBlocks){
     const from16    = '0x' + fromBlock.toString(16);
     const to16      = '0x' + curBlock.toString(16);
 
+    const baseFilter = { address: CHOG_CONTRACT };
     const [buyLogs, sellLogs] = await Promise.all([
-      _rpcGetLogs([{ address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC, null, addrPadded], fromBlock: from16, toBlock: to16 }]),
-      _rpcGetLogs([{ address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC, addrPadded, null], fromBlock: from16, toBlock: to16 }]),
+      _rpcGetLogsChunked({ ...baseFilter, topics: [TRANSFER_TOPIC, null, addrPadded] }, fromBlock, curBlock),
+      _rpcGetLogsChunked({ ...baseFilter, topics: [TRANSFER_TOPIC, addrPadded, null] }, fromBlock, curBlock),
     ]);
 
     const poolLower   = NADFUN_POOL.toLowerCase();
