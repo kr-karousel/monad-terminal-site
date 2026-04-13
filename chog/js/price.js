@@ -11,6 +11,7 @@ function updatePriceDisplay(p){
   if(tc){tc.textContent=chgStr;tc.className=chgCls;}
   const tc2=document.getElementById('tickerChg2');
   if(tc2){tc2.textContent=chgStr;tc2.className=chgCls;}
+  if(typeof checkPriceAlerts === 'function') checkPriceAlerts(p);
 }
 
 function updateMcap(mcap){

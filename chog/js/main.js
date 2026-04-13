@@ -11,6 +11,7 @@ function startApp(){
   // Supabase 미설정 시에만 로컬 외치기 로드 (설정 시 서버에서 덮어씀)
   if(typeof SUPABASE_URL === 'undefined' || !SUPABASE_URL) loadShoutsFromStorage();
   loadCustomTiersFromStorage();
+  if(typeof loadPriceAlerts === 'function') loadPriceAlerts();
   initChart();
   startPriceRefresh();
   // Supabase 실시간 동기화 초기화

@@ -1,0 +1,178 @@
+// ═══════════════════════════════════════
+//  PRICE ALERTS
+// ═══════════════════════════════════════
+var priceAlerts = [];
+var alertNotifGranted = false;
+
+function loadPriceAlerts(){
+  try{ priceAlerts = JSON.parse(localStorage.getItem('chog_price_alerts')||'[]'); }
+  catch(e){ priceAlerts = []; }
+  updateAlertBellState();
+}
+
+function savePriceAlerts(){
+  localStorage.setItem('chog_price_alerts', JSON.stringify(priceAlerts));
+}
+
+function openPriceAlertModal(){
+  const m = document.getElementById('priceAlertModal');
+  if(!m) return;
+  // 현재 가격 input 기본값으로 세팅
+  const inp = document.getElementById('alertPriceInput');
+  if(inp && livePrice && !inp.value) inp.value = livePrice.toFixed(7);
+  renderPriceAlertList();
+  m.classList.add('open');
+  // 브라우저 알림 권한 요청
+  if('Notification' in window){
+    if(Notification.permission === 'granted'){
+      alertNotifGranted = true;
+    } else if(Notification.permission === 'default'){
+      Notification.requestPermission().then(p => { alertNotifGranted = p === 'granted'; });
+    }
+  }
+}
+
+function closePriceAlertModal(){
+  const m = document.getElementById('priceAlertModal');
+  if(m) m.classList.remove('open');
+}
+
+function addPriceAlert(){
+  const typeEl  = document.getElementById('alertTypeSelect');
+  const priceEl = document.getElementById('alertPriceInput');
+  const type    = typeEl  ? typeEl.value  : 'above';
+  const price   = parseFloat(priceEl ? priceEl.value : '') || 0;
+  if(!price || price <= 0){ alert('유효한 가격을 입력해주세요.'); return; }
+
+  // 중복 체크
+  const dup = priceAlerts.find(a => !a.triggered && a.type === type && a.price === price);
+  if(dup){ alert('동일한 알림이 이미 있습니다.'); return; }
+
+  priceAlerts.push({ id: Date.now(), type, price, triggered: false });
+  savePriceAlerts();
+  if(priceEl) priceEl.value = '';
+  renderPriceAlertList();
+  updateAlertBellState();
+}
+
+function removePriceAlert(id){
+  priceAlerts = priceAlerts.filter(a => a.id !== id);
+  savePriceAlerts();
+  renderPriceAlertList();
+  updateAlertBellState();
+}
+
+function clearTriggeredAlerts(){
+  priceAlerts = priceAlerts.filter(a => !a.triggered);
+  savePriceAlerts();
+  renderPriceAlertList();
+  updateAlertBellState();
+}
+
+function renderPriceAlertList(){
+  const el = document.getElementById('priceAlertList');
+  if(!el) return;
+  if(!priceAlerts.length){
+    el.innerHTML = '<div style="color:var(--muted);font-size:11px;text-align:center;padding:14px 0">설정된 알림 없음</div>';
+    return;
+  }
+  const hasDone = priceAlerts.some(a => a.triggered);
+  el.innerHTML = priceAlerts.map(a => `
+    <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border-radius:7px;padding:6px 8px;margin-bottom:4px${a.triggered ? ';opacity:0.4' : ''}">
+      <span style="font-size:14px">${a.type === 'above' ? '📈' : '📉'}</span>
+      <span style="font-size:11px;flex:1;line-height:1.4">
+        <span style="color:var(--muted);font-size:9px">${a.type === 'above' ? 'ABOVE' : 'BELOW'}</span><br>
+        <b style="font-family:'Share Tech Mono',monospace;color:${a.type==='above'?'var(--green)':'var(--red)'}">$${a.price.toFixed(7)}</b>
+        ${a.triggered ? '<span style="color:var(--muted);font-size:9px"> ✓ 발동됨</span>' : ''}
+      </span>
+      <button onclick="removePriceAlert(${a.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;opacity:0.7" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">✕</button>
+    </div>`).join('')
+  + (hasDone ? `<button onclick="clearTriggeredAlerts()" style="width:100%;margin-top:4px;background:none;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--muted);font-size:10px;padding:4px;cursor:pointer">발동된 알림 삭제</button>` : '');
+}
+
+function checkPriceAlerts(currentPrice){
+  if(!priceAlerts.length) return;
+  let changed = false;
+  priceAlerts.forEach(a => {
+    if(a.triggered) return;
+    const hit = (a.type === 'above' && currentPrice >= a.price)
+              || (a.type === 'below' && currentPrice <= a.price);
+    if(!hit) return;
+    a.triggered = true;
+    changed = true;
+    _fireAlert(a, currentPrice);
+  });
+  if(changed){
+    savePriceAlerts();
+    renderPriceAlertList();
+    updateAlertBellState();
+  }
+}
+
+function _fireAlert(alert, currentPrice){
+  const direction = alert.type === 'above' ? '📈 Above' : '📉 Below';
+  const msg = `CHOG ${direction} $${alert.price.toFixed(7)}\nNow: $${currentPrice.toFixed(7)}`;
+
+  // 브라우저 알림 (탭 비활성화 상태에서도 작동)
+  if(alertNotifGranted && 'Notification' in window){
+    try{ new Notification('🔔 CHOG Price Alert', { body: msg, icon: '/chog/img/chog_logo.png' }); }
+    catch(e){}
+  }
+
+  // 화면 내 토스트
+  _showAlertToast(alert.type, alert.price, currentPrice);
+}
+
+function _showAlertToast(type, targetPrice, currentPrice){
+  const toast = document.createElement('div');
+  const isAbove = type === 'above';
+  toast.style.cssText = [
+    'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:10000',
+    'background:rgba(14,14,22,0.97);border-radius:12px;padding:12px 20px',
+    `border:1px solid ${isAbove ? 'var(--green)' : 'var(--red)'}`,
+    'box-shadow:0 8px 32px rgba(0,0,0,0.6);text-align:center',
+    'animation:alertToastIn .35s cubic-bezier(.22,.68,0,1.2) forwards;min-width:240px'
+  ].join(';');
+  toast.innerHTML = `
+    <div style="font-size:20px;margin-bottom:4px">${isAbove ? '📈' : '📉'}</div>
+    <div style="font-size:12px;font-weight:700;color:${isAbove ? 'var(--green)' : 'var(--red)'};letter-spacing:.5px">
+      CHOG ${isAbove ? 'ABOVE' : 'BELOW'} $${targetPrice.toFixed(7)}
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-top:3px">
+      현재가: <b style="font-family:'Share Tech Mono',monospace;color:var(--text)">$${currentPrice.toFixed(7)}</b>
+    </div>`;
+  document.body.appendChild(toast);
+  setTimeout(()=>{
+    toast.style.transition = 'opacity .5s, transform .5s';
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(-50%) translateY(-8px)';
+    setTimeout(()=> toast.remove(), 500);
+  }, 5000);
+}
+
+function updateAlertBellState(){
+  const btn = document.getElementById('priceAlertBtn');
+  if(!btn) return;
+  const active = priceAlerts.filter(a => !a.triggered).length;
+  if(active > 0){
+    btn.style.color = 'var(--gold)';
+    btn.style.borderColor = 'rgba(251,191,36,0.4)';
+    btn.title = `가격 알림 ${active}개 활성`;
+    // 뱃지
+    let badge = btn.querySelector('.alert-badge');
+    if(!badge){
+      badge = document.createElement('span');
+      badge.className = 'alert-badge';
+      badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:var(--gold);color:#000;border-radius:50%;width:14px;height:14px;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1';
+      btn.style.position = 'relative';
+      btn.appendChild(badge);
+    }
+    badge.textContent = active;
+  } else {
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    btn.title = '가격 알림 설정';
+    const badge = btn.querySelector('.alert-badge');
+    if(badge) badge.remove();
+  }
+}
