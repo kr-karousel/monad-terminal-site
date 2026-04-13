@@ -193,6 +193,8 @@ function updateWalletDisplay(){
         <span class="nick-badge" title="Change nickname">✏️</span>
       </span>
       <span style="width:1px;height:14px;background:rgba(255,255,255,0.15);margin:0 2px;flex-shrink:0"></span>
+      <button onclick="openPnlModal()" title="My trades & position" style="background:none;border:none;color:var(--muted);font-size:12px;padding:0 3px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">📊</button>
+      <span style="width:1px;height:14px;background:rgba(255,255,255,0.15);margin:0 2px;flex-shrink:0"></span>
       <button onclick="disconnectWallet()" title="Disconnect wallet" style="background:none;border:none;color:var(--muted);font-size:15px;font-weight:700;padding:0 2px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='var(--muted)'">×</button>
     </div>`;
 }
