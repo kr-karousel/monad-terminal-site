@@ -50,7 +50,7 @@ function renderMsg(item){
 
     div.className='chat-msg '+(isBuy?'trade-alert':'trade-sell');
     if(mon >= 10000) div.style.cssText += ';border-width:2px;';
-    chogEmotion(item.side);
+    if(!item.silent) chogEmotion(item.side);
     const baseEmoji = isBuy ? '🟢' : '🔴';
     const usd = ((item.amount||0)*(item.price||0)).toFixed(0);
     const monStr = mon >= 1000 ? (mon>=1000?Math.floor(mon).toLocaleString()+' MON':'') : '';

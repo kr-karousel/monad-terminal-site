@@ -393,3 +393,85 @@ function handleSwapLog(log) {
   } catch(e) { console.warn('handleSwapLog:', e.message); }
 }
 
+// ── Load last N qualifying trades on startup ──────
+async function loadRecentTrades(maxCount){
+  maxCount = maxCount || 5;
+  try {
+    const blockHex = await rpcCallAny('eth_blockNumber', []);
+    if(!blockHex) return;
+    const curBlock = parseInt(blockHex, 16);
+    const SCAN = 2000; // ~33 min on Monad
+    const CHUNK = 400;
+
+    const allLogs = [];
+    for(let s = curBlock - SCAN; s < curBlock; s += CHUNK){
+      const e = Math.min(s + CHUNK - 1, curBlock);
+      const logs = await rpcCallAny('eth_getLogs', [{
+        address: NADFUN_POOL,
+        topics:  [[SWAP_TOPIC_V3, TRADE_TOPIC_KURU]],
+        fromBlock: '0x' + s.toString(16),
+        toBlock:   '0x' + e.toString(16),
+      }]);
+      if(logs && logs.length) allLogs.push(...logs);
+    }
+    if(!allLogs.length) return;
+
+    const Q96 = BigInt('0x1000000000000000000000000');
+    const isChogToken0 = CHOG_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
+    function toSigned(hex){
+      const v = BigInt('0x'+hex);
+      const M = BigInt('0x8000000000000000000000000000000000000000000000000000000000000000');
+      return v >= M ? v - BigInt('0x10000000000000000000000000000000000000000000000000000000000000000') : v;
+    }
+
+    const qualifying = [];
+    for(let i = allLogs.length - 1; i >= 0 && qualifying.length < maxCount; i--){
+      const log = allLogs[i];
+      try {
+        const d = log.data;
+        if(!d || d.length < 2 + 64*5) continue;
+        const a0 = toSigned(d.slice(2, 66));
+        const a1 = toSigned(d.slice(66, 130));
+        const sq = BigInt('0x' + d.slice(130, 194));
+        if(sq === 0n) continue;
+        const ratio = Number(sq) / Number(Q96);
+        let pMON = ratio * ratio;
+        if(!isChogToken0) pMON = 1 / pMON;
+        const pUsd = pMON * (cachedMonPrice || 0.026);
+        if(pUsd < 1e-9 || pUsd > 1) continue;
+        let isBuy, chog, mon;
+        if(isChogToken0){
+          isBuy = a0 < 0n;
+          chog  = Number(a0 < 0n ? -a0 : a0) / 1e18;
+          mon   = Number(a1 < 0n ? -a1 : a1) / 1e18;
+        } else {
+          isBuy = a1 < 0n;
+          chog  = Number(a1 < 0n ? -a1 : a1) / 1e18;
+          mon   = Number(a0 < 0n ? -a0 : a0) / 1e18;
+        }
+        let usd = mon * (cachedMonPrice || 0.026);
+        if(usd < 0.5) usd = chog * pUsd;
+        if(usd < 0.5 || mon < MON_BIG) continue;
+        const sec = curBlock - parseInt(log.blockNumber, 16);
+        const t   = sec < 60 ? sec+'s ago' : Math.floor(sec/60)+'m ago';
+        qualifying.push({ txHash: log.transactionHash, isBuy, chog, mon, pUsd, t });
+      } catch(e){}
+    }
+    if(!qualifying.length) return;
+
+    // Render oldest→newest so newest ends up at bottom
+    for(const tr of qualifying.reverse()){
+      const txData   = await rpcCallAny('eth_getTransactionByHash', [tr.txHash]);
+      const addrFull = (txData && txData.from) ? txData.from : '';
+      renderMsg({
+        type: 'trade', side: tr.isBuy ? 'buy' : 'sell',
+        addr: addrFull ? addrFull.slice(0,6)+'...'+addrFull.slice(-4) : '0xUnknown',
+        addrFull, txHash: tr.txHash, bal: 0,
+        amount: Math.floor(tr.chog), price: tr.pUsd, mon: tr.mon,
+        time: tr.t, silent: true,
+      });
+    }
+    console.log('✅ Loaded', qualifying.length, 'recent trades');
+  } catch(e){ console.warn('loadRecentTrades:', e.message); }
+}
+
