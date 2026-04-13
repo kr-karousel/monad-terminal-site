@@ -19,17 +19,17 @@ function renderMsg(item){
 
   const addrHtml = `<span class="msg-addr" data-addr="${addrFull}" style="cursor:pointer;text-decoration:underline dotted" onclick="openProfileModal('${addrFull}',${item.bal||0},'${rank.cls}','${rank.badge}','${item.txHash||''}')">${displayAddr}</span>`;
 
-  // bal=0이고 custom tier 없을 때 → 실제 잔고 비동기 조회 후 뱃지 업데이트
+  // bal=0 → fetch real balance after a short delay (avoid race with block settlement)
   if(!item.bal && addrFull && addrFull.startsWith('0x') && !devCustomTiers[addrFull.toLowerCase()] && typeof fetchChogBalance === 'function'){
-    const msgId = 'msg-' + Date.now() + Math.random().toString(36).slice(2);
-    div.dataset.msgId = msgId;
-    fetchChogBalance(addrFull).then(realBal => {
-      if(!realBal) return;
-      const balInt = Math.floor(realBal);
-      const realRank = getRank(balInt, addrFull);
-      const badge = div.querySelector('.rank-badge');
-      if(badge){ badge.textContent = realRank.badge; badge.className = 'rank-badge ' + realRank.cls; }
-    }).catch(()=>{});
+    setTimeout(() => {
+      fetchChogBalance(addrFull).then(realBal => {
+        if(realBal === null || realBal === undefined || realBal <= 0) return;
+        const balInt = Math.floor(realBal);
+        const realRank = getRank(balInt, addrFull);
+        const badge = div.querySelector('.rank-badge');
+        if(badge){ badge.textContent = realRank.badge; badge.className = 'rank-badge ' + realRank.cls; }
+      }).catch(()=>{});
+    }, 3000); // wait 3s for block state to settle
   }
 
   if(item.type==='trade'){

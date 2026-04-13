@@ -32,13 +32,13 @@ async function _rpcFetchChunk(filter, fromHex, toHex){
 }
 
 async function _rpcGetLogsChunked(filter, fromBlock, toBlock){
-  const chunks = [];
+  const all = [];
   for(let s = fromBlock; s <= toBlock; s += PNL_CHUNK){
     const e = Math.min(s + PNL_CHUNK - 1, toBlock);
-    chunks.push(['0x'+s.toString(16), '0x'+e.toString(16)]);
+    const logs = await _rpcFetchChunk(filter, '0x'+s.toString(16), '0x'+e.toString(16));
+    all.push(...logs);
   }
-  const results = await Promise.all(chunks.map(([fb, tb]) => _rpcFetchChunk(filter, fb, tb)));
-  return results.flat();
+  return all;
 }
 
 // ── Direct RPC eth_blockNumber (skip MetaMask) ────
