@@ -45,7 +45,9 @@ function showTradeFloat(isBuy, usdValue, chogAmount, monAmount){
 
   const clownSrc  = isBuy ? 'img/clown_buy.jpg' : 'img/clown_sell.jpg';
   const clownCls  = isWhale ? 'trade-float-clown whale' : 'trade-float-clown';
-  const clownHtml = `<img class="${clownCls}" src="${clownSrc}" alt="">`;
+  const clownHtml = (typeof devShowTradePhoto === 'undefined' || devShowTradePhoto)
+    ? `<img class="${clownCls}" src="${clownSrc}" alt="">`
+    : '';
 
   if(isWhale){
     const emoji    = isBuy ? '🐳' : '☠️';

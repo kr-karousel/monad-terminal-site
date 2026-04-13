@@ -36,6 +36,31 @@
 <!-- BG EFFECTS CONTAINER -->
 <div class="bg-effect-container" id="bgEffectContainer"></div>
 
+<!-- PRICE ALERT MODAL -->
+<div class="modal-overlay" id="priceAlertModal" onclick="if(event.target===this)closePriceAlertModal()">
+  <div class="modal" style="max-width:320px">
+    <div class="modal-hdr">
+      <div style="font-family:'Bangers',cursive;font-size:20px;letter-spacing:1px;color:var(--gold)">🔔 Price Alerts</div>
+      <button class="modal-close" onclick="closePriceAlertModal()">✕</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">가격이 목표에 도달하면 브라우저 알림 + 화면 팝업</div>
+    <!-- 새 알림 추가 -->
+    <div style="display:flex;gap:5px;margin-bottom:10px;align-items:center">
+      <select id="alertTypeSelect" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-size:11px;color:var(--text);outline:none;cursor:pointer">
+        <option value="above">📈 이상</option>
+        <option value="below">📉 이하</option>
+      </select>
+      <input id="alertPriceInput" type="number" step="0.0000001" min="0" placeholder="0.0000000"
+        style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-size:11px;color:var(--text);outline:none;font-family:'Share Tech Mono',monospace"
+        onkeydown="if(event.key==='Enter')addPriceAlert()">
+      <button onclick="addPriceAlert()" style="background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.4);border-radius:7px;color:var(--gold);font-size:11px;padding:6px 10px;cursor:pointer;font-weight:700;white-space:nowrap">+ 추가</button>
+    </div>
+    <!-- 알림 목록 -->
+    <div id="priceAlertList"></div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.2);margin-top:10px;text-align:center">알림은 이 탭을 열어둔 동안만 작동합니다</div>
+  </div>
+</div>
+
 <!-- DEV PANEL (dev wallet only) -->
 <div class="dev-panel" id="devPanel">
   <h3>🔧 Dev Test Panel</h3>
@@ -91,6 +116,12 @@
     <div style="font-size:10px;color:#ef4444;font-weight:700;margin-bottom:6px">♟️ Chess Records</div>
     <button class="dev-btn" onclick="devResetChessRecords()" style="color:#f87171;border-color:rgba(248,113,113,0.35);font-size:10px">🗑️ Reset ALL Chess Records</button>
     <div style="font-size:8px;color:rgba(248,113,113,0.5);margin-top:3px">Deletes all matches, invites &amp; resets chess_pts</div>
+  </div>
+  <!-- Trade Photo Toggle (메인 Dev 지갑 전용) -->
+  <div id="devPhotoSection" style="border-top:1px solid var(--border);margin-top:8px;padding-top:8px;display:none">
+    <div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:6px">🖼️ Trade Photo</div>
+    <button id="devPhotoToggleBtn" class="dev-btn" onclick="toggleDevPhoto()" style="font-size:10px">🖼️ Photo: ON</button>
+    <div style="font-size:8px;color:var(--muted);margin-top:3px">매수/매도 알림 클라운 이미지 표시 여부</div>
   </div>
   <div style="font-size:9px;color:var(--muted);margin-top:6px;text-align:center">Dev wallet only · Effects are LIVE</div>
 </div>
@@ -154,10 +185,12 @@
       <div style="text-align:right">
         <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;margin-bottom:2px">
           <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Market Cap</span>
+          <button id="priceAlertBtn" onclick="openPriceAlertModal()" title="가격 알림 설정"
+            style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:var(--muted);cursor:pointer;font-size:13px;padding:2px 6px;line-height:1;transition:color .2s,border-color .2s">🔔</button>
         </div>
         <div style="font-family:'Share Tech Mono',monospace;font-size:18px;font-weight:700" id="liveMcap">$—</div>
         <div class="price-change down" id="priceChange">▼ 0.69% (24h)</div>
-        
+
       </div>
     </div>
 
@@ -670,6 +703,7 @@
 <script src="js/trading.js"></script>
 <script src="js/holders.js"></script>
 <script src="js/effects.js"></script>
+<script src="js/pricealert.js"></script>
 <script src="js/devpanel.js"></script>
 <script src="js/revenue.js"></script>
 <script src="js/sync.js"></script>
