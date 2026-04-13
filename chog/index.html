@@ -36,6 +36,17 @@
 <!-- BG EFFECTS CONTAINER -->
 <div class="bg-effect-container" id="bgEffectContainer"></div>
 
+<!-- PNL MODAL -->
+<div class="modal-overlay" id="pnlModal" onclick="if(event.target===this)closePnlModal()">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-hdr">
+      <div style="font-family:'Bangers',cursive;font-size:20px;letter-spacing:1px;color:var(--accent)">📊 My Trades</div>
+      <button class="modal-close" onclick="closePnlModal()">✕</button>
+    </div>
+    <div id="pnlContent"></div>
+  </div>
+</div>
+
 <!-- PRICE ALERT MODAL -->
 <div class="modal-overlay" id="priceAlertModal" onclick="if(event.target===this)closePriceAlertModal()">
   <div class="modal" style="max-width:320px">
@@ -703,6 +714,7 @@
 <script src="js/trading.js"></script>
 <script src="js/holders.js"></script>
 <script src="js/effects.js"></script>
+<script src="js/pnl.js"></script>
 <script src="js/pricealert.js"></script>
 <script src="js/devpanel.js"></script>
 <script src="js/revenue.js"></script>
