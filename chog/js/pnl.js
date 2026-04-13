@@ -4,6 +4,29 @@
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const PNL_BLOCKS     = 7200; // ~2 hours on Monad (~1s/block)
 
+// MetaMask은 null 와일드카드 topic을 빈배열로 반환해서 getLogs는 직접 fetch 사용
+async function _rpcGetLogs(params){
+  const rpcs = [
+    'https://rpc.monad.xyz',
+    'https://monad-mainnet.rpc.thirdweb.com',
+    'https://monad.drpc.org',
+  ];
+  for(const rpc of rpcs){
+    try{
+      const res = await fetch(rpc, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({jsonrpc:'2.0', id:1, method:'eth_getLogs', params})
+      });
+      if(!res.ok) continue;
+      const d = await res.json();
+      if(d.error) continue;
+      if(Array.isArray(d.result)) return d.result;
+    } catch(e){}
+  }
+  return [];
+}
+
 // ── On-chain transfer fetch ────────────────────────
 async function fetchWalletTrades(addr, maxBlocks){
   maxBlocks = maxBlocks || PNL_BLOCKS;
@@ -18,8 +41,8 @@ async function fetchWalletTrades(addr, maxBlocks){
     const to16      = '0x' + curBlock.toString(16);
 
     const [buyLogs, sellLogs] = await Promise.all([
-      rpcCallAny('eth_getLogs', [{ address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC, null, addrPadded], fromBlock: from16, toBlock: to16 }]),
-      rpcCallAny('eth_getLogs', [{ address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC, addrPadded, null], fromBlock: from16, toBlock: to16 }]),
+      _rpcGetLogs([{ address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC, null, addrPadded], fromBlock: from16, toBlock: to16 }]),
+      _rpcGetLogs([{ address: CHOG_CONTRACT, topics: [TRANSFER_TOPIC, addrPadded, null], fromBlock: from16, toBlock: to16 }]),
     ]);
 
     const poolLower   = NADFUN_POOL.toLowerCase();
@@ -31,7 +54,7 @@ async function fetchWalletTrades(addr, maxBlocks){
       const from    = '0x' + log.topics[1].slice(26).toLowerCase();
       const chog    = Number(BigInt('0x' + log.data.slice(2))) / 1e18;
       const block   = parseInt(log.blockNumber, 16);
-      const estTime = now - (parseInt(blockHex, 16) - block); // ~1s/block
+      const estTime = now - (curBlock - block);
       if(chog <= 0) return;
       const isBuy = from === poolLower || from === routerLower;
       trades.push({ type: isBuy ? 'buy' : 'in', chog, block, txHash: log.transactionHash, time: estTime });
@@ -41,7 +64,7 @@ async function fetchWalletTrades(addr, maxBlocks){
       const to      = '0x' + log.topics[2].slice(26).toLowerCase();
       const chog    = Number(BigInt('0x' + log.data.slice(2))) / 1e18;
       const block   = parseInt(log.blockNumber, 16);
-      const estTime = now - (parseInt(blockHex, 16) - block);
+      const estTime = now - (curBlock - block);
       if(chog <= 0) return;
       const isSell = to === poolLower || to === routerLower;
       trades.push({ type: isSell ? 'sell' : 'out', chog, block, txHash: log.transactionHash, time: estTime });
