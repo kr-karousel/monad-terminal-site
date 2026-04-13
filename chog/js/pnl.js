@@ -110,11 +110,12 @@ async function fetchWalletTrades(addr, maxBlocks){
   const explorerTrades = await _fetchTradesFromExplorer(addrL, maxBlocks);
   if(explorerTrades !== null) return explorerTrades;
 
-  // 2) Fallback: direct RPC with 4 explicit queries (no wildcards/arrays)
+  // 2) Fallback: direct RPC with null wildcard topics
+  //    _rpcFetchChunk bypasses MetaMask entirely → null topics work fine
   console.log('Explorer failed, falling back to RPC for', addrL.slice(0,8));
-  const addrPadded   = '0x' + addrL.slice(2).padStart(64, '0');
-  const poolPadded   = '0x' + NADFUN_POOL.slice(2).toLowerCase().padStart(64, '0');
-  const routerPadded = '0x' + NADFUN_ROUTER.slice(2).toLowerCase().padStart(64, '0');
+  const addrPadded = '0x' + addrL.slice(2).padStart(64, '0');
+  const poolL      = NADFUN_POOL.toLowerCase();
+  const routerL    = NADFUN_ROUTER.toLowerCase();
 
   try {
     const blockHex = await _rpcBlockNumber();
@@ -123,28 +124,34 @@ async function fetchWalletTrades(addr, maxBlocks){
     const fromBlock = Math.max(0, curBlock - maxBlocks);
     const base      = { address: CHOG_CONTRACT };
 
-    // 4 explicit queries — no null, no array topics
-    const [fpLogs, frLogs, tpLogs, trLogs] = await Promise.all([
-      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, poolPadded,   addrPadded]   }, fromBlock, curBlock), // pool→user (buy)
-      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, routerPadded, addrPadded]   }, fromBlock, curBlock), // router→user (buy)
-      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, addrPadded,   poolPadded]   }, fromBlock, curBlock), // user→pool (sell)
-      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, addrPadded,   routerPadded] }, fromBlock, curBlock), // user→router (sell)
+    // null wildcard: all CHOG transfers TO user + all FROM user
+    const [inLogs, outLogs] = await Promise.all([
+      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, null, addrPadded] }, fromBlock, curBlock),
+      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, addrPadded, null] }, fromBlock, curBlock),
     ]);
 
     const trades = [];
     const now    = Math.floor(Date.now() / 1000);
-    const parse  = (log, type) => {
-      const chog    = Number(BigInt('0x' + log.data.slice(2))) / 1e18;
-      const block   = parseInt(log.blockNumber, 16);
-      if(chog <= 0) return;
-      trades.push({ type, chog, block, txHash: log.transactionHash, time: now - (curBlock - block) });
-    };
-    (fpLogs||[]).forEach(l => parse(l, 'buy'));
-    (frLogs||[]).forEach(l => parse(l, 'buy'));
-    (tpLogs||[]).forEach(l => parse(l, 'sell'));
-    (trLogs||[]).forEach(l => parse(l, 'sell'));
 
-    console.log('✅ RPC trades:', trades.length);
+    (inLogs||[]).forEach(log => {
+      const from  = '0x' + log.topics[1].slice(26).toLowerCase();
+      const chog  = Number(BigInt('0x' + log.data.slice(2))) / 1e18;
+      const block = parseInt(log.blockNumber, 16);
+      if(chog <= 0) return;
+      const isBuy = from === poolL || from === routerL;
+      trades.push({ type: isBuy ? 'buy' : 'in', chog, block, txHash: log.transactionHash, time: now - (curBlock - block) });
+    });
+
+    (outLogs||[]).forEach(log => {
+      const to    = '0x' + log.topics[2].slice(26).toLowerCase();
+      const chog  = Number(BigInt('0x' + log.data.slice(2))) / 1e18;
+      const block = parseInt(log.blockNumber, 16);
+      if(chog <= 0) return;
+      const isSell = to === poolL || to === routerL;
+      trades.push({ type: isSell ? 'sell' : 'out', chog, block, txHash: log.transactionHash, time: now - (curBlock - block) });
+    });
+
+    console.log('✅ RPC trades:', trades.length, '(in:', (inLogs||[]).length, 'out:', (outLogs||[]).length, ')');
     return trades.sort((a, b) => b.block - a.block);
   } catch(e) {
     console.warn('fetchWalletTrades RPC:', e.message);

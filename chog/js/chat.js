@@ -19,17 +19,19 @@ function renderMsg(item){
 
   const addrHtml = `<span class="msg-addr" data-addr="${addrFull}" style="cursor:pointer;text-decoration:underline dotted" onclick="openProfileModal('${addrFull}',${item.bal||0},'${rank.cls}','${rank.badge}','${item.txHash||''}')">${displayAddr}</span>`;
 
-  // bal=0 → fetch real balance after a short delay (avoid race with block settlement)
+  // bal=0 → retry balance fetch with backoff (buyers may have 0 balance due to block timing)
   if(!item.bal && addrFull && addrFull.startsWith('0x') && !devCustomTiers[addrFull.toLowerCase()] && typeof fetchChogBalance === 'function'){
-    setTimeout(() => {
-      fetchChogBalance(addrFull).then(realBal => {
-        if(realBal === null || realBal === undefined || realBal <= 0) return;
-        const balInt = Math.floor(realBal);
-        const realRank = getRank(balInt, addrFull);
-        const badge = div.querySelector('.rank-badge');
-        if(badge){ badge.textContent = realRank.badge; badge.className = 'rank-badge ' + realRank.cls; }
-      }).catch(()=>{});
-    }, 3000); // wait 3s for block state to settle
+    (function retry(attempt){
+      if(attempt > 3) return;
+      setTimeout(() => {
+        fetchChogBalance(addrFull).then(realBal => {
+          if(!realBal || realBal <= 0){ retry(attempt + 1); return; }
+          const realRank = getRank(Math.floor(realBal), addrFull);
+          const badge = div.querySelector('.rank-badge');
+          if(badge){ badge.textContent = realRank.badge; badge.className = 'rank-badge ' + realRank.cls; }
+        }).catch(() => retry(attempt + 1));
+      }, attempt * 3000); // 3s, 6s, 9s
+    })(1);
   }
 
   if(item.type==='trade'){
