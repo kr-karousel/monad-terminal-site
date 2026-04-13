@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════
 var devTestWallets = []; // 테스트 권한 지갑 목록
 var devCustomTiers = {}; // address.toLowerCase() -> custom label
-var devShowTradePhoto = true; // 매수/매도 알림 클라운 이미지 표시 여부 (dev wallet 전용)
+var devShowTradePhoto = localStorage.getItem('chog_dev_photo') !== 'off'; // persisted
 
 function loadCustomTiersFromStorage(){
   try { devCustomTiers = JSON.parse(localStorage.getItem('chog_custom_tiers')||'{}'); } catch(e){ devCustomTiers={}; }
@@ -80,6 +80,7 @@ function toggleDevPanel(){
 
 function toggleDevPhoto(){
   devShowTradePhoto = !devShowTradePhoto;
+  localStorage.setItem('chog_dev_photo', devShowTradePhoto ? 'on' : 'off');
   _updatePhotoToggleBtn();
 }
 
