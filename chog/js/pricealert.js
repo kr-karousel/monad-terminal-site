@@ -42,11 +42,10 @@ function addPriceAlert(){
   const priceEl = document.getElementById('alertPriceInput');
   const type    = typeEl  ? typeEl.value  : 'above';
   const price   = parseFloat(priceEl ? priceEl.value : '') || 0;
-  if(!price || price <= 0){ alert('유효한 가격을 입력해주세요.'); return; }
+  if(!price || price <= 0){ alert('Please enter a valid price.'); return; }
 
-  // 중복 체크
   const dup = priceAlerts.find(a => !a.triggered && a.type === type && a.price === price);
-  if(dup){ alert('동일한 알림이 이미 있습니다.'); return; }
+  if(dup){ alert('This alert already exists.'); return; }
 
   priceAlerts.push({ id: Date.now(), type, price, triggered: false });
   savePriceAlerts();
@@ -73,7 +72,7 @@ function renderPriceAlertList(){
   const el = document.getElementById('priceAlertList');
   if(!el) return;
   if(!priceAlerts.length){
-    el.innerHTML = '<div style="color:var(--muted);font-size:11px;text-align:center;padding:14px 0">설정된 알림 없음</div>';
+    el.innerHTML = '<div style="color:var(--muted);font-size:11px;text-align:center;padding:14px 0">No alerts set</div>';
     return;
   }
   const hasDone = priceAlerts.some(a => a.triggered);
@@ -83,11 +82,11 @@ function renderPriceAlertList(){
       <span style="font-size:11px;flex:1;line-height:1.4">
         <span style="color:var(--muted);font-size:9px">${a.type === 'above' ? 'ABOVE' : 'BELOW'}</span><br>
         <b style="font-family:'Share Tech Mono',monospace;color:${a.type==='above'?'var(--green)':'var(--red)'}">$${a.price.toFixed(7)}</b>
-        ${a.triggered ? '<span style="color:var(--muted);font-size:9px"> ✓ 발동됨</span>' : ''}
+        ${a.triggered ? '<span style="color:var(--muted);font-size:9px"> ✓ triggered</span>' : ''}
       </span>
       <button onclick="removePriceAlert(${a.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;opacity:0.7" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">✕</button>
     </div>`).join('')
-  + (hasDone ? `<button onclick="clearTriggeredAlerts()" style="width:100%;margin-top:4px;background:none;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--muted);font-size:10px;padding:4px;cursor:pointer">발동된 알림 삭제</button>` : '');
+  + (hasDone ? `<button onclick="clearTriggeredAlerts()" style="width:100%;margin-top:4px;background:none;border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:var(--muted);font-size:10px;padding:4px;cursor:pointer">Clear triggered alerts</button>` : '');
 }
 
 function checkPriceAlerts(currentPrice){
@@ -139,7 +138,7 @@ function _showAlertToast(type, targetPrice, currentPrice){
       CHOG ${isAbove ? 'ABOVE' : 'BELOW'} $${targetPrice.toFixed(7)}
     </div>
     <div style="font-size:10px;color:var(--muted);margin-top:3px">
-      현재가: <b style="font-family:'Share Tech Mono',monospace;color:var(--text)">$${currentPrice.toFixed(7)}</b>
+      Now: <b style="font-family:'Share Tech Mono',monospace;color:var(--text)">$${currentPrice.toFixed(7)}</b>
     </div>`;
   document.body.appendChild(toast);
   setTimeout(()=>{
@@ -157,7 +156,7 @@ function updateAlertBellState(){
   if(active > 0){
     btn.style.color = 'var(--gold)';
     btn.style.borderColor = 'rgba(251,191,36,0.4)';
-    btn.title = `가격 알림 ${active}개 활성`;
+    btn.title = `${active} active alert${active > 1 ? 's' : ''}`;
     // 뱃지
     let badge = btn.querySelector('.alert-badge');
     if(!badge){
@@ -171,7 +170,7 @@ function updateAlertBellState(){
   } else {
     btn.style.color = '';
     btn.style.borderColor = '';
-    btn.title = '가격 알림 설정';
+    btn.title = 'Set price alert';
     const badge = btn.querySelector('.alert-badge');
     if(badge) badge.remove();
   }
