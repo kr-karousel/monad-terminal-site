@@ -61,7 +61,11 @@ async function _rpcBlockNumber(){
 // ── On-chain transfer fetch ────────────────────────
 async function fetchWalletTrades(addr, maxBlocks){
   maxBlocks = maxBlocks || PNL_BLOCKS;
-  const addrPadded = '0x' + addr.slice(2).toLowerCase().padStart(64, '0');
+  const addrPadded   = '0x' + addr.slice(2).toLowerCase().padStart(64, '0');
+  const poolPadded   = '0x' + NADFUN_POOL.slice(2).toLowerCase().padStart(64, '0');
+  const routerPadded = '0x' + NADFUN_ROUTER.slice(2).toLowerCase().padStart(64, '0');
+  // Use array (OR) instead of null wildcard — better RPC compatibility
+  const dexAddrs = [poolPadded, routerPadded];
 
   try {
     const blockHex = await _rpcBlockNumber();
@@ -69,35 +73,29 @@ async function fetchWalletTrades(addr, maxBlocks){
     const curBlock  = parseInt(blockHex, 16);
     const fromBlock = Math.max(0, curBlock - maxBlocks);
 
-    const baseFilter = { address: CHOG_CONTRACT };
+    const base = { address: CHOG_CONTRACT };
     const [buyLogs, sellLogs] = await Promise.all([
-      _rpcGetLogsChunked({ ...baseFilter, topics: [TRANSFER_TOPIC, null, addrPadded] }, fromBlock, curBlock),
-      _rpcGetLogsChunked({ ...baseFilter, topics: [TRANSFER_TOPIC, addrPadded, null] }, fromBlock, curBlock),
+      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, dexAddrs, addrPadded] }, fromBlock, curBlock),
+      _rpcGetLogsChunked({ ...base, topics: [TRANSFER_TOPIC, addrPadded, dexAddrs] }, fromBlock, curBlock),
     ]);
 
-    const poolLower   = NADFUN_POOL.toLowerCase();
-    const routerLower = NADFUN_ROUTER.toLowerCase();
     const trades = [];
     const now    = Math.floor(Date.now() / 1000);
 
     (buyLogs || []).forEach(log => {
-      const from    = '0x' + log.topics[1].slice(26).toLowerCase();
       const chog    = Number(BigInt('0x' + log.data.slice(2))) / 1e18;
       const block   = parseInt(log.blockNumber, 16);
       const estTime = now - (curBlock - block);
       if(chog <= 0) return;
-      const isBuy = from === poolLower || from === routerLower;
-      trades.push({ type: isBuy ? 'buy' : 'in', chog, block, txHash: log.transactionHash, time: estTime });
+      trades.push({ type: 'buy', chog, block, txHash: log.transactionHash, time: estTime });
     });
 
     (sellLogs || []).forEach(log => {
-      const to      = '0x' + log.topics[2].slice(26).toLowerCase();
       const chog    = Number(BigInt('0x' + log.data.slice(2))) / 1e18;
       const block   = parseInt(log.blockNumber, 16);
       const estTime = now - (curBlock - block);
       if(chog <= 0) return;
-      const isSell = to === poolLower || to === routerLower;
-      trades.push({ type: isSell ? 'sell' : 'out', chog, block, txHash: log.transactionHash, time: estTime });
+      trades.push({ type: 'sell', chog, block, txHash: log.transactionHash, time: estTime });
     });
 
     return trades.sort((a, b) => b.block - a.block);
