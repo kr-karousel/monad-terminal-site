@@ -4,6 +4,6 @@
     { "source": "/emo",  "destination": "/emo/",  "permanent": false }
   ],
   "crons": [
-    { "path": "/api/cron-check-alerts", "schedule": "* * * * *" }
+    { "path": "/api/cron-check-alerts", "schedule": "0 0 * * *" }
   ]
 }
