@@ -400,21 +400,8 @@ async function loadRecentTrades(maxCount){
     const blockHex = await rpcCallAny('eth_blockNumber', []);
     if(!blockHex) return;
     const curBlock = parseInt(blockHex, 16);
-    const SCAN = 2000; // ~33 min on Monad
-    const CHUNK = 400;
-
-    const allLogs = [];
-    for(let s = curBlock - SCAN; s < curBlock; s += CHUNK){
-      const e = Math.min(s + CHUNK - 1, curBlock);
-      const logs = await rpcCallAny('eth_getLogs', [{
-        address: NADFUN_POOL,
-        topics:  [[SWAP_TOPIC_V3, TRADE_TOPIC_KURU]],
-        fromBlock: '0x' + s.toString(16),
-        toBlock:   '0x' + e.toString(16),
-      }]);
-      if(logs && logs.length) allLogs.push(...logs);
-    }
-    if(!allLogs.length) return;
+    const CHUNK      = 400;
+    const MAX_SCAN   = 43200; // scan up to ~12h back max
 
     const Q96 = BigInt('0x1000000000000000000000000');
     const isChogToken0 = CHOG_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
@@ -425,37 +412,51 @@ async function loadRecentTrades(maxCount){
     }
 
     const qualifying = [];
-    for(let i = allLogs.length - 1; i >= 0 && qualifying.length < maxCount; i--){
-      const log = allLogs[i];
-      try {
-        const d = log.data;
-        if(!d || d.length < 2 + 64*5) continue;
-        const a0 = toSigned(d.slice(2, 66));
-        const a1 = toSigned(d.slice(66, 130));
-        const sq = BigInt('0x' + d.slice(130, 194));
-        if(sq === 0n) continue;
-        const ratio = Number(sq) / Number(Q96);
-        let pMON = ratio * ratio;
-        if(!isChogToken0) pMON = 1 / pMON;
-        const pUsd = pMON * (cachedMonPrice || 0.026);
-        if(pUsd < 1e-9 || pUsd > 1) continue;
-        let isBuy, chog, mon;
-        if(isChogToken0){
-          isBuy = a0 < 0n;
-          chog  = Number(a0 < 0n ? -a0 : a0) / 1e18;
-          mon   = Number(a1 < 0n ? -a1 : a1) / 1e18;
-        } else {
-          isBuy = a1 < 0n;
-          chog  = Number(a1 < 0n ? -a1 : a1) / 1e18;
-          mon   = Number(a0 < 0n ? -a0 : a0) / 1e18;
-        }
-        let usd = mon * (cachedMonPrice || 0.026);
-        if(usd < 0.5) usd = chog * pUsd;
-        if(usd < 0.5 || mon < MON_BIG) continue;
-        const sec = curBlock - parseInt(log.blockNumber, 16);
-        const t   = sec < 60 ? sec+'s ago' : Math.floor(sec/60)+'m ago';
-        qualifying.push({ txHash: log.transactionHash, isBuy, chog, mon, pUsd, t });
-      } catch(e){}
+    // Scan backwards in chunks until we have enough trades
+    for(let end = curBlock; end > curBlock - MAX_SCAN && qualifying.length < maxCount; end -= CHUNK){
+      const start = Math.max(end - CHUNK + 1, curBlock - MAX_SCAN);
+      const logs = await rpcCallAny('eth_getLogs', [{
+        address: NADFUN_POOL,
+        topics:  [[SWAP_TOPIC_V3, TRADE_TOPIC_KURU]],
+        fromBlock: '0x' + start.toString(16),
+        toBlock:   '0x' + end.toString(16),
+      }]);
+      if(!logs || !logs.length) continue;
+
+      // Parse newest-first within this chunk
+      for(let i = logs.length - 1; i >= 0 && qualifying.length < maxCount; i--){
+        const log = logs[i];
+        try {
+          const d = log.data;
+          if(!d || d.length < 2 + 64*5) continue;
+          const a0 = toSigned(d.slice(2, 66));
+          const a1 = toSigned(d.slice(66, 130));
+          const sq = BigInt('0x' + d.slice(130, 194));
+          if(sq === 0n) continue;
+          const ratio = Number(sq) / Number(Q96);
+          let pMON = ratio * ratio;
+          if(!isChogToken0) pMON = 1 / pMON;
+          const pUsd = pMON * (cachedMonPrice || 0.026);
+          if(pUsd < 1e-9 || pUsd > 1) continue;
+          let isBuy, chog, mon;
+          if(isChogToken0){
+            isBuy = a0 < 0n;
+            chog  = Number(a0 < 0n ? -a0 : a0) / 1e18;
+            mon   = Number(a1 < 0n ? -a1 : a1) / 1e18;
+          } else {
+            isBuy = a1 < 0n;
+            chog  = Number(a1 < 0n ? -a1 : a1) / 1e18;
+            mon   = Number(a0 < 0n ? -a0 : a0) / 1e18;
+          }
+          let usd = mon * (cachedMonPrice || 0.026);
+          if(usd < 0.5) usd = chog * pUsd;
+          if(usd < 0.5 || mon < MON_BIG) continue;
+          const sec = curBlock - parseInt(log.blockNumber, 16);
+          const hr  = Math.floor(sec / 3600);
+          const t   = sec < 60 ? sec+'s ago' : sec < 3600 ? Math.floor(sec/60)+'m ago' : hr+'h ago';
+          qualifying.push({ txHash: log.transactionHash, isBuy, chog, mon, pUsd, t });
+        } catch(e){}
+      }
     }
     if(!qualifying.length) return;
 
