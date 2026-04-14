@@ -5,6 +5,47 @@ var priceAlerts = [];
 var alertNotifGranted = false;
 var alertEmail = '';
 
+// ── Supabase 헬퍼 ─────────────────────
+const _SB_URL = 'https://phjolzvyewacjqausmxx.supabase.co';
+const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoam9senZ5ZXdhY2pxYXVzbXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDY5NzIsImV4cCI6MjA5MDY4Mjk3Mn0.XDNfHWN7NdzBHffE6-YgMMR8skNMR7blTJVu1EbvPrY';
+
+async function _sbSaveAlert(type, price){
+  if(!alertEmail) return null;
+  try{
+    const res = await fetch(`${_SB_URL}/rest/v1/price_alerts`, {
+      method: 'POST',
+      headers: { 'apikey': _SB_KEY, 'Authorization': `Bearer ${_SB_KEY}`,
+                 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      body: JSON.stringify({ email: alertEmail, type, price, triggered: false })
+    });
+    const data = await res.json();
+    return data[0]?.id || null;
+  }catch(e){ return null; }
+}
+
+async function _sbMarkTriggered(sbId){
+  if(!sbId) return;
+  try{
+    await fetch(`${_SB_URL}/rest/v1/price_alerts?id=eq.${sbId}`, {
+      method: 'PATCH',
+      headers: { 'apikey': _SB_KEY, 'Authorization': `Bearer ${_SB_KEY}`,
+                 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ triggered: true })
+    });
+  }catch(e){}
+}
+
+async function _sbDeleteAlert(sbId){
+  if(!sbId) return;
+  try{
+    await fetch(`${_SB_URL}/rest/v1/price_alerts?id=eq.${sbId}`, {
+      method: 'DELETE',
+      headers: { 'apikey': _SB_KEY, 'Authorization': `Bearer ${_SB_KEY}` }
+    });
+  }catch(e){}
+}
+
+// ── 기본 함수 ──────────────────────────
 function loadPriceAlerts(){
   try{ priceAlerts = JSON.parse(localStorage.getItem('chog_price_alerts')||'[]'); }
   catch(e){ priceAlerts = []; }
@@ -16,13 +57,22 @@ function savePriceAlerts(){
   localStorage.setItem('chog_price_alerts', JSON.stringify(priceAlerts));
 }
 
-function saveAlertEmail(){
+async function saveAlertEmail(){
   const inp = document.getElementById('alertEmailInput');
   const val = inp ? inp.value.trim() : '';
   alertEmail = val;
   localStorage.setItem('chog_alert_email', val);
   const btn = document.getElementById('alertEmailSaveBtn');
   if(btn){ btn.textContent = '✓ Saved'; setTimeout(()=>{ btn.textContent = 'Save'; }, 2000); }
+
+  // 이메일 저장 시 기존 미트리거 알림을 Supabase에 동기화
+  if(alertEmail){
+    for(const a of priceAlerts.filter(x => !x.triggered && !x.sbId)){
+      const sbId = await _sbSaveAlert(a.type, a.price);
+      if(sbId) a.sbId = sbId;
+    }
+    savePriceAlerts();
+  }
 }
 
 function openPriceAlertModal(){
@@ -34,7 +84,6 @@ function openPriceAlertModal(){
   if(emailInp && alertEmail) emailInp.value = alertEmail;
   renderPriceAlertList();
   m.classList.add('open');
-  // 브라우저 알림 권한 요청
   if('Notification' in window){
     if(Notification.permission === 'granted'){
       alertNotifGranted = true;
@@ -49,7 +98,7 @@ function closePriceAlertModal(){
   if(m) m.classList.remove('open');
 }
 
-function addPriceAlert(){
+async function addPriceAlert(){
   const typeEl  = document.getElementById('alertTypeSelect');
   const priceEl = document.getElementById('alertPriceInput');
   const type    = typeEl  ? typeEl.value  : 'above';
@@ -59,7 +108,15 @@ function addPriceAlert(){
   const dup = priceAlerts.find(a => !a.triggered && a.type === type && a.price === price);
   if(dup){ alert('This alert already exists.'); return; }
 
-  priceAlerts.push({ id: Date.now(), type, price, triggered: false });
+  const newAlert = { id: Date.now(), type, price, triggered: false };
+
+  // Supabase에 저장 (이메일 설정 시)
+  if(alertEmail){
+    const sbId = await _sbSaveAlert(type, price);
+    if(sbId) newAlert.sbId = sbId;
+  }
+
+  priceAlerts.push(newAlert);
   savePriceAlerts();
   if(priceEl) priceEl.value = '';
   renderPriceAlertList();
@@ -67,6 +124,8 @@ function addPriceAlert(){
 }
 
 function removePriceAlert(id){
+  const a = priceAlerts.find(x => x.id === id);
+  if(a && a.sbId) _sbDeleteAlert(a.sbId);
   priceAlerts = priceAlerts.filter(a => a.id !== id);
   savePriceAlerts();
   renderPriceAlertList();
@@ -74,6 +133,7 @@ function removePriceAlert(id){
 }
 
 function clearTriggeredAlerts(){
+  priceAlerts.filter(a => a.triggered && a.sbId).forEach(a => _sbDeleteAlert(a.sbId));
   priceAlerts = priceAlerts.filter(a => !a.triggered);
   savePriceAlerts();
   renderPriceAlertList();
@@ -130,7 +190,10 @@ function _fireAlert(alert, currentPrice){
     catch(e){}
   }
 
-  // Email via Resend (server-side)
+  // Supabase에서 triggered 마킹 (크론이 중복 발송 안 하도록)
+  if(alert.sbId) _sbMarkTriggered(alert.sbId);
+
+  // Email via Resend (browser-initiated)
   if(alertEmail){
     fetch('/api/send-alert-email', {
       method: 'POST',
@@ -183,7 +246,6 @@ function updateAlertBellState(){
     btn.style.color = 'var(--gold)';
     btn.style.borderColor = 'rgba(251,191,36,0.4)';
     btn.title = `${active} active alert${active > 1 ? 's' : ''}`;
-    // 뱃지
     let badge = btn.querySelector('.alert-badge');
     if(!badge){
       badge = document.createElement('span');
