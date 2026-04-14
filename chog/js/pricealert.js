@@ -3,10 +3,12 @@
 // ═══════════════════════════════════════
 var priceAlerts = [];
 var alertNotifGranted = false;
+var alertEmail = '';
 
 function loadPriceAlerts(){
   try{ priceAlerts = JSON.parse(localStorage.getItem('chog_price_alerts')||'[]'); }
   catch(e){ priceAlerts = []; }
+  alertEmail = localStorage.getItem('chog_alert_email') || '';
   updateAlertBellState();
 }
 
@@ -14,12 +16,22 @@ function savePriceAlerts(){
   localStorage.setItem('chog_price_alerts', JSON.stringify(priceAlerts));
 }
 
+function saveAlertEmail(){
+  const inp = document.getElementById('alertEmailInput');
+  const val = inp ? inp.value.trim() : '';
+  alertEmail = val;
+  localStorage.setItem('chog_alert_email', val);
+  const btn = document.getElementById('alertEmailSaveBtn');
+  if(btn){ btn.textContent = '✓ Saved'; setTimeout(()=>{ btn.textContent = 'Save'; }, 2000); }
+}
+
 function openPriceAlertModal(){
   const m = document.getElementById('priceAlertModal');
   if(!m) return;
-  // 현재 가격 input 기본값으로 세팅
   const inp = document.getElementById('alertPriceInput');
   if(inp && livePrice && !inp.value) inp.value = livePrice.toFixed(7);
+  const emailInp = document.getElementById('alertEmailInput');
+  if(emailInp && alertEmail) emailInp.value = alertEmail;
   renderPriceAlertList();
   m.classList.add('open');
   // 브라우저 알림 권한 요청
@@ -112,10 +124,24 @@ function _fireAlert(alert, currentPrice){
   const direction = alert.type === 'above' ? '📈 Above' : '📉 Below';
   const msg = `CHOG ${direction} $${alert.price.toFixed(7)}\nNow: $${currentPrice.toFixed(7)}`;
 
-  // 브라우저 알림 (탭 비활성화 상태에서도 작동)
+  // Browser notification
   if(alertNotifGranted && 'Notification' in window){
     try{ new Notification('🔔 CHOG Price Alert', { body: msg, icon: '/chog/img/chog_logo.png' }); }
     catch(e){}
+  }
+
+  // Email via Resend (server-side)
+  if(alertEmail){
+    fetch('/api/send-alert-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to:        alertEmail,
+        direction: alert.type === 'above' ? 'Above 📈' : 'Below 📉',
+        target:    '$' + alert.price.toFixed(7),
+        current:   '$' + currentPrice.toFixed(7),
+      }),
+    }).catch(e => console.warn('Alert email failed:', e));
   }
 
   // 화면 내 토스트
