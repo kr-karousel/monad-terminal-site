@@ -111,11 +111,11 @@ function closePriceAlertModal(){
 }
 
 async function addPriceAlert(){
-  const typeEl  = document.getElementById('alertTypeSelect');
   const priceEl = document.getElementById('alertPriceInput');
-  const type    = typeEl  ? typeEl.value  : 'above';
   const price   = parseFloat(priceEl ? priceEl.value : '') || 0;
   if(!price || price <= 0){ alert('Please enter a valid price.'); return; }
+  // Auto-detect direction: if current price is below target → alert when it goes above, and vice versa
+  const type = (livePrice && livePrice < price) ? 'above' : 'below';
 
   const dup = priceAlerts.find(a => !a.triggered && a.type === type && a.price === price);
   if(dup){ alert('This alert already exists.'); return; }
@@ -164,10 +164,10 @@ function renderPriceAlertList(){
   const hasDone = priceAlerts.some(a => a.triggered);
   el.innerHTML = priceAlerts.map(a => `
     <div style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.04);border-radius:7px;padding:6px 8px;margin-bottom:4px${a.triggered ? ';opacity:0.4' : ''}">
-      <span style="font-size:14px">${a.type === 'above' ? '📈' : '📉'}</span>
+      <span style="font-size:14px">🎯</span>
       <span style="font-size:11px;flex:1;line-height:1.4">
-        <span style="color:var(--muted);font-size:9px">${a.type === 'above' ? 'ABOVE' : 'BELOW'}</span><br>
-        <b style="font-family:'Share Tech Mono',monospace;color:${a.type==='above'?'var(--green)':'var(--red)'}">$${a.price.toFixed(7)}</b>
+        <span style="color:var(--muted);font-size:9px">HIT</span><br>
+        <b style="font-family:'Share Tech Mono',monospace;color:var(--accent)">$${a.price.toFixed(7)}</b>
         ${a.repeat ? '<span style="color:var(--accent);font-size:9px"> 🔁</span>' : ''}
         ${a.triggered ? '<span style="color:var(--muted);font-size:9px"> ✓ triggered</span>' : ''}
       </span>
@@ -204,11 +204,11 @@ function checkPriceAlerts(currentPrice){
 
 function _fireAlert(alert, currentPrice){
   const direction = alert.type === 'above' ? '📈 Above' : '📉 Below';
-  const msg = `CHOG ${direction} $${alert.price.toFixed(7)}\nNow: $${currentPrice.toFixed(7)}`;
+  const msg = `CHOG hit $${alert.price.toFixed(7)}\nNow: $${currentPrice.toFixed(7)}`;
 
   // Browser notification
   if(alertNotifGranted && 'Notification' in window){
-    try{ new Notification('🔔 CHOG Price Alert', { body: msg, icon: '/chog/img/chog_logo.png' }); }
+    try{ new Notification('🎯 CHOG Price Alert', { body: msg, icon: '/chog/img/chog_logo.png' }); }
     catch(e){}
   }
 
@@ -238,18 +238,17 @@ function _fireAlert(alert, currentPrice){
 
 function _showAlertToast(type, targetPrice, currentPrice){
   const toast = document.createElement('div');
-  const isAbove = type === 'above';
   toast.style.cssText = [
     'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:10000',
     'background:rgba(14,14,22,0.97);border-radius:12px;padding:12px 20px',
-    `border:1px solid ${isAbove ? 'var(--green)' : 'var(--red)'}`,
+    'border:1px solid var(--accent)',
     'box-shadow:0 8px 32px rgba(0,0,0,0.6);text-align:center',
     'animation:alertToastIn .35s cubic-bezier(.22,.68,0,1.2) forwards;min-width:240px'
   ].join(';');
   toast.innerHTML = `
-    <div style="font-size:20px;margin-bottom:4px">${isAbove ? '📈' : '📉'}</div>
-    <div style="font-size:12px;font-weight:700;color:${isAbove ? 'var(--green)' : 'var(--red)'};letter-spacing:.5px">
-      CHOG ${isAbove ? 'ABOVE' : 'BELOW'} $${targetPrice.toFixed(7)}
+    <div style="font-size:20px;margin-bottom:4px">🎯</div>
+    <div style="font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.5px">
+      CHOG HIT $${targetPrice.toFixed(7)}
     </div>
     <div style="font-size:10px;color:var(--muted);margin-top:3px">
       Now: <b style="font-family:'Share Tech Mono',monospace;color:var(--text)">$${currentPrice.toFixed(7)}</b>
