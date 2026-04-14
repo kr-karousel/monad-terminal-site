@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'CHOG Terminal <onboarding@resend.dev>',
+        from: 'CHOG Terminal <alerts@monad-terminal.xyz>',
         to: [to],
         subject,
         html,
