@@ -57,11 +57,7 @@
     <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Get notified when CHOG hits your target price</div>
     <!-- add alert -->
     <div style="display:flex;gap:5px;margin-bottom:10px;align-items:center">
-      <select id="alertTypeSelect" style="background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-size:11px;color:var(--text);outline:none;cursor:pointer">
-        <option value="above">📈 Above</option>
-        <option value="below">📉 Below</option>
-      </select>
-      <input id="alertPriceInput" type="number" step="0.0000001" min="0" placeholder="0.0000000"
+      <input id="alertPriceInput" type="number" step="0.0000001" min="0" placeholder="Target price"
         style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-size:11px;color:var(--text);outline:none;font-family:'Share Tech Mono',monospace"
         onkeydown="if(event.key==='Enter')addPriceAlert()">
       <button onclick="addPriceAlert()" style="background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.4);border-radius:7px;color:var(--gold);font-size:11px;padding:6px 10px;cursor:pointer;font-weight:700;white-space:nowrap">+ Add</button>
