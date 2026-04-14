@@ -11,7 +11,9 @@ module.exports = async function handler(req, res) {
   }
 
   const apiKey = process.env.RESEND_API_KEY;
+  console.log('[send-alert-email] apiKey present:', !!apiKey, '| to:', to);
   if (!apiKey) {
+    console.error('[send-alert-email] RESEND_API_KEY missing from env');
     return res.status(500).json({ error: 'RESEND_API_KEY not configured' });
   }
 
@@ -51,9 +53,11 @@ module.exports = async function handler(req, res) {
     });
 
     const d = await r.json();
+    console.log('[send-alert-email] Resend response:', r.status, JSON.stringify(d));
     if (!r.ok) return res.status(r.status).json({ error: d.message || 'Resend error' });
     return res.status(200).json({ ok: true, id: d.id });
   } catch (e) {
+    console.error('[send-alert-email] catch error:', e.message);
     return res.status(500).json({ error: e.message });
   }
 }
