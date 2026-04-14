@@ -10,12 +10,8 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Missing fields' });
   }
 
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.RESEND_API_KEY || 're_23oaEXi8_Mg4KbP4p6FgZiJ73bqSTQWnv';
   console.log('[send-alert-email] apiKey present:', !!apiKey, '| to:', to);
-  if (!apiKey) {
-    console.error('[send-alert-email] RESEND_API_KEY missing from env');
-    return res.status(500).json({ error: 'RESEND_API_KEY not configured' });
-  }
 
   const subject = `🔔 CHOG Price Alert — ${direction} ${target}`;
   const html = `
