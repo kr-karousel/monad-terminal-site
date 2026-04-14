@@ -179,12 +179,19 @@ function renderPriceAlertList(){
 function checkPriceAlerts(currentPrice){
   if(!priceAlerts.length) return;
   let changed = false;
+  const now = Date.now();
   priceAlerts.forEach(a => {
     if(a.triggered) return;
     const hit = (a.type === 'above' && currentPrice >= a.price)
               || (a.type === 'below' && currentPrice <= a.price);
     if(!hit) return;
-    a.triggered = true;
+    if(a.repeat){
+      // 반복 알림: 1시간 쿨다운 체크
+      if(a.lastNotified && (now - a.lastNotified) < 60 * 60 * 1000) return;
+      a.lastNotified = now;
+    } else {
+      a.triggered = true;
+    }
     changed = true;
     _fireAlert(a, currentPrice);
   });
