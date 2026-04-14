@@ -21,11 +21,18 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, triggered: 0, price: currentPrice });
     }
 
-    // 3. 조건 충족 알림 처리
-    const triggered = alerts.filter(a =>
-      (a.type === 'above' && currentPrice >= a.price) ||
-      (a.type === 'below' && currentPrice <= a.price)
-    );
+    // 3. 조건 충족 알림 처리 (반복 알림은 1시간 쿨다운)
+    const now = Date.now();
+    const triggered = alerts.filter(a => {
+      const hit = (a.type === 'above' && currentPrice >= a.price) ||
+                  (a.type === 'below' && currentPrice <= a.price);
+      if(!hit) return false;
+      if(a.repeat){
+        const lastMs = a.last_notified ? new Date(a.last_notified).getTime() : 0;
+        return (now - lastMs) >= 60 * 60 * 1000; // 1시간 쿨다운
+      }
+      return true;
+    });
 
     for (const a of triggered) {
       const direction = a.type === 'above' ? 'Above 📈' : 'Below 📉';
@@ -61,14 +68,17 @@ module.exports = async function handler(req, res) {
         }),
       }).catch(() => {});
 
-      // Supabase에서 triggered 처리
+      // Supabase 업데이트 (반복이면 last_notified만, 아니면 triggered)
+      const patch = a.repeat
+        ? { last_notified: new Date().toISOString() }
+        : { triggered: true };
       await fetch(`${SB_URL}/rest/v1/price_alerts?id=eq.${a.id}`, {
         method: 'PATCH',
         headers: {
           'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`,
           'Content-Type': 'application/json', 'Prefer': 'return=minimal'
         },
-        body: JSON.stringify({ triggered: true }),
+        body: JSON.stringify(patch),
       }).catch(() => {});
     }
 

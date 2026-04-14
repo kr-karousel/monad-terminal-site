@@ -9,18 +9,30 @@ var alertEmail = '';
 const _SB_URL = 'https://phjolzvyewacjqausmxx.supabase.co';
 const _SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoam9senZ5ZXdhY2pxYXVzbXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDY5NzIsImV4cCI6MjA5MDY4Mjk3Mn0.XDNfHWN7NdzBHffE6-YgMMR8skNMR7blTJVu1EbvPrY';
 
-async function _sbSaveAlert(type, price){
+async function _sbSaveAlert(type, price, repeat){
   if(!alertEmail) return null;
   try{
     const res = await fetch(`${_SB_URL}/rest/v1/price_alerts`, {
       method: 'POST',
       headers: { 'apikey': _SB_KEY, 'Authorization': `Bearer ${_SB_KEY}`,
                  'Content-Type': 'application/json', 'Prefer': 'return=representation' },
-      body: JSON.stringify({ email: alertEmail, type, price, triggered: false })
+      body: JSON.stringify({ email: alertEmail, type, price, triggered: false, repeat: !!repeat })
     });
     const data = await res.json();
     return data[0]?.id || null;
   }catch(e){ return null; }
+}
+
+async function _sbMarkLastNotified(sbId){
+  if(!sbId) return;
+  try{
+    await fetch(`${_SB_URL}/rest/v1/price_alerts?id=eq.${sbId}`, {
+      method: 'PATCH',
+      headers: { 'apikey': _SB_KEY, 'Authorization': `Bearer ${_SB_KEY}`,
+                 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ last_notified: new Date().toISOString() })
+    });
+  }catch(e){}
 }
 
 async function _sbMarkTriggered(sbId){
@@ -108,11 +120,13 @@ async function addPriceAlert(){
   const dup = priceAlerts.find(a => !a.triggered && a.type === type && a.price === price);
   if(dup){ alert('This alert already exists.'); return; }
 
-  const newAlert = { id: Date.now(), type, price, triggered: false };
+  const repeatEl = document.getElementById('alertRepeatCheck');
+  const repeat = repeatEl ? repeatEl.checked : false;
+  const newAlert = { id: Date.now(), type, price, triggered: false, repeat };
 
   // Supabase에 저장 (이메일 설정 시)
   if(alertEmail){
-    const sbId = await _sbSaveAlert(type, price);
+    const sbId = await _sbSaveAlert(type, price, repeat);
     if(sbId) newAlert.sbId = sbId;
   }
 
@@ -154,6 +168,7 @@ function renderPriceAlertList(){
       <span style="font-size:11px;flex:1;line-height:1.4">
         <span style="color:var(--muted);font-size:9px">${a.type === 'above' ? 'ABOVE' : 'BELOW'}</span><br>
         <b style="font-family:'Share Tech Mono',monospace;color:${a.type==='above'?'var(--green)':'var(--red)'}">$${a.price.toFixed(7)}</b>
+        ${a.repeat ? '<span style="color:var(--accent);font-size:9px"> 🔁</span>' : ''}
         ${a.triggered ? '<span style="color:var(--muted);font-size:9px"> ✓ triggered</span>' : ''}
       </span>
       <button onclick="removePriceAlert(${a.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;padding:0 2px;line-height:1;opacity:0.7" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">✕</button>
@@ -190,8 +205,11 @@ function _fireAlert(alert, currentPrice){
     catch(e){}
   }
 
-  // Supabase에서 triggered 마킹 (크론이 중복 발송 안 하도록)
-  if(alert.sbId) _sbMarkTriggered(alert.sbId);
+  // Supabase 업데이트 (반복이면 last_notified만, 아니면 triggered)
+  if(alert.sbId){
+    if(alert.repeat) _sbMarkLastNotified(alert.sbId);
+    else _sbMarkTriggered(alert.sbId);
+  }
 
   // Email via Resend (browser-initiated)
   if(alertEmail){
