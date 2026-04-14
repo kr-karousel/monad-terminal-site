@@ -393,11 +393,29 @@ function handleSwapLog(log) {
   } catch(e) { console.warn('handleSwapLog:', e.message); }
 }
 
+// Direct RPC fetch (bypasses MetaMask + skips rpc.monad.xyz which 413s on eth_getLogs)
+const _LOGS_RPC_LIST = [
+  'https://monad-mainnet.rpc.thirdweb.com',
+  'https://monad.drpc.org',
+];
+async function _rpcDirect(method, params){
+  for(const rpc of _LOGS_RPC_LIST){
+    try{
+      const res = await fetch(rpc,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
+      if(!res.ok) continue;
+      const d = await res.json();
+      if(d.error) continue;
+      if(d.result !== undefined) return d.result;
+    }catch(e){}
+  }
+  return null;
+}
+
 // ── Load last N qualifying trades on startup ──────
 async function loadRecentTrades(maxCount){
   maxCount = maxCount || 5;
   try {
-    const blockHex = await rpcCallAny('eth_blockNumber', []);
+    const blockHex = await _rpcDirect('eth_blockNumber', []);
     if(!blockHex) return;
     const curBlock = parseInt(blockHex, 16);
     const CHUNK      = 400;
@@ -415,7 +433,7 @@ async function loadRecentTrades(maxCount){
     // Scan backwards in chunks until we have enough trades
     for(let end = curBlock; end > curBlock - MAX_SCAN && qualifying.length < maxCount; end -= CHUNK){
       const start = Math.max(end - CHUNK + 1, curBlock - MAX_SCAN);
-      const logs = await rpcCallAny('eth_getLogs', [{
+      const logs = await _rpcDirect('eth_getLogs', [{
         address: NADFUN_POOL,
         topics:  [[SWAP_TOPIC_V3, TRADE_TOPIC_KURU]],
         fromBlock: '0x' + start.toString(16),
@@ -462,7 +480,7 @@ async function loadRecentTrades(maxCount){
 
     // Render oldest→newest so newest ends up at bottom
     for(const tr of qualifying.reverse()){
-      const txData   = await rpcCallAny('eth_getTransactionByHash', [tr.txHash]);
+      const txData   = await _rpcDirect('eth_getTransactionByHash', [tr.txHash]);
       const addrFull = (txData && txData.from) ? txData.from : '';
       renderMsg({
         type: 'trade', side: tr.isBuy ? 'buy' : 'sell',
