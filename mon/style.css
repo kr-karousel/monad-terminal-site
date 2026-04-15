@@ -3,7 +3,7 @@
   --gold:#fbbf24;--green:#34d399;--red:#f87171;--text:#ddd8f5;
   --muted:#6259a0;--border:rgba(124,58,237,0.22);--card:rgba(13,10,34,0.88);
 }
-#chogChar{display:none!important}
+/* chogChar: mouse-follow cursor (animated in chart.js) */
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 10%,rgba(124,58,237,0.10) 0%,transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(56,189,248,0.06) 0%,transparent 60%);pointer-events:none;z-index:0}

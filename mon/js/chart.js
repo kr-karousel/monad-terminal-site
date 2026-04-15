@@ -35,6 +35,48 @@ function initChart(){
     if(fallback) fallback.style.display = 'none';
     console.log('✅ DEXScreener 차트 로드');
 
+    // 마우스 커서 캐릭터 — CHOG 터미널과 동일한 팔로우 애니메이션
+    const chog = document.getElementById('chogChar');
+    if(chog){
+      document.body.appendChild(chog);
+      Object.assign(chog.style, {
+        position      : 'fixed',
+        left          : '-200px',
+        top           : '-200px',
+        zIndex        : '9998',
+        width         : '72px',
+        pointerEvents : 'none',
+        transition    : 'opacity 0.25s',
+        willChange    : 'transform',
+        display       : 'block',
+      });
+
+      let targetX = window.innerWidth / 2;
+      let targetY = window.innerHeight / 2;
+      let curX = targetX, curY = targetY, floatT = 0;
+
+      document.addEventListener('mousemove', e => {
+        targetX = e.clientX - 36;
+        targetY = e.clientY - 80;
+      });
+      document.addEventListener('touchmove', e => {
+        targetX = e.touches[0].clientX - 36;
+        targetY = e.touches[0].clientY - 80;
+      }, { passive: true });
+
+      (function animateCursor(){
+        const chessOpen = document.getElementById('chessModal')?.classList.contains('open');
+        chog.style.opacity = chessOpen ? '0' : '1';
+        curX += (targetX - curX) * 0.12;
+        curY += (targetY - curY) * 0.12;
+        floatT += 0.04;
+        chog.style.left      = curX + 'px';
+        chog.style.top       = curY + 'px';
+        chog.style.transform = `translateY(${Math.sin(floatT) * 5}px) rotate(${Math.sin(floatT * 0.6) * 4}deg)`;
+        requestAnimationFrame(animateCursor);
+      })();
+    }
+
     // 모바일 스크롤 후 iframe 소멸 방지 - IntersectionObserver로 복구
     if('IntersectionObserver' in window){
       const observer = new IntersectionObserver((entries) => {
