@@ -50,16 +50,16 @@ const BUY_ROUTES = [
 //  RANKS (MON 보유량 기준)
 // ══════════════════════════════════════
 const RANKS = [
-  { min: 1000000, label: 'Monad God',      badge: '👑 GOD',     cls: 'r1' },
-  { min: 500000,  label: 'Monad Titan',    badge: '🐉 TITAN',   cls: 'r2' },
-  { min: 100000,  label: 'Monad Emperor',  badge: '👸 EMPEROR', cls: 'r3' },
-  { min: 50000,   label: 'Royal Whale',    badge: '🐳 WHALE',   cls: 'r4' },
-  { min: 10000,   label: 'Noble Flexer',   badge: '🥂 NOBLE',   cls: 'r5' },
-  { min: 1000,    label: 'Market Hustler', badge: '💹 HUSTLER', cls: 'r6' },
-  { min: 100,     label: 'MON Accumulator',badge: '🍔 ACCUM',   cls: 'r7' },
-  { min: 10,      label: 'MON Holder',     badge: '💸 HOLDER',  cls: 'r8' },
-  { min: 1,       label: 'Street Beggar',  badge: '🙏 BEGGAR',  cls: 'r9' },
-  { min: 0,       label: 'Zero MON Ghost', badge: '👻 GHOST',   cls: 'r10' },
+  { min: 1000000, label: 'Monad Overlord',   badge: '👑 OVERLORD', cls: 'r1' },
+  { min: 500000,  label: 'Monad Titan',      badge: '🐉 TITAN',    cls: 'r2' },
+  { min: 100000,  label: 'Monad Validator',  badge: '⚡ VALID',     cls: 'r3' },
+  { min: 50000,   label: 'Monad Whale',      badge: '🐳 WHALE',    cls: 'r4' },
+  { min: 10000,   label: 'Monad Maxi',       badge: '💎 MAXI',     cls: 'r5' },
+  { min: 1000,    label: 'Monad Degen',      badge: '🔥 DEGEN',    cls: 'r6' },
+  { min: 100,     label: 'Monad Pleb',       badge: '🟣 PLEB',     cls: 'r7' },
+  { min: 10,      label: 'MON Holder',       badge: '💸 HOLDER',   cls: 'r8' },
+  { min: 1,       label: 'Dust Collector',   badge: '🙏 DUST',     cls: 'r9' },
+  { min: 0,       label: 'Zero Gas Ghost',   badge: '👻 GHOST',    cls: 'r10' },
 ];
 
 function getRank(b, addr) {
