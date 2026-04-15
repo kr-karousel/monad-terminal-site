@@ -20,11 +20,11 @@ function renderMsg(item){
   const addrHtml = `<span class="msg-addr" data-addr="${addrFull}" style="cursor:pointer;text-decoration:underline dotted" onclick="openProfileModal('${addrFull}',${item.bal||0},'${rank.cls}','${rank.badge}','${item.txHash||''}')">${displayAddr}</span>`;
 
   // bal=0 → retry balance fetch with backoff (buyers may have 0 balance due to block timing)
-  if(!item.bal && addrFull && addrFull.startsWith('0x') && !devCustomTiers[addrFull.toLowerCase()] && typeof fetchChogBalance === 'function'){
+  if(!item.bal && addrFull && addrFull.startsWith('0x') && !devCustomTiers[addrFull.toLowerCase()] && typeof fetchMonBalance === 'function'){
     (function retry(attempt){
       if(attempt > 3) return;
       setTimeout(() => {
-        fetchChogBalance(addrFull).then(realBal => {
+        fetchMonBalance(addrFull).then(realBal => {
           if(!realBal || realBal <= 0){ retry(attempt + 1); return; }
           const realRank = getRank(Math.floor(realBal), addrFull);
           const badge = div.querySelector('.rank-badge');
@@ -35,27 +35,27 @@ function renderMsg(item){
   }
 
   if(item.type==='trade'){
-    const mon = item.mon || 0;
-    const isBuy = item.side==='buy';
+    const usd    = item.usd || ((item.amount||0)*(item.price||0));
+    const monAmt = item.mon || item.amount || 0;
+    const isBuy  = item.side==='buy';
 
-    // MON 규모별 이모지
+    // USD 규모별 이모지 ($10K 기준)
     let sizeEmoji = '';
-    if(mon >= 10000){
-      // 10,000 MON 이상: 고래(매수) / ☠️(매도), 100K당 1개 추가
-      const count = Math.max(1, Math.min(5, Math.floor(mon/100000)));
+    if(usd >= 100000){
+      const count = Math.max(1, Math.min(5, Math.floor(usd/100000)));
       sizeEmoji = isBuy ? '🐳'.repeat(count) : '☠️'.repeat(count);
-    } else if(mon >= 1000){
-      // 1,000 MON당 🚀(매수) / 💀(매도), Max 5개
-      const count = Math.min(5, Math.floor(mon/1000));
-      sizeEmoji = isBuy ? '🚀'.repeat(count) : '💀'.repeat(count);
+    } else if(usd >= 50000){
+      sizeEmoji = isBuy ? '🚀🚀' : '💀💀';
+    } else if(usd >= 25000){
+      sizeEmoji = isBuy ? '🚀' : '💀';
     }
 
     div.className='chat-msg '+(isBuy?'trade-alert':'trade-sell');
-    if(mon >= 10000) div.style.cssText += ';border-width:2px;';
-    if(!item.silent) chogEmotion(item.side);
-    const baseEmoji = isBuy ? '🟢' : '🔴';
-    const usd = ((item.amount||0)*(item.price||0)).toFixed(0);
-    const monStr = mon >= 1000 ? (mon>=1000?Math.floor(mon).toLocaleString()+' MON':'') : '';
+    if(usd >= 100000) div.style.cssText += ';border-width:2px;';
+    if(!item.silent) monEmotion(item.side);
+    const baseEmoji  = isBuy ? '🟢' : '🔴';
+    const usdStr     = '$' + formatK(usd);
+    const monStr     = formatK(monAmt) + ' MON';
 
     div.innerHTML=`
       <div class="msg-meta">
@@ -65,9 +65,8 @@ function renderMsg(item){
         <span style="font-size:10px;color:var(--muted);margin-left:auto">${item.time}</span>
       </div>
       <div style="font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <span>${isBuy?'BUY':'SELL'} ${(item.amount||0).toLocaleString()} CHOG · $${usd}</span>
-        ${monStr ? `<span style="font-size:10px;color:var(--muted)">${monStr}</span>` : ''}
-        ${sizeEmoji ? `<span style="font-size:${mon>=100000?'18':'14'}px;letter-spacing:2px">${sizeEmoji}</span>` : ''}
+        <span>${isBuy?'BUY':'SELL'} ${monStr} · ${usdStr}</span>
+        ${sizeEmoji ? `<span style="font-size:${usd>=100000?'18':'14'}px;letter-spacing:2px">${sizeEmoji}</span>` : ''}
       </div>`;
   }else{
     div.className='chat-msg';

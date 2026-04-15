@@ -3,13 +3,13 @@
 // ═══════════════════════════════════════
 var devTestWallets = []; // 테스트 권한 지갑 목록
 var devCustomTiers = {}; // address.toLowerCase() -> custom label
-var devShowTradePhoto = localStorage.getItem('chog_dev_photo') !== 'off'; // persisted
+var devShowTradePhoto = localStorage.getItem('mon_dev_photo') !== 'off'; // persisted
 
 function loadCustomTiersFromStorage(){
-  try { devCustomTiers = JSON.parse(localStorage.getItem('chog_custom_tiers')||'{}'); } catch(e){ devCustomTiers={}; }
+  try { devCustomTiers = JSON.parse(localStorage.getItem('mon_custom_tiers')||'{}'); } catch(e){ devCustomTiers={}; }
 }
 function saveCustomTiersToStorage(){
-  localStorage.setItem('chog_custom_tiers', JSON.stringify(devCustomTiers));
+  localStorage.setItem('mon_custom_tiers', JSON.stringify(devCustomTiers));
 }
 function devAddCustomTier(){
   const addr = (document.getElementById('devTierAddrInput').value||'').trim().toLowerCase();
@@ -80,7 +80,7 @@ function toggleDevPanel(){
 
 function toggleDevPhoto(){
   devShowTradePhoto = !devShowTradePhoto;
-  localStorage.setItem('chog_dev_photo', devShowTradePhoto ? 'on' : 'off');
+  localStorage.setItem('mon_dev_photo', devShowTradePhoto ? 'on' : 'off');
   _updatePhotoToggleBtn();
 }
 
@@ -132,14 +132,14 @@ async function devResetChessRecords(){
 
   // Also wipe localStorage chess data for all users
   try{
-    const db = JSON.parse(localStorage.getItem('chog_contrib_v1')||'{}');
+    const db = JSON.parse(localStorage.getItem('mon_contrib_v1')||'{}');
     Object.keys(db).forEach(k=>{
       db[k].chessPts    = 0;
       db[k].chessWins   = 0;
       db[k].chessLosses = 0;
       db[k].chessDraws  = 0;
     });
-    localStorage.setItem('chog_contrib_v1', JSON.stringify(db));
+    localStorage.setItem('mon_contrib_v1', JSON.stringify(db));
     results.push('✅ localStorage: chess data cleared');
   }catch(e){ results.push('❌ localStorage: '+e.message); }
 
@@ -191,11 +191,11 @@ function renderDevTestWallets(){
 
 function updateCostDisplays(){
   const shoutDisp = document.getElementById('shoutCostDisplay');
-  if(shoutDisp) shoutDisp.textContent = '💜 ' + SHOUT_COST.toLocaleString() + ' CHOG';
+  if(shoutDisp) shoutDisp.textContent = '💜 ' + SHOUT_COST.toLocaleString() + ' MON';
   const shoutHeader = document.getElementById('shoutHeaderCost');
-  if(shoutHeader) shoutHeader.textContent = SHOUT_COST.toLocaleString() + ' CHOG';
+  if(shoutHeader) shoutHeader.textContent = SHOUT_COST.toLocaleString() + ' MON';
   const nickDisp = document.getElementById('nickCostDisplay');
-  if(nickDisp) nickDisp.textContent = '💜 ' + NICK_COST.toLocaleString() + ' CHOG';
+  if(nickDisp) nickDisp.textContent = '💜 ' + NICK_COST.toLocaleString() + ' MON';
 }
 
 function devApplyFees(){
@@ -205,7 +205,7 @@ function devApplyFees(){
   SHOUT_COST = sc;
   updateCostDisplays();
   if(typeof syncConfigToServer === 'function') syncConfigToServer(nc, sc);
-  alert('✅ Fees updated!\nNickname: ' + nc.toLocaleString() + ' CHOG\nShout: ' + sc.toLocaleString() + ' CHOG');
+  alert('✅ Fees updated!\nNickname: ' + nc.toLocaleString() + ' MON\nShout: ' + sc.toLocaleString() + ' MON');
 }
 
 function devTest(type){
@@ -267,12 +267,12 @@ const SHOUT_MAX_SLOTS = 3;
 var pinnedShouts = []; // {addr, msg, id}
 
 function saveShoutsToStorage(){
-  try{ localStorage.setItem('chog_shouts', JSON.stringify(pinnedShouts)); }catch(e){}
+  try{ localStorage.setItem('mon_shouts', JSON.stringify(pinnedShouts)); }catch(e){}
 }
 
 function loadShoutsFromStorage(){
   try{
-    const saved = localStorage.getItem('chog_shouts');
+    const saved = localStorage.getItem('mon_shouts');
     if(!saved) return;
     const list = JSON.parse(saved);
     if(!Array.isArray(list)) return;
@@ -323,11 +323,13 @@ function clearAllShouts(){
 async function doShout(){
   if(!wallet){alert('Please connect your wallet first!');return;}
   // 잔액 최신화
-  const freshBal = await fetchChogBalance(wallet.addr);
-  if(freshBal !== null){ wallet.bal = Math.floor(freshBal); chogBalance = wallet.bal; updateWalletDisplay(); }
+  if(typeof fetchMonBalance === 'function'){
+    const freshBal = await fetchMonBalance(wallet.addr);
+    if(freshBal !== null){ wallet.bal = Math.floor(freshBal); updateWalletDisplay(); }
+  }
   const isDev = wallet.addr.toLowerCase()===DEV_WALLET.toLowerCase();
   if(!isDev && wallet.bal<SHOUT_COST){
-    alert('You need '+SHOUT_COST.toLocaleString()+' CHOG to shout!\nBalance: '+wallet.bal.toLocaleString()+' CHOG');
+    alert('You need '+SHOUT_COST.toLocaleString()+' MON to shout!\nBalance: '+wallet.bal.toLocaleString()+' MON');
     return;
   }
   const msg=document.getElementById('shoutInput').value.trim();
@@ -336,12 +338,12 @@ async function doShout(){
     try{
       const provider=window.ethereum;
       if(provider&&wallet.addr.length===42){
-        const paddedTo=DEV_WALLET.slice(2).padStart(64,'0');
-        const paddedAmt='00000000000000000000000000000000000000000000010f0cf064dd59200000';
-        await provider.request({method:'eth_sendTransaction',params:[{from:wallet.addr,to:CHOG_CONTRACT,data:'0xa9059cbb'+paddedTo+paddedAmt}]});
+        await ensureMonadChain(provider);
+        const valueWei = BigInt(Math.floor(SHOUT_COST * 1e18));
+        await provider.request({method:'eth_sendTransaction',params:[{from:wallet.addr,to:DEV_WALLET,value:'0x'+valueWei.toString(16),gas:'0x5208'}]});
       }
-    }catch(e){console.warn('Shout tx:',e.message);}
-    wallet.bal-=SHOUT_COST;chogBalance=wallet.bal;
+    }catch(e){if(e.code===4001)return;console.warn('Shout tx:',e.message);}
+    wallet.bal-=SHOUT_COST;
   }
   const shoutNick = getNick(wallet.addr) || (wallet.addr.slice(0,6)+'...'+wallet.addr.slice(-4));
   const shoutBal = wallet.bal; // 차감 후 잔액 그대로 사용 (계급 변경 방지 위해 원래 bal 유지)

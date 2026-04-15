@@ -404,8 +404,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .send-amount-wrap{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:10px}
 .send-amount-wrap label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px}
 .send-amount-input{width:100%;background:transparent;border:none;outline:none;font-family:'Share Tech Mono',monospace;font-size:20px;color:var(--text)}
-.btn-send-chog{width:100%;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:'Bangers',cursive;font-size:18px;letter-spacing:1px;cursor:pointer}
-.btn-send-chog:hover{opacity:.9}
+.btn-send-mon{width:100%;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:'Bangers',cursive;font-size:18px;letter-spacing:1px;cursor:pointer}
+.btn-send-mon:hover{opacity:.9}
 .profile-action-row{display:flex;gap:8px;margin-bottom:10px}
 .btn-profile-action{flex:1;padding:8px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.04);color:var(--text);font-size:11px;font-weight:700;cursor:pointer;font-family:Nunito,sans-serif}
 .btn-profile-action:hover{border-color:var(--accent);color:var(--accent)}
@@ -1015,3 +1015,56 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 }
 .chess-pip-timer.warn { color: #f59e0b; }
 .chess-pip-timer.danger { color: #ef4444; animation: chessTimerPulse .3s infinite; }
+
+/* ── BUY ROUTES MODAL ── */
+.buy-routes-section { margin-bottom: 16px; }
+.buy-routes-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+.buy-route-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 16px;
+  margin-bottom: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, border-color .15s, transform .1s;
+  gap: 10px;
+}
+.buy-route-btn:hover {
+  background: rgba(192,132,252,0.12);
+  border-color: rgba(192,132,252,0.4);
+  transform: translateX(2px);
+}
+.buy-route-btn.dex {
+  border-color: rgba(74,222,128,0.2);
+}
+.buy-route-btn.dex:hover {
+  background: rgba(74,222,128,0.08);
+  border-color: rgba(74,222,128,0.5);
+}
+.buy-route-btn.cex {
+  border-color: rgba(251,191,36,0.2);
+}
+.buy-route-btn.cex:hover {
+  background: rgba(251,191,36,0.08);
+  border-color: rgba(251,191,36,0.5);
+}
+.buy-route-btn-arrow {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}

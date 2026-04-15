@@ -24,7 +24,7 @@ function initChart(){
 
   if(tvContainer){
     var CHART_SRC = 'https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0';
-    tvContainer.innerHTML = '<iframe src="'+CHART_SRC+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="CHOG/MON Chart"></iframe>';
+    tvContainer.innerHTML = '<iframe src="'+CHART_SRC+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="MON/USDC Chart"></iframe>';
     tvContainer.style.display = 'block';
     tvContainer.style.position = 'relative';
     tvContainer.style.zIndex = '1';
@@ -42,7 +42,7 @@ function initChart(){
           if(entry.isIntersecting){
             const iframe = tvContainer.querySelector('iframe');
             if(!iframe || !iframe.src){
-              tvContainer.innerHTML = '<iframe src="'+CHART_SRC+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="CHOG/MON Chart"></iframe>';
+              tvContainer.innerHTML = '<iframe src="'+CHART_SRC+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="MON/USDC Chart"></iframe>';
             }
           }
         });
@@ -50,7 +50,7 @@ function initChart(){
       observer.observe(tvContainer);
     }
 
-    // CHOG 캐릭터 - 마우스 따라다니기 (부드럽게)
+    // MON 캐릭터 - 마우스 따라다니기 (부드럽게)
     const chog = document.getElementById('chogChar');
     if(chog){
       document.body.appendChild(chog);
@@ -126,7 +126,7 @@ function initChart(){
       var iframe = c.querySelector('iframe');
       if(!iframe || !iframe.src || iframe.src==='about:blank'){
         // iframe이 DOM에서 완전히 사라진 경우 → 재생성
-        c.innerHTML = '<iframe src="'+chartSrc+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="CHOG/MON Chart"></iframe>';
+        c.innerHTML = '<iframe src="'+chartSrc+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="MON/USDC Chart"></iframe>';
         return;
       }
       // iframe은 있지만 렌더링이 사라진 경우 → display 토글로 강제 repaint
@@ -275,7 +275,7 @@ function drawChart(){
     ctx.fillText(d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'),toX(t.time),H-8);
   });
 
-  // CHOG 캐릭터 위치 업데이트
+  // MON 캐릭터 위치 업데이트
   updateChogPos(last.mcap, toY);
   } // end if(false)
 }
@@ -348,7 +348,7 @@ function drawCandleChart(ctx,W,H,cW,cH,PAD_L,PT,PB){
   for(let i=0;i<=4;i++){
     const p=hi-(hi-lo)*(i/4);
     const y=PT+(cH/4)*i;
-    const lbl = showMcap ? '$'+fmtMcap(p*TOTAL_SUPPLY) : p.toFixed(7);
+    const lbl = '$' + p.toFixed(4); // MON price (USD)
     ctx.fillText(lbl, W-PAD_R+4, y+3);
   }
 
@@ -363,7 +363,7 @@ function drawCandleChart(ctx,W,H,cW,cH,PAD_L,PT,PB){
     ctx.fillStyle='#4ade80';
     ctx.fillRect(W-PAD_R,pY-9,PAD_R,18);
     ctx.fillStyle='#000'; ctx.font='bold 8px monospace';
-    const badgeLbl = showMcap ? '$'+fmtMcap(last*TOTAL_SUPPLY) : last.toFixed(7);
+    const badgeLbl = '$' + last.toFixed(4); // MON current price
     ctx.fillText(badgeLbl, W-PAD_R+3, pY+3);
   }
 
@@ -378,7 +378,7 @@ function drawCandleChart(ctx,W,H,cW,cH,PAD_L,PT,PB){
     ctx.fillText(lbl, PAD_L+i*cw+cw/2, H-8);
   });
 
-  // CHOG 캐릭터
+  // MON 캐릭터
   updateChogPos(last, toY);
 }
 

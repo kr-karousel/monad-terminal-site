@@ -329,11 +329,11 @@ async function chessAwardPoints(winner, g){
 
   // localStorage fallback
   try{
-    const db  = JSON.parse(localStorage.getItem('chog_contrib_v1')||'{}');
+    const db  = JSON.parse(localStorage.getItem('mon_contrib_v1')||'{}');
     const key = myAddr;
     if(!db[key]) db[key]={chatHours:[],nickCount:0,shoutCount:0,chessPts:0};
     db[key].chessPts = (db[key].chessPts||0)+pts;
-    localStorage.setItem('chog_contrib_v1',JSON.stringify(db));
+    localStorage.setItem('mon_contrib_v1',JSON.stringify(db));
   }catch(e){}
 
   console.log(`[Chess] Awarded ${pts} pts to ${myAddr} (${iWon?'win':'loss/draw'})`);
@@ -404,7 +404,7 @@ async function chessLoadStats(addr){
 
   // localStorage fallback
   try{
-    const db  = JSON.parse(localStorage.getItem('chog_contrib_v1')||'{}');
+    const db  = JSON.parse(localStorage.getItem('mon_contrib_v1')||'{}');
     const ent = db[lower];
     if(!ent) return { wins:0, losses:0, draws:0, pts:0 };
     return {
@@ -419,13 +419,13 @@ async function chessLoadStats(addr){
 // localStorage에 전적 기록 저장 (Supabase 없을 때 fallback)
 function _chessRecordLocalStats(myAddr, result){
   try{
-    const db  = JSON.parse(localStorage.getItem('chog_contrib_v1')||'{}');
+    const db  = JSON.parse(localStorage.getItem('mon_contrib_v1')||'{}');
     const key = myAddr.toLowerCase();
     if(!db[key]) db[key]={chatHours:[],nickCount:0,shoutCount:0};
     if(result==='win')       db[key].chessWins   = (db[key].chessWins||0)+1;
     else if(result==='loss') db[key].chessLosses = (db[key].chessLosses||0)+1;
     else                     db[key].chessDraws  = (db[key].chessDraws||0)+1;
-    localStorage.setItem('chog_contrib_v1', JSON.stringify(db));
+    localStorage.setItem('mon_contrib_v1', JSON.stringify(db));
   }catch(e){}
 }
 
@@ -467,11 +467,11 @@ async function chessAwardPoints(winner, g){
 
   // localStorage fallback
   try{
-    const db  = JSON.parse(localStorage.getItem('chog_contrib_v1')||'{}');
+    const db  = JSON.parse(localStorage.getItem('mon_contrib_v1')||'{}');
     const key = myAddr;
     if(!db[key]) db[key]={chatHours:[],nickCount:0,shoutCount:0,chessPts:0};
     db[key].chessPts = (db[key].chessPts||0)+pts;
-    localStorage.setItem('chog_contrib_v1',JSON.stringify(db));
+    localStorage.setItem('mon_contrib_v1',JSON.stringify(db));
   }catch(e){}
 
   console.log(`[Chess] +${pts}pts → ${myAddr} (${iWon?'win':'loss/draw'})`);
@@ -640,7 +640,7 @@ function _updateNavChessBtn(){
     btn.style.color = 'var(--gold)';
     btn.style.animation = '';
   } else {
-    btn.textContent = '♟️ CHOG Chess';
+    btn.textContent = '♟️ MON Chess';
     btn.style.borderColor = '';
     btn.style.color = '';
     btn.style.animation = '';
