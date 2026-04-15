@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <rect width="200" height="200" fill="#1a0050"/>
-  <!-- Outer white rounded diamond (squircle rotated 45deg) -->
-  <rect x="14" y="14" width="172" height="172" rx="44" fill="white" transform="rotate(45 100 100)"/>
-  <!-- Inner cutout: slightly offset down-left, rotated 45deg -->
-  <rect x="65" y="72" width="68" height="68" rx="19" fill="#1a0050" transform="rotate(45 97 104)"/>
+  <!-- Outer white diamond: 130x130 rect rotated 45deg → diamond reaches ~92px from center, fits in 200px viewBox -->
+  <rect x="35" y="35" width="130" height="130" rx="32" fill="white" transform="rotate(45 100 100)"/>
+  <!-- Inner purple cutout: 50x50 rect rotated 45deg → inner diamond hole -->
+  <rect x="75" y="75" width="50" height="50" rx="12" fill="#1a0050" transform="rotate(45 100 100)"/>
 </svg>
