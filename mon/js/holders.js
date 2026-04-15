@@ -121,7 +121,7 @@ async function renderHolderList(){
       <span style="color:var(--accent);font-weight:700">📍 Your Rank:</span>
       <span class="rank-badge ${myTier.cls}" style="font-size:8px">${myTier.badge}</span>
       <span style="color:var(--text)">${wallet.addr.slice(0,6)}...</span>
-      <span style="margin-left:auto;font-family:'Share Tech Mono',monospace">${myAmtM} CHOG</span>
+      <span style="margin-left:auto;font-family:'Share Tech Mono',monospace">${myAmtM} MON</span>
     </div>`;
   } else if(wallet && myRankIdx >= 0){
     html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(124,58,237,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;text-align:center;color:var(--accent);font-weight:700">
@@ -179,16 +179,16 @@ async function fetchTopHolders(){
 function renderTierTable(){
   const content = document.getElementById('holderTabContent');
   const TIERS = [
-    {min:100000000, label:'CHOG GOD',              badge:'👑 GOD',     cls:'r1', color:'#ffd700'},
-    {min:10000000,  label:'Dragon Overlord',        badge:'🐉 DRAGON',  cls:'r2', color:'#e5e7eb'},
-    {min:1000000,   label:'CHOG Emperor',           badge:'👸 EMPEROR', cls:'r3', color:'#7c3aed'},
-    {min:100000,    label:'Royal Whale',             badge:'🐳 WHALE',   cls:'r4', color:'#38bdf8'},
-    {min:50000,     label:'Noble Flexer',            badge:'🥂 NOBLE',   cls:'r5', color:'#60a5fa'},
-    {min:10000,     label:'Market Hustler',          badge:'💹 HUSTLER', cls:'r6', color:'#34d399'},
-    {min:1000,      label:"McDonald's Shift Legend", badge:'🍔 SHIFT',   cls:'r7', color:'#fbbf24'},
-    {min:100,       label:'Side Hustle Kid',         badge:'💸 HUSTLE',  cls:'r8', color:'#a78bfa'},
-    {min:1,         label:'Street Beggar',           badge:'🙏 BEGGAR',  cls:'r9', color:'#94a3b8'},
-    {min:0,         label:'ZeroCHOG Ghost',          badge:'👻 GHOST',   cls:'r10',color:'#6b7280'},
+    {min:1000000, label:'Monad Overlord',  badge:'👑 OVERLORD', cls:'r1', color:'#ffd700'},
+    {min:500000,  label:'Monad Titan',     badge:'🐉 TITAN',    cls:'r2', color:'#e5e7eb'},
+    {min:100000,  label:'Monad Validator', badge:'⚡ VALID',     cls:'r3', color:'#7c3aed'},
+    {min:50000,   label:'Monad Whale',     badge:'🐳 WHALE',    cls:'r4', color:'#38bdf8'},
+    {min:10000,   label:'Monad Maxi',      badge:'💎 MAXI',     cls:'r5', color:'#60a5fa'},
+    {min:1000,    label:'Monad Degen',     badge:'🔥 DEGEN',    cls:'r6', color:'#34d399'},
+    {min:100,     label:'Monad Pleb',      badge:'🟣 PLEB',     cls:'r7', color:'#fbbf24'},
+    {min:10,      label:'MON Holder',      badge:'💸 HOLDER',   cls:'r8', color:'#a78bfa'},
+    {min:1,       label:'Dust Collector',  badge:'🙏 DUST',     cls:'r9', color:'#94a3b8'},
+    {min:0,       label:'Zero Gas Ghost',  badge:'👻 GHOST',    cls:'r10',color:'#6b7280'},
   ];
 
   const myBal = wallet ? wallet.bal : 0;
@@ -204,7 +204,7 @@ function renderTierTable(){
         <div style="font-weight:700;color:${t.color};font-size:13px">${t.label}
           ${isMyTier ? '<span style="font-size:10px;color:var(--accent);margin-left:6px">← YOU</span>' : ''}
         </div>
-        <div style="font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace">${minStr}+ CHOG</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace">${minStr}+ MON</div>
       </div>
       <span class="rank-badge ${t.cls}">${t.badge}</span>
     </div>`;
@@ -213,7 +213,7 @@ function renderTierTable(){
   html += `</div>
   <div style="margin-top:12px;padding:10px 12px;background:rgba(124,58,237,0.06);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.7">
     ${wallet
-      ? `💜 Your balance: <b style="color:var(--accent)">${myBal.toLocaleString()} CHOG</b> → <b class="${myTier.cls}">${myTier.label}</b>`
+      ? `💜 Your balance: <b style="color:var(--accent)">${myBal.toLocaleString()} MON</b> → <b class="${myTier.cls}">${myTier.label}</b>`
       : '🔗 Connect wallet to see your tier'}
   </div>`;
   content.innerHTML = html;
