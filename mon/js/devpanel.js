@@ -1,0 +1,379 @@
+// ═══════════════════════════════════════
+//  DEV PANEL (dev wallet only)
+// ═══════════════════════════════════════
+var devTestWallets = []; // 테스트 권한 지갑 목록
+var devCustomTiers = {}; // address.toLowerCase() -> custom label
+var devShowTradePhoto = localStorage.getItem('mon_dev_photo') !== 'off'; // persisted
+
+function loadCustomTiersFromStorage(){
+  try { devCustomTiers = JSON.parse(localStorage.getItem('mon_custom_tiers')||'{}'); } catch(e){ devCustomTiers={}; }
+}
+function saveCustomTiersToStorage(){
+  localStorage.setItem('mon_custom_tiers', JSON.stringify(devCustomTiers));
+}
+function devAddCustomTier(){
+  const addr = (document.getElementById('devTierAddrInput').value||'').trim().toLowerCase();
+  const label = (document.getElementById('devTierLabelInput').value||'').trim();
+  if(!addr.startsWith('0x')||addr.length!==42){ alert('Invalid address'); return; }
+  if(!label){ alert('Label required'); return; }
+  devCustomTiers[addr] = label;
+  saveCustomTiersToStorage();
+  if(typeof syncCustomTierToServer === 'function') syncCustomTierToServer(addr, label);
+  document.getElementById('devTierAddrInput').value = '';
+  document.getElementById('devTierLabelInput').value = '';
+  renderDevCustomTiers();
+}
+function devRemoveCustomTier(addr){
+  delete devCustomTiers[addr];
+  saveCustomTiersToStorage();
+  if(typeof syncCustomTierToServer === 'function') syncCustomTierToServer(addr, null);
+  renderDevCustomTiers();
+}
+function renderDevCustomTiers(){
+  const el = document.getElementById('devCustomTierList');
+  if(!el) return;
+  const entries = Object.entries(devCustomTiers);
+  if(!entries.length){
+    el.innerHTML = '<span style="color:var(--muted)">None registered</span>';
+    return;
+  }
+  el.innerHTML = entries.map(([a,l]) =>
+    `<div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.04);border-radius:5px;padding:2px 6px;margin-bottom:2px">
+      <span style="font-family:monospace;font-size:9px">${a.slice(0,8)}...${a.slice(-4)}</span>
+      <span style="font-size:9px;color:var(--accent);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">🏷️ ${escHtml(l)}</span>
+      <button onclick="devRemoveCustomTier('${a}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0 2px;line-height:1">✕</button>
+    </div>`
+  ).join('');
+}
+
+function isDevOrTest(){
+  return wallet && (
+    wallet.addr.toLowerCase() === DEV_WALLET.toLowerCase() ||
+    devTestWallets.includes(wallet.addr.toLowerCase())
+  );
+}
+
+function toggleDevPanel(){
+  const p = document.getElementById('devPanel');
+  if(p) p.classList.toggle('open');
+  if(p && p.classList.contains('open')){
+    renderDevTestWallets();
+    renderDevCustomTiers();
+    const isMainDev = wallet && wallet.addr.toLowerCase() === DEV_WALLET.toLowerCase();
+    const feeSection = document.getElementById('devFeeSection');
+    if(feeSection) feeSection.style.display = isMainDev ? '' : 'none';
+    // Chess reset: strictly DEV only (not test wallets, not custom tier wallets)
+    const chessSection = document.getElementById('devChessSection');
+    if(chessSection) chessSection.style.display = isMainDev ? '' : 'none';
+    // Photo toggle: strictly DEV only
+    const photoSection = document.getElementById('devPhotoSection');
+    if(photoSection) photoSection.style.display = isMainDev ? '' : 'none';
+    if(isMainDev){
+      const ni = document.getElementById('devNickCostInput');
+      const si = document.getElementById('devShoutCostInput');
+      if(ni) ni.value = NICK_COST;
+      if(si) si.value = SHOUT_COST;
+      _updatePhotoToggleBtn();
+    }
+  }
+}
+
+function toggleDevPhoto(){
+  devShowTradePhoto = !devShowTradePhoto;
+  localStorage.setItem('mon_dev_photo', devShowTradePhoto ? 'on' : 'off');
+  _updatePhotoToggleBtn();
+}
+
+function _updatePhotoToggleBtn(){
+  const btn = document.getElementById('devPhotoToggleBtn');
+  if(!btn) return;
+  if(devShowTradePhoto){
+    btn.textContent = '🖼️ Photo: ON';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+  } else {
+    btn.textContent = '🖼️ Photo: OFF';
+    btn.style.color = 'var(--muted)';
+    btn.style.borderColor = 'rgba(255,255,255,0.1)';
+  }
+}
+
+// ── Chess Records Reset (DEV wallet only, never test/custom-tier wallets) ──
+async function devResetChessRecords(){
+  if(!wallet || wallet.addr.toLowerCase() !== DEV_WALLET.toLowerCase()){
+    alert('Access denied.');
+    return;
+  }
+  if(!confirm('⚠️ Delete ALL chess matches, invites and reset all chess points?\nThis CANNOT be undone.')) return;
+
+  const results = [];
+
+  if(typeof _sbClient !== 'undefined' && _sbClient){
+    // Delete all chess_matches
+    try{
+      const {error} = await _sbClient.from('chess_matches').delete().not('id','is',null);
+      results.push(error ? '❌ chess_matches: '+error.message : '✅ chess_matches: cleared');
+    }catch(e){ results.push('❌ chess_matches: '+e.message); }
+
+    // Delete all chess_invites
+    try{
+      const {error} = await _sbClient.from('chess_invites').delete().not('id','is',null);
+      results.push(error ? '❌ chess_invites: '+error.message : '✅ chess_invites: cleared');
+    }catch(e){ results.push('❌ chess_invites: '+e.message); }
+
+    // Reset chess_pts to 0 for all contributions rows
+    try{
+      const {error} = await _sbClient.from('contributions').update({chess_pts:0}).not('address','is',null);
+      results.push(error ? '❌ chess_pts: '+error.message : '✅ chess_pts: reset to 0');
+    }catch(e){ results.push('❌ chess_pts: '+e.message); }
+  } else {
+    results.push('⚠️ Supabase not connected — skipped DB');
+  }
+
+  // Also wipe localStorage chess data for all users
+  try{
+    const db = JSON.parse(localStorage.getItem('mon_contrib_v1')||'{}');
+    Object.keys(db).forEach(k=>{
+      db[k].chessPts    = 0;
+      db[k].chessWins   = 0;
+      db[k].chessLosses = 0;
+      db[k].chessDraws  = 0;
+    });
+    localStorage.setItem('mon_contrib_v1', JSON.stringify(db));
+    results.push('✅ localStorage: chess data cleared');
+  }catch(e){ results.push('❌ localStorage: '+e.message); }
+
+  alert('Chess records reset:\n'+results.join('\n'));
+}
+
+function checkDevAccess(){
+  const btn = document.getElementById('devToggleBtn');
+  if(!btn) return;
+  if(isDevOrTest()){
+    btn.style.display = '';
+  } else {
+    btn.style.display = 'none';
+    const p = document.getElementById('devPanel');
+    if(p) p.classList.remove('open');
+  }
+}
+
+function devAddTestWallet(){
+  const inp = document.getElementById('devWalletInput');
+  const addr = (inp ? inp.value : '').trim().toLowerCase();
+  if(!addr.startsWith('0x') || addr.length !== 42){ alert('Invalid address (must be 0x + 40 hex chars)'); return; }
+  if(!devTestWallets.includes(addr)) devTestWallets.push(addr);
+  if(typeof syncTestWalletToServer === 'function') syncTestWalletToServer(addr, true);
+  if(inp) inp.value = '';
+  renderDevTestWallets();
+}
+
+function devRemoveTestWallet(addr){
+  devTestWallets = devTestWallets.filter(a => a !== addr);
+  if(typeof syncTestWalletToServer === 'function') syncTestWalletToServer(addr, false);
+  renderDevTestWallets();
+}
+
+function renderDevTestWallets(){
+  const el = document.getElementById('devTestWalletList');
+  if(!el) return;
+  if(!devTestWallets.length){
+    el.innerHTML = '<span style="color:var(--muted)">None registered</span>';
+    return;
+  }
+  el.innerHTML = devTestWallets.map(a =>
+    `<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.04);border-radius:5px;padding:2px 6px;margin-bottom:2px">
+      <span style="font-family:monospace;font-size:9px">${a.slice(0,8)}...${a.slice(-4)}</span>
+      <button onclick="devRemoveTestWallet('${a}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0 2px;line-height:1">✕</button>
+    </div>`
+  ).join('');
+}
+
+function updateCostDisplays(){
+  const shoutDisp = document.getElementById('shoutCostDisplay');
+  if(shoutDisp) shoutDisp.textContent = '💜 ' + SHOUT_COST.toLocaleString() + ' MON';
+  const shoutHeader = document.getElementById('shoutHeaderCost');
+  if(shoutHeader) shoutHeader.textContent = SHOUT_COST.toLocaleString() + ' MON';
+  const nickDisp = document.getElementById('nickCostDisplay');
+  if(nickDisp) nickDisp.textContent = '💜 ' + NICK_COST.toLocaleString() + ' MON';
+}
+
+function devApplyFees(){
+  const nc = parseInt(document.getElementById('devNickCostInput').value) || 2000;
+  const sc = parseInt(document.getElementById('devShoutCostInput').value) || 2000;
+  NICK_COST = nc;
+  SHOUT_COST = sc;
+  updateCostDisplays();
+  if(typeof syncConfigToServer === 'function') syncConfigToServer(nc, sc);
+  alert('✅ Fees updated!\nNickname: ' + nc.toLocaleString() + ' MON\nShout: ' + sc.toLocaleString() + ' MON');
+}
+
+function devTest(type){
+  const mp = cachedMonPrice || 0.026;
+  switch(type){
+    case 'bigBuy':
+      showTradeFloat(true, 10000*mp, 1500000, 10000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'buy',amount:1500000,price:livePrice,mon:10000,time:nowTime()});
+      break;
+    case 'bigSell':
+      showTradeFloat(false, 15000*mp, 2000000, 15000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'sell',amount:2000000,price:livePrice,mon:15000,time:nowTime()});
+      break;
+    case 'whaleBuy':
+      showTradeFloat(true, 150000*mp, 20000000, 150000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'buy',amount:20000000,price:livePrice,mon:150000,time:nowTime()});
+      break;
+    case 'whaleSell':
+      showTradeFloat(false, 200000*mp, 30000000, 200000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'sell',amount:30000000,price:livePrice,mon:200000,time:nowTime()});
+      break;
+    case 'megaBuy':
+      showTradeFloat(true, 500000*mp, 70000000, 500000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'buy',amount:70000000,price:livePrice,mon:500000,time:nowTime()});
+      break;
+    case 'megaSell':
+      showTradeFloat(false, 500000*mp, 70000000, 500000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'sell',amount:70000000,price:livePrice,mon:500000,time:nowTime()});
+      break;
+    case 'chat':
+      renderMsg({addr:'0xDEV_TEST',bal:999999,msg:'🔧 Dev test message at '+nowTime(),time:nowTime()});
+      break;
+    case 'shout':
+      showShoutPopup('0xDEV_TEST','🔧 DEV SHOUT TEST!');
+      addPinnedShout('0xDEV_TEST','🔧 DEV SHOUT TEST!');
+      renderMsg({addr:'0xDEV_TEST',bal:999999,msg:'📢 [SHOUT] 🔧 DEV SHOUT TEST!',time:nowTime()});
+      break;
+  }
+}
+
+// ═══════════════════════════════════════
+
+var _shoutPopupTimers = [];
+function showShoutPopup(addr,msg){
+  const p=document.getElementById('shoutPopup');if(!p)return;
+  // 이전 타이머 전부 취소 후 새로 시작 (연속 shout 시 조기 종료 방지)
+  _shoutPopupTimers.forEach(t=>clearTimeout(t));
+  _shoutPopupTimers=[];
+  p.classList.remove('active','fadeout');
+  void p.offsetWidth; // reflow
+  p.innerHTML=`<div class="shout-popup-bubble">📢 ${escHtml(addr)}: ${escHtml(msg)}</div>`;
+  p.classList.add('active');
+  _shoutPopupTimers.push(setTimeout(()=>p.classList.add('fadeout'),2500));
+  _shoutPopupTimers.push(setTimeout(()=>{p.classList.remove('active','fadeout');p.innerHTML='';},3100));
+}
+
+// ── SHOUT PIN: 영구 노출, 최대 3개, FIFO, localStorage 영속화 ───
+const SHOUT_MAX_SLOTS = 3;
+var pinnedShouts = []; // {addr, msg, id}
+
+function saveShoutsToStorage(){
+  try{ localStorage.setItem('mon_shouts', JSON.stringify(pinnedShouts)); }catch(e){}
+}
+
+function loadShoutsFromStorage(){
+  try{
+    const saved = localStorage.getItem('mon_shouts');
+    if(!saved) return;
+    const list = JSON.parse(saved);
+    if(!Array.isArray(list)) return;
+    pinnedShouts = list.slice(-SHOUT_MAX_SLOTS); // 최대 3개만
+    const c = document.getElementById('shoutPinned');
+    if(c){
+      c.innerHTML = '';
+      pinnedShouts.forEach(entry => _renderPinnedShout(c, entry));
+    }
+  }catch(e){}
+}
+
+function addPinnedShout(addr, msg){
+  const c = document.getElementById('shoutPinned');
+  if(!c) return;
+  const nick = getNick(addr) || addr;
+  const entry = { addr: nick, msg, id: Date.now() + Math.random() };
+
+  // 3개 꽉 차면 가장 오래된 것 DOM에서 제거
+  if(pinnedShouts.length >= SHOUT_MAX_SLOTS){
+    const oldest = pinnedShouts.shift();
+    const oldEl = c.querySelector(`[data-id="${oldest.id}"]`);
+    if(oldEl){ oldEl.classList.add('pin-fadeout'); setTimeout(()=>oldEl.remove(), 500); }
+  }
+
+  pinnedShouts.push(entry);
+  _renderPinnedShout(c, entry);
+  saveShoutsToStorage();
+}
+
+function _renderPinnedShout(c, entry){
+  const item = document.createElement('div');
+  item.className = 'shout-pin-item';
+  item.dataset.id = entry.id;
+  item.innerHTML = `
+    <div class="shout-pin-addr">📢 ${escHtml(entry.addr)}</div>
+    <div style="line-height:1.4">${escHtml(entry.msg)}</div>`;
+  c.appendChild(item); // 최신이 맨 아래 (오래된 게 위)
+}
+
+function clearAllShouts(){
+  pinnedShouts = [];
+  const c = document.getElementById('shoutPinned');
+  if(c) c.innerHTML = '';
+  saveShoutsToStorage();
+}
+
+async function doShout(){
+  if(!wallet){alert('Please connect your wallet first!');return;}
+  // 잔액 최신화
+  if(typeof fetchMonBalance === 'function'){
+    const freshBal = await fetchMonBalance(wallet.addr);
+    if(freshBal !== null){ wallet.bal = Math.floor(freshBal); updateWalletDisplay(); }
+  }
+  const isDev = wallet.addr.toLowerCase()===DEV_WALLET.toLowerCase();
+  if(!isDev && wallet.bal<SHOUT_COST){
+    alert('You need '+SHOUT_COST.toLocaleString()+' MON to shout!\nBalance: '+wallet.bal.toLocaleString()+' MON');
+    return;
+  }
+  const msg=document.getElementById('shoutInput').value.trim();
+  if(!msg){alert('Please enter a shout message!');return;}
+  if(!isDev){
+    try{
+      const provider=window.ethereum;
+      if(provider&&wallet.addr.length===42){
+        await ensureMonadChain(provider);
+        const valueWei = BigInt(Math.floor(SHOUT_COST * 1e18));
+        await provider.request({method:'eth_sendTransaction',params:[{from:wallet.addr,to:DEV_WALLET,value:'0x'+valueWei.toString(16),gas:'0x5208'}]});
+      }
+    }catch(e){if(e.code===4001)return;console.warn('Shout tx:',e.message);}
+    wallet.bal-=SHOUT_COST;
+  }
+  const shoutNick = getNick(wallet.addr) || (wallet.addr.slice(0,6)+'...'+wallet.addr.slice(-4));
+  const shoutBal = wallet.bal; // 차감 후 잔액 그대로 사용 (계급 변경 방지 위해 원래 bal 유지)
+  showShoutPopup(shoutNick,msg);
+  renderMsg({addr:wallet.addr,addrFull:wallet.addr,bal:shoutBal,msg:'📢 [SHOUT] '+msg,time:nowTime()});
+  const sh=document.getElementById('shoutHistory');
+  if(sh){const item=document.createElement('div');item.className='shout-item';item.innerHTML=`<div class="shout-item-addr">${shoutNick} · ${nowTime()}</div><div>${msg}</div>`;sh.insertBefore(item,sh.firstChild);}
+  if(isSyncEnabled()){
+    // Supabase 활성화: 서버에 저장 → subscription이 핀 추가 처리 (전 브라우저 동기화)
+    syncShoutToServer(wallet.addr,shoutNick,msg);
+  }else{
+    // 로컬 모드: localStorage에 저장
+    addPinnedShout(wallet.addr,msg);
+  }
+  document.getElementById('shoutInput').value='';
+}
+
+// demoShout 제거됨 (라이브 모드)
+
+function openKuruExternal(){
+  window.open(KURU_URL, '_blank');
+}
+
+// holderModal도 overlay 클릭으로 닫기
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');});
+});
+
+// 스왑 모달 열릴 때 MON 잔고 로드
+document.getElementById('swapModal')?.addEventListener('click',e=>{
+  if(e.target===document.getElementById('swapModal')) closeSwapModal();
+});
+
