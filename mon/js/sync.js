@@ -118,6 +118,7 @@ async function _syncShoutsFromServer(){
     const { data } = await _sbClient
       .from('shouts')
       .select('id, address, nickname, message, created_at')
+      .eq('terminal', 'mon')
       .order('created_at', { ascending: false })
       .limit(SHOUT_MAX_SLOTS);
     if(!data || !data.length) return;
@@ -137,12 +138,14 @@ async function _syncShoutsFromServer(){
 
 function _subscribeToShouts(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-shouts')
+  _sbClient.channel('sync-shouts-mon')
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'shouts' },
       payload => {
         const row = payload.new;
         if(!row) return;
+        // MON 터미널 shout만 처리
+        if(row.terminal !== 'mon') return;
         const entry = { addr: row.nickname || row.address, msg: row.message, id: row.id };
         const isMyShout = wallet && wallet.addr.toLowerCase() === row.address.toLowerCase();
 
@@ -168,7 +171,7 @@ function _subscribeToShouts(){
 async function syncShoutToServer(address, nickname, message){
   if(!_sbClient) return;
   try{
-    await _sbClient.from('shouts').insert({ address: address.toLowerCase(), nickname, message });
+    await _sbClient.from('shouts').insert({ address: address.toLowerCase(), nickname, message, terminal: 'mon' });
   }catch(e){ console.warn('[Sync] 외치기 저장 실패:', e.message); }
 }
 
