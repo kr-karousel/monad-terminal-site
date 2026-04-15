@@ -35,9 +35,8 @@ module.exports = async function handler(req, res) {
     });
 
     for (const a of triggered) {
-      const direction = a.type === 'above' ? 'Above 📈' : 'Below 📉';
-      const target    = '$' + parseFloat(a.price).toFixed(7);
-      const current   = '$' + currentPrice.toFixed(7);
+      const target  = '$' + parseFloat(a.price).toFixed(7);
+      const current = '$' + currentPrice.toFixed(7);
 
       // 이메일 발송
       await fetch('https://api.resend.com/emails', {
@@ -46,12 +45,12 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify({
           from: 'CHOG Terminal <alerts@monad-terminal.xyz>',
           to:   [a.email],
-          subject: `🔔 CHOG Price Alert — ${direction} ${target}`,
+          subject: `🎯 CHOG Target Hit — ${target}`,
           html: `
             <div style="font-family:monospace;background:#0e0e16;color:#e2e8f0;padding:24px;border-radius:12px;max-width:400px">
-              <div style="font-size:22px;font-weight:700;color:#c084fc;margin-bottom:12px">🔔 CHOG Price Alert</div>
+              <div style="font-size:22px;font-weight:700;color:#c084fc;margin-bottom:12px">🎯 CHOG Price Alert</div>
               <div style="font-size:15px;margin-bottom:8px">
-                Price is <b style="color:${a.type==='above'?'#4ade80':'#f87171'}">${direction}</b> your target
+                Your target price was <b style="color:#c084fc">hit</b>
               </div>
               <div style="background:#1a1a2e;border-radius:8px;padding:12px;margin:12px 0">
                 <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">TARGET</div>

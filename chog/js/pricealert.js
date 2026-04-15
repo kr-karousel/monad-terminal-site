@@ -224,10 +224,9 @@ function _fireAlert(alert, currentPrice){
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        to:        alertEmail,
-        direction: alert.type === 'above' ? 'Above 📈' : 'Below 📉',
-        target:    '$' + alert.price.toFixed(7),
-        current:   '$' + currentPrice.toFixed(7),
+        to:      alertEmail,
+        target:  '$' + alert.price.toFixed(7),
+        current: '$' + currentPrice.toFixed(7),
       }),
     }).catch(e => console.warn('Alert email failed:', e));
   }
