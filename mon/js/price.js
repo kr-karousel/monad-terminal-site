@@ -285,10 +285,10 @@ function handleSwapLog(log) {
     const usdcAmt  = Number(amount1 < 0n ? -amount1 : amount1) / 1e6;
     const usdValue = usdcAmt > 0 ? usdcAmt : monAmt * priceUsd;
 
-    // $10,000 미만 무시 (서버 과부하 방지)
-    if (usdValue < USD_ALERT_THRESHOLD) {
-      // 그래도 차트 데이터는 기록 ($1 이상)
-      if (usdValue < 1) return;
+    // BIG 기준(100K MON) 미만이면 알림 없음, 차트만 업데이트
+    if (monAmt < MON_ALERT_BIG) {
+      // 차트 데이터는 기록 ($0.01 이상)
+      if (usdValue < 0.01) return;
       livePrice = priceUsd;
       cachedMonPrice = priceUsd;
       isSimulTrades = false;
@@ -384,7 +384,7 @@ async function loadRecentTrades(maxCount) {
           const mon    = Number(a0 < 0n ? -a0 : a0) / 1e18;
           const usdc   = Number(a1 < 0n ? -a1 : a1) / 1e6;
           const usd    = usdc > 0 ? usdc : mon * pUsd;
-          if (usd < USD_ALERT_THRESHOLD) continue;
+          if (mon < MON_ALERT_BIG) continue; // 100K MON 미만 스킵
           const sec = curBlock - parseInt(log.blockNumber, 16);
           const t   = sec < 60 ? sec + 's ago' : sec < 3600 ? Math.floor(sec / 60) + 'm ago' : Math.floor(sec / 3600) + 'h ago';
           qualifying.push({ txHash: log.transactionHash, isBuy, mon, usd, pUsd, t });
@@ -404,7 +404,7 @@ async function loadRecentTrades(maxCount) {
         time: tr.t, silent: true,
       });
     }
-    console.log('✅ Loaded', qualifying.length, 'recent trades ($' + USD_ALERT_THRESHOLD + '+)');
+    console.log('✅ Loaded', qualifying.length, 'recent trades (100K+ MON)');
   } catch(e) { console.warn('loadRecentTrades:', e.message); }
 }
 

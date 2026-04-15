@@ -10,9 +10,10 @@ const DEV_WALLET    = '0x38A7d00c3494ACFF01c0d216A6115A2af1A72162';
 const MONAD_RPC     = 'https://rpc.monad.xyz';
 const MONAD_CHAIN_ID= '0x8F'; // Monad chainId = 143
 
-// ── Trade Alert Threshold ─────────────────────────────
-// $10,000 USDT 이상 거래만 표시 (서버 과부하 방지)
-const USD_ALERT_THRESHOLD = 10000; // $10,000 USDT
+// ── Trade Alert Thresholds (MON 수량 기준) ────────────
+const MON_ALERT_BIG   =  100000; // 100K MON → BIG BUY/SELL
+const MON_ALERT_WHALE = 1000000; // 1M  MON → WHALE BUY/SELL
+const MON_ALERT_MEGA  = 5000000; // 5M  MON → MEGA BUY/SELL
 
 // ── Nickname / Shout 비용 (MON 네이티브 토큰) ─────────
 var NICK_COST    = 100;   // 100 MON for nickname
