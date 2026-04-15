@@ -73,7 +73,7 @@ function renderBuyRoutes(isBuy) {
       `).join('')}
     </div>
 
-    <div style="margin-top:12px;padding:8px 12px;background:rgba(139,92,246,0.08);border:1px solid rgba(192,132,252,0.2);border-radius:8px;font-size:10px;color:var(--muted);text-align:center">
+    <div style="margin-top:12px;padding:8px 12px;background:rgba(139,92,246,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:8px;font-size:10px;color:var(--muted);text-align:center">
       MON is Monad's native token.<br>
       For on-chain swaps, use Kuru or Monorail on Monad network.
     </div>

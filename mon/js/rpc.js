@@ -17,7 +17,7 @@ async function rpcCallAny(method, params) {
       const result = await window.ethereum.request({ method, params });
       if (result !== undefined && result !== null) return result;
     } catch(e) {
-      if (e.code !== 4200) console.warn('wallet RPC err:', e.message);
+      // 지갑 RPC 실패는 무시하고 공용 RPC로 fallback (콘솔 노이즈 제거)
     }
   }
   for (const rpc of MONAD_RPC_LIST) {

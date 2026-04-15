@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Deep purple background -->
   <rect width="200" height="200" fill="#1a0050"/>
-  <!-- Outer white rounded diamond (squircle rotated 45deg) -->
-  <rect x="14" y="14" width="172" height="172" rx="44" fill="white" transform="rotate(45 100 100)"/>
-  <!-- Inner cutout: slightly offset down-left, rotated 45deg -->
-  <rect x="65" y="72" width="68" height="68" rx="19" fill="#1a0050" transform="rotate(45 97 104)"/>
+  <!-- Outer: squircle (126×126, rx=42) rotated 45° → white diamond ring -->
+  <!-- Diamond tips reach ~89px from center → points at (100,11),(189,100),(100,189),(11,100) -->
+  <rect x="37" y="37" width="126" height="126" rx="42" fill="white" transform="rotate(45 100 100)"/>
+  <!-- Inner hole: upright rounded square (NOT rotated 45°), slight clockwise tilt like real logo -->
+  <rect x="63" y="63" width="74" height="74" rx="18" fill="#1a0050" transform="rotate(6 100 100)"/>
 </svg>

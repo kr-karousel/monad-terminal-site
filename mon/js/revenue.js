@@ -24,12 +24,15 @@ function _sbReady() {
 }
 
 // ── Contribution trackers ───────────────────────────
+// MON Terminal 전용: mon_contributions 테이블 사용 (CHOG contributions와 분리)
+// DB 준비 SQL: supabase/mon_contributions.sql 참고
+
 async function trackChatPoint() {
   if (!wallet) return;
   const hourKey = Math.floor(Date.now() / 3600000);
   if (_sbReady()) {
     try {
-      await _sbClient.rpc('add_chat_point', { p_address: wallet.addr.toLowerCase(), p_hour: hourKey });
+      await _sbClient.rpc('mon_add_chat_point', { p_address: wallet.addr.toLowerCase(), p_hour: hourKey });
       return;
     } catch(e) { console.warn('[Revenue] chat point:', e.message); }
   }
@@ -44,7 +47,7 @@ async function trackChatPoint() {
 async function trackNickPoint() {
   if (!wallet) return;
   if (_sbReady()) {
-    try { await _sbClient.rpc('add_nick_point', { p_address: wallet.addr.toLowerCase() }); return; }
+    try { await _sbClient.rpc('mon_add_nick_point', { p_address: wallet.addr.toLowerCase() }); return; }
     catch(e) { console.warn('[Revenue] nick point:', e.message); }
   }
   const { db, key } = getOrCreateContrib(wallet.addr);
@@ -55,7 +58,7 @@ async function trackNickPoint() {
 async function trackShoutPoint() {
   if (!wallet) return;
   if (_sbReady()) {
-    try { await _sbClient.rpc('add_shout_point', { p_address: wallet.addr.toLowerCase() }); return; }
+    try { await _sbClient.rpc('mon_add_shout_point', { p_address: wallet.addr.toLowerCase() }); return; }
     catch(e) { console.warn('[Revenue] shout point:', e.message); }
   }
   const { db, key } = getOrCreateContrib(wallet.addr);
@@ -73,13 +76,14 @@ function calcUserPoints(entry) {
 async function loadContribsFromServer() {
   if (!_sbReady()) return null;
   try {
+    // MON 터미널 전용 테이블 (CHOG contributions와 분리)
     const { data, error } = await _sbClient
-      .from('contributions')
+      .from('mon_contributions')
       .select('address, chat_pts, last_chat_hour, nick_count, shout_count');
     if (error) throw error;
     return data || [];
   } catch(e) {
-    console.warn('[Revenue] contributions 로드 실패:', e.message);
+    console.warn('[Revenue] mon_contributions 로드 실패:', e.message);
     return null;
   }
 }

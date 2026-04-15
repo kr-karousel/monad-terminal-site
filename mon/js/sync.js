@@ -118,6 +118,7 @@ async function _syncShoutsFromServer(){
     const { data } = await _sbClient
       .from('shouts')
       .select('id, address, nickname, message, created_at')
+      .eq('terminal', 'mon')
       .order('created_at', { ascending: false })
       .limit(SHOUT_MAX_SLOTS);
     if(!data || !data.length) return;
@@ -137,12 +138,14 @@ async function _syncShoutsFromServer(){
 
 function _subscribeToShouts(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-shouts')
+  _sbClient.channel('sync-shouts-mon')
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'shouts' },
       payload => {
         const row = payload.new;
         if(!row) return;
+        // MON 터미널 shout만 처리
+        if(row.terminal !== 'mon') return;
         const entry = { addr: row.nickname || row.address, msg: row.message, id: row.id };
         const isMyShout = wallet && wallet.addr.toLowerCase() === row.address.toLowerCase();
 
@@ -168,7 +171,7 @@ function _subscribeToShouts(){
 async function syncShoutToServer(address, nickname, message){
   if(!_sbClient) return;
   try{
-    await _sbClient.from('shouts').insert({ address: address.toLowerCase(), nickname, message });
+    await _sbClient.from('shouts').insert({ address: address.toLowerCase(), nickname, message, terminal: 'mon' });
   }catch(e){ console.warn('[Sync] 외치기 저장 실패:', e.message); }
 }
 
@@ -292,13 +295,14 @@ async function syncTestWalletToServer(address, add){
 async function _syncMessagesFromServer(){
   if(!_sbClient) return;
   try{
+    // mon_bal IS NOT NULL → MON 터미널에서 보낸 메시지만 로드
     const { data } = await _sbClient
       .from('messages')
-      .select('id, address, nickname, content, created_at')
+      .select('id, address, nickname, content, created_at, mon_bal')
+      .not('mon_bal', 'is', null)
       .order('created_at', { ascending: false })
       .limit(10);
     if(!data || !data.length) return;
-    // 오래된 순으로 정렬해서 렌더링
     data.slice().reverse().forEach(row => {
       const t = new Date(row.created_at);
       const timeStr = t.getHours() + ':' + String(t.getMinutes()).padStart(2,'0');
@@ -306,7 +310,7 @@ async function _syncMessagesFromServer(){
         addr: row.address,
         addrFull: row.address,
         nickname: row.nickname || null,
-        bal: row.mon_bal || row.chog_bal || 0,
+        bal: row.mon_bal || 0,
         msg: row.content,
         time: timeStr
       });
@@ -316,17 +320,20 @@ async function _syncMessagesFromServer(){
 
 function _subscribeToMessages(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-messages')
+  // 'sync-messages-mon' 채널: MON 터미널 전용 (mon_bal 기준 필터)
+  _sbClient.channel('sync-messages-mon')
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'messages' },
       payload => {
         const row = payload.new;
         if(!row) return;
+        // mon_bal이 없으면 CHOG 터미널 메시지 → 무시
+        if(row.mon_bal === null || row.mon_bal === undefined) return;
         renderMsg({
           addr: row.address,
           addrFull: row.address,
           nickname: row.nickname || null,
-          bal: row.mon_bal || row.chog_bal || 0,
+          bal: row.mon_bal || 0,
           msg: row.content,
           time: typeof nowTime === 'function' ? nowTime() : ''
         });
@@ -339,11 +346,11 @@ function _subscribeToMessages(){
 
 function _subscribeToContributions(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-contributions')
+  // MON 터미널 전용 테이블 구독
+  _sbClient.channel('sync-mon-contributions')
     .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'contributions' },
+      { event: '*', schema: 'public', table: 'mon_contributions' },
       () => {
-        // Revenue 모달이 열려있으면 자동 갱신
         const modal = document.getElementById('revenueModal');
         if(modal && modal.classList.contains('open') && typeof renderRevenueModal === 'function')
           renderRevenueModal();

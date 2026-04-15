@@ -10,9 +10,10 @@ const DEV_WALLET    = '0x38A7d00c3494ACFF01c0d216A6115A2af1A72162';
 const MONAD_RPC     = 'https://rpc.monad.xyz';
 const MONAD_CHAIN_ID= '0x8F'; // Monad chainId = 143
 
-// ── Trade Alert Threshold ─────────────────────────────
-// $10,000 USDT 이상 거래만 표시 (서버 과부하 방지)
-const USD_ALERT_THRESHOLD = 10000; // $10,000 USDT
+// ── Trade Alert Thresholds (MON 수량 기준) ────────────
+const MON_ALERT_BIG   =   50000; // 50K  MON → BIG BUY/SELL   (~$1,750)
+const MON_ALERT_WHALE =  500000; // 500K MON → WHALE BUY/SELL  (~$17,500)
+const MON_ALERT_MEGA  = 3000000; // 3M   MON → MEGA BUY/SELL   (~$105,000)
 
 // ── Nickname / Shout 비용 (MON 네이티브 토큰) ─────────
 var NICK_COST    = 100;   // 100 MON for nickname
@@ -50,16 +51,16 @@ const BUY_ROUTES = [
 //  RANKS (MON 보유량 기준)
 // ══════════════════════════════════════
 const RANKS = [
-  { min: 1000000, label: 'Monad God',      badge: '👑 GOD',     cls: 'r1' },
-  { min: 500000,  label: 'Monad Titan',    badge: '🐉 TITAN',   cls: 'r2' },
-  { min: 100000,  label: 'Monad Emperor',  badge: '👸 EMPEROR', cls: 'r3' },
-  { min: 50000,   label: 'Royal Whale',    badge: '🐳 WHALE',   cls: 'r4' },
-  { min: 10000,   label: 'Noble Flexer',   badge: '🥂 NOBLE',   cls: 'r5' },
-  { min: 1000,    label: 'Market Hustler', badge: '💹 HUSTLER', cls: 'r6' },
-  { min: 100,     label: 'MON Accumulator',badge: '🍔 ACCUM',   cls: 'r7' },
-  { min: 10,      label: 'MON Holder',     badge: '💸 HOLDER',  cls: 'r8' },
-  { min: 1,       label: 'Street Beggar',  badge: '🙏 BEGGAR',  cls: 'r9' },
-  { min: 0,       label: 'Zero MON Ghost', badge: '👻 GHOST',   cls: 'r10' },
+  { min: 1000000, label: 'Monad Overlord',   badge: '👑 OVERLORD', cls: 'r1' },
+  { min: 500000,  label: 'Monad Titan',      badge: '🐉 TITAN',    cls: 'r2' },
+  { min: 100000,  label: 'Monad Validator',  badge: '⚡ VALID',     cls: 'r3' },
+  { min: 50000,   label: 'Monad Whale',      badge: '🐳 WHALE',    cls: 'r4' },
+  { min: 10000,   label: 'Monad Maxi',       badge: '💎 MAXI',     cls: 'r5' },
+  { min: 1000,    label: 'Monad Degen',      badge: '🔥 DEGEN',    cls: 'r6' },
+  { min: 100,     label: 'Monad Pleb',       badge: '🟣 PLEB',     cls: 'r7' },
+  { min: 10,      label: 'MON Holder',       badge: '💸 HOLDER',   cls: 'r8' },
+  { min: 1,       label: 'Dust Collector',   badge: '🙏 DUST',     cls: 'r9' },
+  { min: 0,       label: 'Zero Gas Ghost',   badge: '👻 GHOST',    cls: 'r10' },
 ];
 
 function getRank(b, addr) {

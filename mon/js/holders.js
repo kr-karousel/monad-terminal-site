@@ -84,7 +84,7 @@ async function renderHolderList(){
     if(isDev && !nick) displayName = short + ' <span style="color:var(--muted);font-size:9px">(dev)</span>';
     else if(nick) displayName = nick;
 
-    const rowStyle = isMe ? 'background:rgba(192,132,252,0.12);border-left:3px solid var(--accent);' : '';
+    const rowStyle = isMe ? 'background:rgba(124,58,237,0.12);border-left:3px solid var(--accent);' : '';
     const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
     const rankColor = rank <= 3 ? 'top3' : '';
 
@@ -101,7 +101,7 @@ async function renderHolderList(){
         <div style="display:flex;align-items:center;gap:6px">
           <span class="rank-badge ${tierInfo.cls}" style="font-size:8px;padding:1px 5px">${tierInfo.badge}</span>
           <span class="holder-nick">${displayName}</span>
-          ${isMe ? '<span style="color:var(--accent);font-size:9px;font-weight:700;background:rgba(192,132,252,0.2);padding:1px 5px;border-radius:8px">YOU</span>' : ''}
+          ${isMe ? '<span style="color:var(--accent);font-size:9px;font-weight:700;background:rgba(124,58,237,0.2);padding:1px 5px;border-radius:8px">YOU</span>' : ''}
         </div>
       </td>
       <td class="holder-amount">${amtM} <span style="color:var(--muted);font-size:9px">${usdStr}</span></td>
@@ -117,14 +117,14 @@ async function renderHolderList(){
     const myAmtM = wallet.bal >= 1e6 ? (wallet.bal/1e6).toFixed(0)+'M'
                  : wallet.bal >= 1e3 ? (wallet.bal/1e3).toFixed(0)+'K'
                  : wallet.bal.toFixed(0);
-    html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(192,132,252,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;display:flex;align-items:center;gap:8px">
+    html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(124,58,237,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;display:flex;align-items:center;gap:8px">
       <span style="color:var(--accent);font-weight:700">📍 Your Rank:</span>
       <span class="rank-badge ${myTier.cls}" style="font-size:8px">${myTier.badge}</span>
       <span style="color:var(--text)">${wallet.addr.slice(0,6)}...</span>
       <span style="margin-left:auto;font-family:'Share Tech Mono',monospace">${myAmtM} MON</span>
     </div>`;
   } else if(wallet && myRankIdx >= 0){
-    html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(192,132,252,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;text-align:center;color:var(--accent);font-weight:700">
+    html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(124,58,237,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;text-align:center;color:var(--accent);font-weight:700">
       📍 Your Rank: #${myRankIdx+1} of ${holderCount}+ holders
     </div>`;
   }
@@ -138,153 +138,40 @@ async function renderHolderList(){
 async function fetchTopHolders(){
   if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
 
-  const BV_URL    = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${WMON_CONTRACT}&limit=50`;
-  const EXP_URL   = `https://explorer.monad.xyz/api/v2/tokens/${WMON_CONTRACT}/holders`;
-  const EXP_URL1  = `https://explorer.monad.xyz/api?module=token&action=tokenholderlist&contractaddress=${WMON_CONTRACT}`;
-  const NAD_URL1  = `https://api.blockvision.org/v2/monad/token/holders?contractAddress=${WMON_CONTRACT}&limit=50`;
-  const NAD_URL2  = `https://api.dexscreener.com/latest/dex/tokens/${WMON_CONTRACT}`;
-  const enc       = encodeURIComponent(BV_URL);
-  const encExp    = encodeURIComponent(EXP_URL);
-  const encNad    = encodeURIComponent(NAD_URL1);
-
-  // parse 함수 — 여러 응답 포맷 통합 처리
   const fromWei = (v) => { try{ return Number(BigInt(v)*1000n/BigInt('1000000000000000000'))/1000; }catch(_){ return 0; } };
   const parseData = (d) => {
-    // Blockscout v2: { items: [ { address:{hash}, value } ] }
     if(d?.items?.length){
       return d.items.map(h => ({
         address: (h.address?.hash || h.address || '').toLowerCase(),
-        balance: h.value ? fromWei(h.value) : h.balance ? parseFloat(h.balance) : 0,
-        pct: parseFloat(h.percentage || h.pct || 0)
+        balance: h.value ? fromWei(h.value) : parseFloat(h.balance || 0),
+        pct: parseFloat(h.percentage || 0)
       })).filter(h => h.address && h.balance > 0);
     }
-    // nad.fun / BlockVision / generic
     const list = d?.result?.data || d?.result?.list || d?.result || d?.data || d?.holders || d?.list || [];
     if(!list.length) throw new Error('empty list');
     return list.map(h => ({
       address: (h.holder || h.wallet_address || h.accountAddress || h.address?.hash || h.address || '').toLowerCase(),
-      balance: h.amount ? fromWei(h.amount) : h.value ? fromWei(h.value) : h.balance ? parseFloat(h.balance) : 0,
+      balance: h.amount ? fromWei(h.amount) : h.value ? fromWei(h.value) : parseFloat(h.balance || 0),
       pct: parseFloat(h.percentage || h.share || h.pct || 0)
     })).filter(h => h.address && h.balance > 0);
   };
 
-  // (url, isWrapped) — isWrapped=true: response is {contents:"json string"}
-  const attempts = [
-    [`/api/holders?contract=${WMON_CONTRACT}&limit=50`, false],  // Vercel 서버리스 프록시 (최우선)
-    [NAD_URL1,  false],                                           // nad.fun API v1
-    [NAD_URL2,  false],                                           // nad.fun API v2
-    [EXP_URL,   false],                                           // Monad Explorer (Blockscout v2)
-    [EXP_URL1,  false],                                           // Monad Explorer (Blockscout v1)
-    [BV_URL,    false],                                           // BlockVision 직접
-    [`https://api.allorigins.win/raw?url=${encNad}`, false],      // nad.fun via proxy
-    [`https://api.allorigins.win/raw?url=${encExp}`, false],      // Explorer via proxy
-    [`https://api.allorigins.win/get?url=${enc}`, true],
-    [`https://corsproxy.io/?${enc}`, false],
-  ];
-
-  for(const [url, isWrapped] of attempts){
-    try {
-      const label = url.startsWith('/api') ? 'vercel-proxy'
-        : url.includes('explorer.monad') ? 'monad-explorer'
-        : url.includes('allorigins') ? 'allorigins'
-        : url.includes('corsproxy') ? 'corsproxy'
-        : 'direct';
-      console.log(`📡 Fetching holders (${label})...`);
-      const res = await fetch(url, {headers:{'accept':'application/json'}});
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      let d = await res.json();
-      if(isWrapped) d = JSON.parse(d.contents || '{}');
-      console.log('raw response:', JSON.stringify(d).slice(0,200));
+  // Vercel 서버리스 프록시만 사용 (클라이언트 직접 호출 모두 제거 — CORS/403 에러 방지)
+  try {
+    const res = await fetch(`/api/holders?contract=${WMON_CONTRACT}&limit=50`, {
+      headers: { accept: 'application/json' },
+      signal: AbortSignal.timeout(12000)
+    });
+    if(res.ok){
+      const d = await res.json();
       const valid = parseData(d);
       if(valid.length > 0){
-        console.log('✅ Holders loaded:', valid.length, 'via', label);
+        console.log('✅ Holders loaded:', valid.length);
         holderCache = valid; holderCacheTime = Date.now();
         return valid;
       }
-    } catch(e){ console.warn(`Holder fetch error (${url.slice(0,60)}):`, e.message); }
-  }
-
-  // ── rpcCallAny 사용 (지갑 provider → fetch 순으로 CORS 우회) ──────────────
-  console.log('📡 Fetching holders (rpc-direct)...');
-  try {
-    const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-
-    // 제외할 컨트랙트/LP 주소 (유동성 풀, 라우터 등)
-    const EXCLUDE = new Set([
-      '0x0000000000000000000000000000000000000000',
-      '0x000000000000000000000000000000000000dead',
-      MON_USDC_POOL.toLowerCase(), // WMON/USDC pool
-    ].filter(Boolean));
-
-    // 현재 블록
-    const blockHex = await rpcCallAny('eth_blockNumber', []);
-    const current = parseInt(blockHex, 16);
-    if(!current) return null;
-
-    // Transfer 로그 수집 — 먼저 큰 범위(500k블록 ≈ 5.8일) 한 번에 시도,
-    // 실패하면 2000블록 청크로 나눠서 시도
-    const seen = new Set();
-    const BIG = Math.max(0, current - 500000);
-    let bigLogs = await rpcCallAny('eth_getLogs', [{
-      address: WMON_CONTRACT, topics: [TRANSFER_TOPIC],
-      fromBlock: '0x' + BIG.toString(16), toBlock: 'latest',
-    }]);
-
-    if(bigLogs && bigLogs.length){
-      for(const log of bigLogs){
-        if(log.topics?.[2]){
-          const to = '0x' + log.topics[2].slice(26).toLowerCase();
-          if(!EXCLUDE.has(to)) seen.add(to);
-        }
-      }
-    } else {
-      // 청크 방식 fallback (2000블록씩, 최대 100회 = 200k블록)
-      const CHUNK = 2000;
-      for(let end = current, n = 0; end > 0 && n < 100; end -= CHUNK, n++){
-        const start = Math.max(0, end - CHUNK + 1);
-        const logs = await rpcCallAny('eth_getLogs', [{
-          address: WMON_CONTRACT, topics: [TRANSFER_TOPIC],
-          fromBlock: '0x' + start.toString(16), toBlock: '0x' + end.toString(16),
-        }]);
-        if(logs?.length){
-          for(const log of logs){
-            if(log.topics?.[2]){
-              const to = '0x' + log.topics[2].slice(26).toLowerCase();
-              if(!EXCLUDE.has(to)) seen.add(to);
-            }
-          }
-        }
-        if(seen.size >= 300) break;
-      }
     }
-
-    if(!seen.size) return null;
-
-    // 잔고 병렬 조회 (20개씩 동시 요청 → 순차 대비 ~20배 빠름)
-    const addrs = [...seen];
-    const holders = [];
-    const PARALLEL = 20;
-    for(let i = 0; i < addrs.length; i += PARALLEL){
-      const chunk = addrs.slice(i, i + PARALLEL);
-      const results = await Promise.all(chunk.map(addr =>
-        rpcCallAny('eth_getBalance', [addr, 'latest'])
-      ));
-      results.forEach((hex, j) => {
-        if(hex && hex !== '0x' && hex.length > 2){
-          const bal = Number(BigInt(hex)) / 1e18;
-          if(bal > 0) holders.push({address: chunk[j], balance: bal, pct: 0});
-        }
-      });
-    }
-
-    if(!holders.length) return null;
-    holders.sort((a,b) => b.balance - a.balance);
-    const top = holders.slice(0, 50);
-    top.forEach(h => { h.pct = 0; }); // MON is native, no fixed total supply
-    console.log('✅ Holders loaded (rpc):', top.length, 'from', seen.size, 'unique addrs');
-    holderCache = top; holderCacheTime = Date.now();
-    return top;
-  } catch(e){ console.warn('RPC direct error:', e.message); }
+  } catch(e){ /* silent — holder count optional */ }
 
   return null;
 }
@@ -311,7 +198,7 @@ function renderTierTable(){
   TIERS.forEach(t => {
     const isMyTier = myTier.cls === t.cls;
     const minStr = t.min >= 1e6 ? (t.min/1e6)+'M' : t.min >= 1e3 ? (t.min/1e3)+'K' : t.min > 0 ? t.min : '0';
-    html += `<div class="tier-row" style="${isMyTier?'border-color:'+t.color+';background:rgba(192,132,252,0.1)':''}">
+    html += `<div class="tier-row" style="${isMyTier?'border-color:'+t.color+';background:rgba(124,58,237,0.1)':''}">
       <div style="font-size:24px;width:36px;text-align:center">${t.badge.split(' ')[0]}</div>
       <div style="flex:1">
         <div style="font-weight:700;color:${t.color};font-size:13px">${t.label}
@@ -324,7 +211,7 @@ function renderTierTable(){
   });
 
   html += `</div>
-  <div style="margin-top:12px;padding:10px 12px;background:rgba(192,132,252,0.06);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.7">
+  <div style="margin-top:12px;padding:10px 12px;background:rgba(124,58,237,0.06);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.7">
     ${wallet
       ? `💜 Your balance: <b style="color:var(--accent)">${myBal.toLocaleString()} MON</b> → <b class="${myTier.cls}">${myTier.label}</b>`
       : '🔗 Connect wallet to see your tier'}
@@ -448,7 +335,7 @@ async function _finalizeWalletConnection(addr, provider, name){
         if(!chatList2) return;
         const div = document.createElement('div');
         div.className = 'chat-msg';
-        div.style.cssText = 'background:rgba(192,132,252,0.1);border:1px solid rgba(192,132,252,0.3);';
+        div.style.cssText = 'background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);';
         div.innerHTML = `
           <div class="msg-meta">
             <span style="font-size:12px">🤖</span>

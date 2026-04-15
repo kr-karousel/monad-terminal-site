@@ -212,28 +212,28 @@ function devTest(type){
   const mp = cachedMonPrice || 0.026;
   switch(type){
     case 'bigBuy':
-      showTradeFloat(true, 10000*mp, 1500000, 10000);
-      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'buy',amount:1500000,price:livePrice,mon:10000,time:nowTime()});
+      showTradeFloat(true, 100000*mp, 100000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'buy',amount:100000,price:livePrice,mon:100000,usd:100000*mp,time:nowTime()});
       break;
     case 'bigSell':
-      showTradeFloat(false, 15000*mp, 2000000, 15000);
-      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'sell',amount:2000000,price:livePrice,mon:15000,time:nowTime()});
+      showTradeFloat(false, 200000*mp, 200000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'sell',amount:200000,price:livePrice,mon:200000,usd:200000*mp,time:nowTime()});
       break;
     case 'whaleBuy':
-      showTradeFloat(true, 150000*mp, 20000000, 150000);
-      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'buy',amount:20000000,price:livePrice,mon:150000,time:nowTime()});
+      showTradeFloat(true, 1000000*mp, 1000000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'buy',amount:1000000,price:livePrice,mon:1000000,usd:1000000*mp,time:nowTime()});
       break;
     case 'whaleSell':
-      showTradeFloat(false, 200000*mp, 30000000, 200000);
-      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'sell',amount:30000000,price:livePrice,mon:200000,time:nowTime()});
+      showTradeFloat(false, 2000000*mp, 2000000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'sell',amount:2000000,price:livePrice,mon:2000000,usd:2000000*mp,time:nowTime()});
       break;
     case 'megaBuy':
-      showTradeFloat(true, 500000*mp, 70000000, 500000);
-      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'buy',amount:70000000,price:livePrice,mon:500000,time:nowTime()});
+      showTradeFloat(true, 5000000*mp, 5000000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'buy',amount:5000000,price:livePrice,mon:5000000,usd:5000000*mp,time:nowTime()});
       break;
     case 'megaSell':
-      showTradeFloat(false, 500000*mp, 70000000, 500000);
-      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'sell',amount:70000000,price:livePrice,mon:500000,time:nowTime()});
+      showTradeFloat(false, 7000000*mp, 7000000);
+      renderMsg({addr:'0xDEV_TEST',bal:999999,type:'trade',side:'sell',amount:7000000,price:livePrice,mon:7000000,usd:7000000*mp,time:nowTime()});
       break;
     case 'chat':
       renderMsg({addr:'0xDEV_TEST',bal:999999,msg:'🔧 Dev test message at '+nowTime(),time:nowTime()});

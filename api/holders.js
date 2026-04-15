@@ -74,11 +74,19 @@ async function getHoldersFromRPC(contract) {
 
   const addrs = [...seen];
   const holders = [];
-  for (let i = 0; i < addrs.length; i += 50) {
-    const chunk = addrs.slice(i, i + 50);
+  for (let i = 0; i < addrs.length; i += 10) {
+    const chunk = addrs.slice(i, i + 10);
     const reqs = chunk.map((a, j) => ({ jsonrpc: '2.0', id: i + j, method: 'eth_call', params: [{ to: contract, data: '0x70a08231' + a.slice(2).padStart(64, '0') }, 'latest'] }));
     try {
-      const arr = await rpcPost(reqs);
+      const rpcs = ['https://monad-mainnet.rpc.thirdweb.com', 'https://monad.drpc.org', MONAD_RPC];
+      let arr = null;
+      for (const rpc of rpcs) {
+        try {
+          const r = await fetch(rpc, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reqs), signal: AbortSignal.timeout(8000) });
+          if (r.ok) { arr = await r.json(); break; }
+        } catch (_) {}
+      }
+      if (!arr) continue;
       (Array.isArray(arr) ? arr : [arr]).forEach((item, j) => {
         const hex = item?.result;
         if (hex && hex !== '0x') {

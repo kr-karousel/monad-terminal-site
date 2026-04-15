@@ -7,16 +7,18 @@ var emotionTimer = null;
 // ── TRADE FLOATING ALERT ─────────────────────────────
 // USD_ALERT_THRESHOLD = $10,000 (config.js)
 
-function getEmojiCount(usd) {
-  if (usd >= 500000) return 5;
-  if (usd >= 100000) return 4;
-  if (usd >=  50000) return 3;
-  if (usd >=  25000) return 2;
+function getEmojiCount(monAmount) {
+  if (monAmount >= MON_ALERT_MEGA  * 2) return 5;
+  if (monAmount >= MON_ALERT_MEGA)      return 4;
+  if (monAmount >= MON_ALERT_WHALE * 2) return 3;
+  if (monAmount >= MON_ALERT_WHALE)     return 2;
   return 1;
 }
 
-function showTradeFloat(isBuy, usdValue, monAmount) {
-  if (usdValue < USD_ALERT_THRESHOLD) return; // $10,000 미만 무시
+// MON 수량 기준: BIG 100K+ / WHALE 1M+ / MEGA 5M+
+// exchange: 'Binance' | 'OKX' | undefined (DEX)
+function showTradeFloat(isBuy, usdValue, monAmount, exchange) {
+  if (monAmount < MON_ALERT_BIG) return; // 100K MON 미만 무시
 
   const container = document.getElementById('tradeFloatContainer');
   if (!container) return;
@@ -24,69 +26,48 @@ function showTradeFloat(isBuy, usdValue, monAmount) {
   const wrap = document.createElement('div');
   wrap.className = 'trade-float';
 
-  const isWhale = usdValue >= 100000; // $100,000+ = whale
-  const count   = getEmojiCount(usdValue);
+  const isWhale = monAmount >= MON_ALERT_WHALE;
+  const count   = getEmojiCount(monAmount);
 
-  // 표시용 금액
-  const usdDisplay = '$' + formatK(usdValue);
-  const monDisplay = formatK(monAmount) + ' MON';
-  const clownSrc   = isBuy ? 'img/clown_buy.jpg' : 'img/clown_sell.jpg';
+  const usdDisplay  = '$' + formatK(usdValue);
+  const monDisplay  = formatK(monAmount) + ' MON';
+  const srcTag      = exchange ? `<span style="font-size:9px;opacity:.6;margin-left:4px">[${exchange}]</span>` : '';
+  const clownSrc    = isBuy ? 'img/clown_buy.jpg' : 'img/clown_sell.jpg';
   const clownCls   = isWhale ? 'trade-float-clown whale' : 'trade-float-clown';
   const clownHtml  = (typeof devShowTradePhoto === 'undefined' || devShowTradePhoto)
     ? `<img class="${clownCls}" src="${clownSrc}" alt="">`
     : '';
 
-  if (usdValue >= 500000) {
-    // $500K+ : MEGA
-    const emoji    = isBuy ? '🐳' : '☠️';
-    const label    = isBuy ? '🚨 MEGA BUY!' : '💀 MEGA DUMP!';
+  if (monAmount >= MON_ALERT_MEGA) {
+    const emoji = isBuy ? '🐳' : '☠️';
+    const label = isBuy ? '🚨 MEGA BUY!' : '💀 MEGA DUMP!';
     wrap.innerHTML = `
       ${clownHtml}
       <div class="trade-float-emoji whale">${emoji.repeat(count)}</div>
-      <div class="trade-float-bubble ${isBuy ? 'whale' : 'sell'}">${label} ${usdDisplay}</div>
-      <div class="trade-float-amount">${usdDisplay} / ${monDisplay}</div>`;
-  } else if (usdValue >= 100000) {
-    // $100K+ : WHALE
+      <div class="trade-float-bubble ${isBuy ? 'whale' : 'sell'}">${label} ${monDisplay}${srcTag}</div>
+      <div class="trade-float-amount">${monDisplay} / ${usdDisplay}</div>`;
+  } else if (monAmount >= MON_ALERT_WHALE) {
     const emoji = isBuy ? '🐳' : '☠️';
     const label = isBuy ? '🐳 WHALE BUY!' : '☠️ WHALE SELL!';
     wrap.innerHTML = `
       ${clownHtml}
       <div class="trade-float-emoji whale">${emoji.repeat(count)}</div>
-      <div class="trade-float-bubble ${isBuy ? 'whale' : 'sell'}">${label} ${usdDisplay}</div>
-      <div class="trade-float-amount">${usdDisplay} / ${monDisplay}</div>`;
-  } else if (usdValue >= 50000) {
-    // $50K+ : BIG
+      <div class="trade-float-bubble ${isBuy ? 'whale' : 'sell'}">${label} ${monDisplay}${srcTag}</div>
+      <div class="trade-float-amount">${monDisplay} / ${usdDisplay}</div>`;
+  } else {
     const emoji = isBuy ? '🚀' : '💀';
     const label = isBuy ? '🟢 BIG BUY!' : '🔴 BIG SELL!';
     wrap.innerHTML = `
       ${clownHtml}
       <div class="trade-float-emoji">${emoji.repeat(count)}</div>
-      <div class="trade-float-bubble ${isBuy ? 'buy' : 'sell'}">${label} ${usdDisplay}</div>
-      <div class="trade-float-amount">${usdDisplay} / ${monDisplay}</div>`;
-  } else if (usdValue >= 25000) {
-    // $25K+ : HOT
-    const emoji = isBuy ? '🔥' : '🩸';
-    const label = isBuy ? '🟡 HOT BUY!' : '🟠 HOT SELL!';
-    wrap.innerHTML = `
-      ${clownHtml}
-      <div class="trade-float-emoji">${emoji.repeat(count)}</div>
-      <div class="trade-float-bubble ${isBuy ? 'buy' : 'sell'}">${label} ${usdDisplay}</div>
-      <div class="trade-float-amount">${usdDisplay} / ${monDisplay}</div>`;
-  } else {
-    // $10K~$24.9K : 기본
-    const emoji = isBuy ? '💚' : '🔴';
-    const label = isBuy ? 'BUY' : 'SELL';
-    wrap.innerHTML = `
-      ${clownHtml}
-      <div class="trade-float-emoji">${emoji}</div>
-      <div class="trade-float-bubble ${isBuy ? 'buy' : 'sell'}">${label} ${usdDisplay}</div>
-      <div class="trade-float-amount">${usdDisplay} / ${monDisplay}</div>`;
+      <div class="trade-float-bubble ${isBuy ? 'buy' : 'sell'}">${label} ${monDisplay}${srcTag}</div>
+      <div class="trade-float-amount">${monDisplay} / ${usdDisplay}</div>`;
   }
 
   container.appendChild(wrap);
   triggerBgEffect(isBuy, usdValue);
 
-  const duration = usdValue >= 100000 ? 4000 : usdValue >= 50000 ? 3000 : 2000;
+  const duration = monAmount >= MON_ALERT_WHALE ? 4000 : 3000;
   setTimeout(() => {
     wrap.classList.add('fadeout');
     setTimeout(() => wrap.remove(), 500);

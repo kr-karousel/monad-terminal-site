@@ -23,7 +23,7 @@ function initChart(){
   const fallback    = document.getElementById('chart-fallback');
 
   if(tvContainer){
-    var CHART_SRC = 'https://dexscreener.com/monad/0x659bd0bc4167ba25c62e05656f78043e7ed4a9da?embed=1&theme=dark&trades=0&info=0';
+    var CHART_SRC = 'https://dexscreener.com/monad/0x659bd0bc4167ba25c62e05656f78043e7ed4a9da?embed=1&theme=dark&trades=0&info=0&chartType=price';
     tvContainer.innerHTML = '<iframe src="'+CHART_SRC+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="MON/USDC Chart"></iframe>';
     tvContainer.style.display = 'block';
     tvContainer.style.position = 'relative';
@@ -34,6 +34,48 @@ function initChart(){
     });
     if(fallback) fallback.style.display = 'none';
     console.log('✅ DEXScreener 차트 로드');
+
+    // 마우스 커서 캐릭터 — CHOG 터미널과 동일한 팔로우 애니메이션
+    const chog = document.getElementById('chogChar');
+    if(chog){
+      document.body.appendChild(chog);
+      Object.assign(chog.style, {
+        position      : 'fixed',
+        left          : '-200px',
+        top           : '-200px',
+        zIndex        : '9998',
+        width         : '72px',
+        pointerEvents : 'none',
+        transition    : 'opacity 0.25s',
+        willChange    : 'transform',
+        display       : 'block',
+      });
+
+      let targetX = window.innerWidth / 2;
+      let targetY = window.innerHeight / 2;
+      let curX = targetX, curY = targetY, floatT = 0;
+
+      document.addEventListener('mousemove', e => {
+        targetX = e.clientX - 36;
+        targetY = e.clientY - 80;
+      });
+      document.addEventListener('touchmove', e => {
+        targetX = e.touches[0].clientX - 36;
+        targetY = e.touches[0].clientY - 80;
+      }, { passive: true });
+
+      (function animateCursor(){
+        const chessOpen = document.getElementById('chessModal')?.classList.contains('open');
+        chog.style.opacity = chessOpen ? '0' : '1';
+        curX += (targetX - curX) * 0.12;
+        curY += (targetY - curY) * 0.12;
+        floatT += 0.04;
+        chog.style.left      = curX + 'px';
+        chog.style.top       = curY + 'px';
+        chog.style.transform = `translateY(${Math.sin(floatT) * 5}px) rotate(${Math.sin(floatT * 0.6) * 4}deg)`;
+        requestAnimationFrame(animateCursor);
+      })();
+    }
 
     // 모바일 스크롤 후 iframe 소멸 방지 - IntersectionObserver로 복구
     if('IntersectionObserver' in window){
@@ -58,7 +100,7 @@ function initChart(){
   // 접근: RAF 루프 대신, 스크롤 종료 후 iframe이 깨졌는지 1회 체크 + display 토글로 복구
   (function(){
     var scrollTimer = null;
-    var chartSrc = 'https://dexscreener.com/monad/0x659bd0bc4167ba25c62e05656f78043e7ed4a9da?embed=1&theme=dark&trades=0&info=0';
+    var chartSrc = 'https://dexscreener.com/monad/0x659bd0bc4167ba25c62e05656f78043e7ed4a9da?embed=1&theme=dark&trades=0&info=0&chartType=price';
 
     function recoverIframe(){
       var c = document.getElementById('tv-chart-container');
@@ -138,7 +180,7 @@ function drawChart(){
   const toX = t => PAD_L + cW*((t-t0)/tRange);
 
   // 그리드
-  ctx.strokeStyle='rgba(192,132,252,0.06)';
+  ctx.strokeStyle='rgba(124,58,237,0.06)';
   ctx.lineWidth=1;
   for(let i=0;i<=4;i++){
     const y=PT+(cH/4)*i;
@@ -147,7 +189,7 @@ function drawChart(){
 
   // 시총 라인
   ctx.beginPath();
-  ctx.strokeStyle='rgba(192,132,252,0.5)';
+  ctx.strokeStyle='rgba(124,58,237,0.5)';
   ctx.lineWidth=1.5;
   trades.forEach((t,i)=>{
     const x=toX(t.time), y=toY(t.mcap);
@@ -183,7 +225,7 @@ function drawChart(){
   // 가격 축 (우측)
   ctx.fillStyle='#0d0a1a';
   ctx.fillRect(W-PR,0,PR,H);
-  ctx.strokeStyle='rgba(192,132,252,0.15)';
+  ctx.strokeStyle='rgba(124,58,237,0.15)';
   ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(W-PR,0);ctx.lineTo(W-PR,H);ctx.stroke();
   ctx.fillStyle='#7c6fa0';
@@ -256,7 +298,7 @@ function drawCandleChart(ctx,W,H,cW,cH,PAD_L,PT,PB){
   const cw = Math.max(2, Math.floor(cW / vis.length));
 
   // 그리드
-  ctx.strokeStyle='rgba(192,132,252,0.06)';
+  ctx.strokeStyle='rgba(124,58,237,0.06)';
   ctx.lineWidth=1;
   for(let i=0;i<=4;i++){
     const y=PT+(cH/4)*i;
@@ -282,7 +324,7 @@ function drawCandleChart(ctx,W,H,cW,cH,PAD_L,PT,PB){
 
   // 가격 축
   ctx.fillStyle='#0d0a1a'; ctx.fillRect(W-PAD_R,0,PAD_R,H);
-  ctx.strokeStyle='rgba(192,132,252,0.15)'; ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(124,58,237,0.15)'; ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(W-PAD_R,0);ctx.lineTo(W-PAD_R,H);ctx.stroke();
   ctx.fillStyle='#7c6fa0'; ctx.font='9px monospace'; ctx.textAlign='left';
   for(let i=0;i<=4;i++){
