@@ -154,7 +154,7 @@ async function refreshPriceStats(){
   livePrice      = info.priceUsd;
   priceChange24h = (info.priceChange && info.priceChange.h24) || 0;
   updatePriceDisplay(livePrice);
-  // mcap은 DEXScreener에서 받아오므로 여기서는 생략
+  if(info.marketCap > 0) updateMcap(info.marketCap);
   // 기간별 통계 패널 업데이트
   updateStatPanel(info);
   // 통계 그리드 직접 업데이트
