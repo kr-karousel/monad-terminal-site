@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" fill="#1a0050"/>
+  <!-- Outer white rounded diamond (squircle rotated 45deg) -->
+  <rect x="14" y="14" width="172" height="172" rx="44" fill="white" transform="rotate(45 100 100)"/>
+  <!-- Inner cutout: slightly offset down-left, rotated 45deg -->
+  <rect x="65" y="72" width="68" height="68" rx="19" fill="#1a0050" transform="rotate(45 97 104)"/>
+</svg>

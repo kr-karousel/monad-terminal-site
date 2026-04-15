@@ -23,7 +23,7 @@ function initChart(){
   const fallback    = document.getElementById('chart-fallback');
 
   if(tvContainer){
-    var CHART_SRC = 'https://dexscreener.com/monad/0xb9897986847472cd08b9a0e7bcd31ea4f1322361?embed=1&theme=dark&trades=0&info=0';
+    var CHART_SRC = 'https://dexscreener.com/monad/0x659bd0bc4167ba25c62e05656f78043e7ed4a9da?embed=1&theme=dark&trades=0&info=0';
     tvContainer.innerHTML = '<iframe src="'+CHART_SRC+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="MON/USDC Chart"></iframe>';
     tvContainer.style.display = 'block';
     tvContainer.style.position = 'relative';
@@ -58,7 +58,7 @@ function initChart(){
   // 접근: RAF 루프 대신, 스크롤 종료 후 iframe이 깨졌는지 1회 체크 + display 토글로 복구
   (function(){
     var scrollTimer = null;
-    var chartSrc = 'https://dexscreener.com/monad/0xb9897986847472cd08b9a0e7bcd31ea4f1322361?embed=1&theme=dark&trades=0&info=0';
+    var chartSrc = 'https://dexscreener.com/monad/0x659bd0bc4167ba25c62e05656f78043e7ed4a9da?embed=1&theme=dark&trades=0&info=0';
 
     function recoverIframe(){
       var c = document.getElementById('tv-chart-container');
