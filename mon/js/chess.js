@@ -415,7 +415,7 @@ function renderChessInfo(){
   else if(g.status==='checkmate') statusText = `<span style="color:#ef4444;font-weight:700">☠️ CHECKMATE!</span>`;
   else if(g.status==='stalemate') statusText = `<span style="color:var(--muted)">🤝 STALEMATE</span>`;
   else if(g.status==='resigned')  statusText = `<span style="color:var(--muted)">🏳️ RESIGNED</span>`;
-  else statusText = `<span style="${g.turn==='white'?'color:#f3f4f6':'color:#c084fc'}">${turnIcon} ${g.turn.toUpperCase()}'s turn</span>`;
+  else statusText = `<span style="${g.turn==='white'?'color:#f3f4f6':'color:#7c3aed'}">${turnIcon} ${g.turn.toUpperCase()}'s turn</span>`;
 
   const isMyTurn = wallet && wallet.addr.toLowerCase() ===
     (g.turn==='white'?g.whiteAddr:g.blackAddr).toLowerCase();
@@ -652,7 +652,7 @@ function chessShowResult(emoji, title, sub, type){
       <div class="chess-gameover-title">${iWon?'GG EZ! 🎉':'NGMI 😭'}</div>
       <div class="chess-gameover-sub">${title} — ${sub}</div>
       <div style="display:flex;gap:8px;margin-top:14px">
-        <button class="chess-btn" style="background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(192,132,252,.25));border-color:rgba(192,132,252,.5);color:var(--accent)"
+        <button class="chess-btn" style="background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(124,58,237,.25));border-color:rgba(124,58,237,.5);color:var(--accent)"
           onclick="chessPlayAgain()">♟️ Play Again</button>
         <button class="chess-btn" onclick="closeChessModal();chessGame=null;">Close</button>
       </div>
@@ -874,7 +874,7 @@ function _chessPipUpdateTurn(){
   const isMyTurn = wallet && wallet.addr.toLowerCase() ===
     (chessGame.turn==='white'?chessGame.whiteAddr:chessGame.blackAddr).toLowerCase();
   pip.textContent = isMyTurn ? 'YOUR TURN' : 'WAITING...';
-  pip.style.color = isMyTurn ? '#4ade80' : 'rgba(192,132,252,0.6)';
+  pip.style.color = isMyTurn ? '#4ade80' : 'rgba(124,58,237,0.6)';
 }
 
 // ══════════════════════════════════════════════════════

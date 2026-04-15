@@ -278,7 +278,7 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash) {
     <div id="profileTradesPanel" style="display:none;margin-top:8px"></div>
 
     <!-- Chess Stats -->
-    <div style="margin:8px 0;padding:8px 12px;background:rgba(139,92,246,0.08);border:1px solid rgba(192,132,252,0.2);border-radius:10px">
+    <div style="margin:8px 0;padding:8px 12px;background:rgba(139,92,246,0.08);border:1px solid rgba(124,58,237,0.2);border-radius:10px">
       <div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:6px;letter-spacing:0.5px">♟️ CHESS RECORD</div>
       <div style="display:flex;gap:12px;justify-content:center">
         <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--green)" id="profileChessW">—</div><div style="font-size:9px;color:var(--muted)">WINS</div></div>
@@ -303,7 +303,7 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash) {
       ♟️ Challenge to Chess
     </button>
     ` : isMe ? `
-    <div style="text-align:center;padding:12px;background:rgba(192,132,252,0.08);border-radius:10px;font-size:12px;color:var(--accent)">
+    <div style="text-align:center;padding:12px;background:rgba(124,58,237,0.08);border-radius:10px;font-size:12px;color:var(--accent)">
       👑 This is your wallet
     </div>
     ` : `
@@ -407,7 +407,7 @@ function toggleProfileTrades(addr) {
   if (!panel) return;
   if (panel.style.display === 'none') {
     panel.style.display = '';
-    if (btn) btn.style.background = 'rgba(192,132,252,0.15)';
+    if (btn) btn.style.background = 'rgba(124,58,237,0.15)';
     if (typeof loadProfileTrades === 'function') loadProfileTrades(addr, 'profileTradesPanel');
   } else {
     panel.style.display = 'none';

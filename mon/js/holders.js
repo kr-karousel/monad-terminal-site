@@ -84,7 +84,7 @@ async function renderHolderList(){
     if(isDev && !nick) displayName = short + ' <span style="color:var(--muted);font-size:9px">(dev)</span>';
     else if(nick) displayName = nick;
 
-    const rowStyle = isMe ? 'background:rgba(192,132,252,0.12);border-left:3px solid var(--accent);' : '';
+    const rowStyle = isMe ? 'background:rgba(124,58,237,0.12);border-left:3px solid var(--accent);' : '';
     const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
     const rankColor = rank <= 3 ? 'top3' : '';
 
@@ -101,7 +101,7 @@ async function renderHolderList(){
         <div style="display:flex;align-items:center;gap:6px">
           <span class="rank-badge ${tierInfo.cls}" style="font-size:8px;padding:1px 5px">${tierInfo.badge}</span>
           <span class="holder-nick">${displayName}</span>
-          ${isMe ? '<span style="color:var(--accent);font-size:9px;font-weight:700;background:rgba(192,132,252,0.2);padding:1px 5px;border-radius:8px">YOU</span>' : ''}
+          ${isMe ? '<span style="color:var(--accent);font-size:9px;font-weight:700;background:rgba(124,58,237,0.2);padding:1px 5px;border-radius:8px">YOU</span>' : ''}
         </div>
       </td>
       <td class="holder-amount">${amtM} <span style="color:var(--muted);font-size:9px">${usdStr}</span></td>
@@ -117,14 +117,14 @@ async function renderHolderList(){
     const myAmtM = wallet.bal >= 1e6 ? (wallet.bal/1e6).toFixed(0)+'M'
                  : wallet.bal >= 1e3 ? (wallet.bal/1e3).toFixed(0)+'K'
                  : wallet.bal.toFixed(0);
-    html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(192,132,252,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;display:flex;align-items:center;gap:8px">
+    html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(124,58,237,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;display:flex;align-items:center;gap:8px">
       <span style="color:var(--accent);font-weight:700">📍 Your Rank:</span>
       <span class="rank-badge ${myTier.cls}" style="font-size:8px">${myTier.badge}</span>
       <span style="color:var(--text)">${wallet.addr.slice(0,6)}...</span>
       <span style="margin-left:auto;font-family:'Share Tech Mono',monospace">${myAmtM} CHOG</span>
     </div>`;
   } else if(wallet && myRankIdx >= 0){
-    html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(192,132,252,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;text-align:center;color:var(--accent);font-weight:700">
+    html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(124,58,237,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;text-align:center;color:var(--accent);font-weight:700">
       📍 Your Rank: #${myRankIdx+1} of ${holderCount}+ holders
     </div>`;
   }
@@ -294,8 +294,8 @@ function renderTierTable(){
   const TIERS = [
     {min:100000000, label:'CHOG GOD',              badge:'👑 GOD',     cls:'r1', color:'#ffd700'},
     {min:10000000,  label:'Dragon Overlord',        badge:'🐉 DRAGON',  cls:'r2', color:'#e5e7eb'},
-    {min:1000000,   label:'CHOG Emperor',           badge:'👸 EMPEROR', cls:'r3', color:'#c084fc'},
-    {min:100000,    label:'Royal Whale',             badge:'🐳 WHALE',   cls:'r4', color:'#f472b6'},
+    {min:1000000,   label:'CHOG Emperor',           badge:'👸 EMPEROR', cls:'r3', color:'#7c3aed'},
+    {min:100000,    label:'Royal Whale',             badge:'🐳 WHALE',   cls:'r4', color:'#38bdf8'},
     {min:50000,     label:'Noble Flexer',            badge:'🥂 NOBLE',   cls:'r5', color:'#60a5fa'},
     {min:10000,     label:'Market Hustler',          badge:'💹 HUSTLER', cls:'r6', color:'#34d399'},
     {min:1000,      label:"McDonald's Shift Legend", badge:'🍔 SHIFT',   cls:'r7', color:'#fbbf24'},
@@ -311,7 +311,7 @@ function renderTierTable(){
   TIERS.forEach(t => {
     const isMyTier = myTier.cls === t.cls;
     const minStr = t.min >= 1e6 ? (t.min/1e6)+'M' : t.min >= 1e3 ? (t.min/1e3)+'K' : t.min > 0 ? t.min : '0';
-    html += `<div class="tier-row" style="${isMyTier?'border-color:'+t.color+';background:rgba(192,132,252,0.1)':''}">
+    html += `<div class="tier-row" style="${isMyTier?'border-color:'+t.color+';background:rgba(124,58,237,0.1)':''}">
       <div style="font-size:24px;width:36px;text-align:center">${t.badge.split(' ')[0]}</div>
       <div style="flex:1">
         <div style="font-weight:700;color:${t.color};font-size:13px">${t.label}
@@ -324,7 +324,7 @@ function renderTierTable(){
   });
 
   html += `</div>
-  <div style="margin-top:12px;padding:10px 12px;background:rgba(192,132,252,0.06);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.7">
+  <div style="margin-top:12px;padding:10px 12px;background:rgba(124,58,237,0.06);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.7">
     ${wallet
       ? `💜 Your balance: <b style="color:var(--accent)">${myBal.toLocaleString()} CHOG</b> → <b class="${myTier.cls}">${myTier.label}</b>`
       : '🔗 Connect wallet to see your tier'}
@@ -448,7 +448,7 @@ async function _finalizeWalletConnection(addr, provider, name){
         if(!chatList2) return;
         const div = document.createElement('div');
         div.className = 'chat-msg';
-        div.style.cssText = 'background:rgba(192,132,252,0.1);border:1px solid rgba(192,132,252,0.3);';
+        div.style.cssText = 'background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);';
         div.innerHTML = `
           <div class="msg-meta">
             <span style="font-size:12px">🤖</span>

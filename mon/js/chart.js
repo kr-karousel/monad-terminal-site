@@ -138,7 +138,7 @@ function drawChart(){
   const toX = t => PAD_L + cW*((t-t0)/tRange);
 
   // 그리드
-  ctx.strokeStyle='rgba(192,132,252,0.06)';
+  ctx.strokeStyle='rgba(124,58,237,0.06)';
   ctx.lineWidth=1;
   for(let i=0;i<=4;i++){
     const y=PT+(cH/4)*i;
@@ -147,7 +147,7 @@ function drawChart(){
 
   // 시총 라인
   ctx.beginPath();
-  ctx.strokeStyle='rgba(192,132,252,0.5)';
+  ctx.strokeStyle='rgba(124,58,237,0.5)';
   ctx.lineWidth=1.5;
   trades.forEach((t,i)=>{
     const x=toX(t.time), y=toY(t.mcap);
@@ -183,7 +183,7 @@ function drawChart(){
   // 가격 축 (우측)
   ctx.fillStyle='#0d0a1a';
   ctx.fillRect(W-PR,0,PR,H);
-  ctx.strokeStyle='rgba(192,132,252,0.15)';
+  ctx.strokeStyle='rgba(124,58,237,0.15)';
   ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(W-PR,0);ctx.lineTo(W-PR,H);ctx.stroke();
   ctx.fillStyle='#7c6fa0';
@@ -256,7 +256,7 @@ function drawCandleChart(ctx,W,H,cW,cH,PAD_L,PT,PB){
   const cw = Math.max(2, Math.floor(cW / vis.length));
 
   // 그리드
-  ctx.strokeStyle='rgba(192,132,252,0.06)';
+  ctx.strokeStyle='rgba(124,58,237,0.06)';
   ctx.lineWidth=1;
   for(let i=0;i<=4;i++){
     const y=PT+(cH/4)*i;
@@ -282,7 +282,7 @@ function drawCandleChart(ctx,W,H,cW,cH,PAD_L,PT,PB){
 
   // 가격 축
   ctx.fillStyle='#0d0a1a'; ctx.fillRect(W-PAD_R,0,PAD_R,H);
-  ctx.strokeStyle='rgba(192,132,252,0.15)'; ctx.lineWidth=1;
+  ctx.strokeStyle='rgba(124,58,237,0.15)'; ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(W-PAD_R,0);ctx.lineTo(W-PAD_R,H);ctx.stroke();
   ctx.fillStyle='#7c6fa0'; ctx.font='9px monospace'; ctx.textAlign='left';
   for(let i=0;i<=4;i++){

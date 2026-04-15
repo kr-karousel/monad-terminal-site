@@ -1,12 +1,12 @@
 :root{
-  --bg:#0d0a1a;--bg2:#130f24;--accent:#c084fc;--accent2:#f472b6;
-  --gold:#fbbf24;--green:#4ade80;--red:#f87171;--text:#e2d9f3;
-  --muted:#7c6fa0;--border:rgba(192,132,252,0.18);--card:rgba(19,15,36,0.85);
+  --bg:#070612;--bg2:#0d0a22;--accent:#7c3aed;--accent2:#38bdf8;
+  --gold:#fbbf24;--green:#34d399;--red:#f87171;--text:#ddd8f5;
+  --muted:#6259a0;--border:rgba(124,58,237,0.22);--card:rgba(13,10,34,0.88);
 }
 #chogChar{display:none!important}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 10%,rgba(192,132,252,0.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(244,114,182,0.06) 0%,transparent 60%);pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 10%,rgba(124,58,237,0.10) 0%,transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(56,189,248,0.06) 0%,transparent 60%);pointer-events:none;z-index:0}
 
 /* TICKER */
 .ticker-bar{background:rgba(19,15,36,0.9);border-bottom:1px solid var(--border);padding:6px 0;overflow:hidden}
@@ -28,7 +28,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .btn-rank:hover{background:rgba(251,191,36,0.2)}
 .btn-connect{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:20px;padding:7px 14px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap;font-family:'Nunito',sans-serif}
 .btn-connect:hover{transform:scale(1.05)}
-.wallet-info{display:flex;align-items:center;gap:6px;background:rgba(192,132,252,0.1);border:1px solid var(--border);border-radius:20px;padding:5px 10px;font-size:11px}
+.wallet-info{display:flex;align-items:center;gap:6px;background:rgba(124,58,237,0.1);border:1px solid var(--border);border-radius:20px;padding:5px 10px;font-size:11px}
 .wallet-addr{font-family:'Share Tech Mono',monospace;color:var(--accent)}
 
 /* MAIN LAYOUT */
@@ -133,21 +133,21 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .btn-send{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:8px 14px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap}
 /* STICKER BUTTON */
 .btn-sticker{background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:10px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s;flex-shrink:0}
-.btn-sticker:hover:not(:disabled){background:rgba(192,132,252,0.15);border-color:var(--accent)}
+.btn-sticker:hover:not(:disabled){background:rgba(124,58,237,0.15);border-color:var(--accent)}
 .btn-sticker:disabled{opacity:.4;cursor:not-allowed}
 /* STICKER PICKER PANEL */
 .sticker-picker{display:none;position:absolute;bottom:calc(100% + 6px);right:0;width:296px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:300;overflow:hidden;animation:stickerIn .15s ease}
 @keyframes stickerIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .sticker-picker.open{display:block}
-.sticker-picker-header{padding:8px 12px;background:rgba(192,132,252,0.08);border-bottom:1px solid var(--border);font-size:12px;display:flex;align-items:center;justify-content:space-between}
+.sticker-picker-header{padding:8px 12px;background:rgba(124,58,237,0.08);border-bottom:1px solid var(--border);font-size:12px;display:flex;align-items:center;justify-content:space-between}
 .sticker-page-nav{display:flex;align-items:center;gap:8px}
 .sticker-nav-btn{background:none;border:none;color:var(--text);cursor:pointer;padding:2px 6px;border-radius:6px;font-size:14px;line-height:1;transition:background .12s}
-.sticker-nav-btn:hover:not(:disabled){background:rgba(192,132,252,0.2)}
+.sticker-nav-btn:hover:not(:disabled){background:rgba(124,58,237,0.2)}
 .sticker-nav-btn:disabled{opacity:.25;cursor:default}
 .sticker-page-info{font-size:10px;color:var(--muted);min-width:32px;text-align:center}
 .sticker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}
 .sticker-item{aspect-ratio:1;border-radius:12px;overflow:hidden;cursor:pointer;background:rgba(255,255,255,0.04);border:1px solid transparent;display:flex;align-items:center;justify-content:center;transition:background .12s,border-color .12s,transform .1s}
-.sticker-item:hover{background:rgba(192,132,252,0.15);border-color:var(--accent);transform:scale(1.06)}
+.sticker-item:hover{background:rgba(124,58,237,0.15);border-color:var(--accent);transform:scale(1.06)}
 .sticker-item img{width:100%;height:100%;object-fit:contain}
 /* STICKER IN CHAT */
 .chat-sticker{display:inline-block;margin-top:4px}
@@ -173,8 +173,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 /* RANK COLORS */
 .r1{color:#ffd700}.r1.rank-badge{background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.3)}
 .r2{color:#e5e7eb}.r2.rank-badge{background:rgba(229,231,235,.1);border:1px solid rgba(229,231,235,.2)}
-.r3{color:#c084fc}.r3.rank-badge{background:rgba(192,132,252,.1);border:1px solid rgba(192,132,252,.2)}
-.r4{color:#f472b6}.r4.rank-badge{background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.2)}
+.r3{color:#7c3aed}.r3.rank-badge{background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.2)}
+.r4{color:#38bdf8}.r4.rank-badge{background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.2)}
 .r5{color:#60a5fa}.r5.rank-badge{background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.2)}
 .r6{color:#34d399}.r6.rank-badge{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2)}
 .r7{color:#fbbf24}.r7.rank-badge{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2)}
@@ -282,7 +282,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .welcome-agree input{margin-top:2px;accent-color:var(--accent);width:15px;height:15px;flex-shrink:0}
 .btn-welcome-enter{width:100%;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:'Bangers',cursive;font-size:20px;letter-spacing:2px;cursor:pointer;opacity:.4;transition:all .2s;pointer-events:none}
 .btn-welcome-enter.ready{opacity:1;pointer-events:auto}
-.btn-welcome-enter.ready:hover{transform:scale(1.02);box-shadow:0 6px 24px rgba(192,132,252,.4)}
+.btn-welcome-enter.ready:hover{transform:scale(1.02);box-shadow:0 6px 24px rgba(124,58,237,.4)}
 @media(max-width:480px){.welcome-box{padding:16px 14px;border-radius:16px}.welcome-logo{font-size:22px}.welcome-section{font-size:11px;line-height:1.55;padding:8px 10px}.btn-welcome-enter{font-size:18px;padding:11px}}
 
 /* HOLDER MODAL */
@@ -306,7 +306,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .dev-panel.open{display:block}
 .dev-panel h3{font-family:'Bangers',cursive;color:var(--gold);font-size:16px;margin-bottom:10px;letter-spacing:1px}
 .dev-btn{width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--border);border-radius:8px;background:rgba(255,255,255,.04);color:var(--text);font-size:11px;font-family:'Nunito',sans-serif;cursor:pointer;text-align:left;transition:all .15s}
-.dev-btn:hover{background:rgba(192,132,252,.12);border-color:var(--accent)}
+.dev-btn:hover{background:rgba(124,58,237,.12);border-color:var(--accent)}
 .dev-btn span{font-size:13px;margin-right:4px}
 .holder-tabs{display:flex;gap:0;margin-bottom:14px;background:rgba(255,255,255,0.05);border-radius:10px;padding:3px}
 .holder-tab{flex:1;padding:7px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);font-family:Nunito,sans-serif;transition:all .2s}
@@ -315,7 +315,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .holder-table th{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:6px 4px;border-bottom:1px solid var(--border);text-align:left;font-weight:700}
 .holder-table th:last-child,.holder-table td:last-child{text-align:right}
 .holder-row{border-bottom:1px solid rgba(255,255,255,0.04);transition:background .15s;cursor:pointer}
-.holder-row:hover{background:rgba(192,132,252,0.06)}
+.holder-row:hover{background:rgba(124,58,237,0.06)}
 .holder-row td{padding:8px 4px;vertical-align:middle}
 .holder-rank-num{color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:11px;width:24px}
 .holder-rank-num.top3{color:var(--gold);font-weight:700}
@@ -325,12 +325,12 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .holder-pct{color:var(--muted);font-size:10px;text-align:right}
 .holder-loading{text-align:center;padding:40px;color:var(--muted);font-size:13px}
 .tier-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:all .2s}
-.tier-row:hover{border-color:var(--accent);background:rgba(192,132,252,0.06)}
+.tier-row:hover{border-color:var(--accent);background:rgba(124,58,237,0.06)}
 
 /* SWAP MODAL - Native UI */
 .swap-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);z-index:9000;display:none;align-items:center;justify-content:center;padding:16px}
 .swap-modal-overlay.open{display:flex}
-.swap-modal-box{background:#161228;border:1px solid rgba(192,132,252,0.25);border-radius:24px;width:100%;max-width:400px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.8)}
+.swap-modal-box{background:#0a0818;border:1px solid rgba(124,58,237,0.25);border-radius:24px;width:100%;max-width:400px;overflow:hidden;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.8)}
 .swap-modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid rgba(255,255,255,0.07)}
 .swap-modal-title{font-family:'Bangers',cursive;font-size:22px;letter-spacing:1.5px;color:var(--green)}
 .swap-modal-close{background:rgba(255,255,255,0.08);border:none;border-radius:10px;width:32px;height:32px;color:var(--text);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:background .2s}
@@ -344,7 +344,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 /* Swap Body */
 .swap-body{padding:0 16px 16px}
 .swap-token-box{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px 16px;margin-bottom:6px;transition:border-color .2s}
-.swap-token-box:focus-within{border-color:rgba(192,132,252,0.4)}
+.swap-token-box:focus-within{border-color:rgba(124,58,237,0.4)}
 .swap-token-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
 .swap-token-label span.bal{color:var(--accent);cursor:pointer;font-size:10px}
 .swap-token-label span.bal:hover{text-decoration:underline}
@@ -355,8 +355,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .swap-amount-input::placeholder{color:rgba(255,255,255,0.2)}
 /* Arrow divider */
 .swap-arrow-wrap{text-align:center;position:relative;height:32px;display:flex;align-items:center;justify-content:center}
-.swap-arrow-btn{background:rgba(192,132,252,0.12);border:2px solid rgba(192,132,252,0.2);border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s;color:var(--accent)}
-.swap-arrow-btn:hover{background:rgba(192,132,252,0.22);transform:rotate(180deg)}
+.swap-arrow-btn{background:rgba(124,58,237,0.12);border:2px solid rgba(124,58,237,0.2);border-radius:10px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .2s;color:var(--accent)}
+.swap-arrow-btn:hover{background:rgba(124,58,237,0.22);transform:rotate(180deg)}
 /* Price info */
 .swap-price-row{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;font-size:11px;color:var(--muted);min-height:28px}
 .swap-price-val{font-family:'Share Tech Mono',monospace;color:var(--text);font-size:11px}
@@ -364,7 +364,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .swap-slippage-row{display:flex;align-items:center;gap:6px;padding:0 4px 10px}
 .swap-slippage-label{font-size:10px;color:var(--muted)}
 .slip-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:3px 8px;font-size:10px;color:var(--muted);cursor:pointer;font-family:Nunito,sans-serif;transition:all .15s}
-.slip-btn.active{background:rgba(192,132,252,0.2);border-color:rgba(192,132,252,0.4);color:var(--accent)}
+.slip-btn.active{background:rgba(124,58,237,0.2);border-color:rgba(124,58,237,0.4);color:var(--accent)}
 /* Swap execute button */
 .btn-swap-exec{width:100%;padding:14px;border:none;border-radius:16px;font-family:'Bangers',cursive;font-size:20px;letter-spacing:2px;cursor:pointer;transition:all .2s;margin-top:4px}
 .btn-swap-exec.buy{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;box-shadow:0 4px 20px rgba(34,197,94,0.3)}
@@ -388,11 +388,11 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .nick-input{width:100%;background:transparent;border:none;outline:none;font-family:'Share Tech Mono',monospace;font-size:20px;font-weight:700;color:var(--text);caret-color:var(--accent)}
 .nick-rules{font-size:10px;color:var(--muted);line-height:1.7;margin-bottom:12px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px}
 .nick-cost{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:12px}
-.nick-cost-badge{background:rgba(192,132,252,0.12);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-weight:700;color:var(--accent);font-family:'Share Tech Mono',monospace}
+.nick-cost-badge{background:rgba(124,58,237,0.12);border:1px solid var(--border);border-radius:8px;padding:4px 10px;font-weight:700;color:var(--accent);font-family:'Share Tech Mono',monospace}
 .btn-set-nick{width:100%;padding:12px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-family:'Bangers',cursive;font-size:18px;letter-spacing:1px;cursor:pointer}
 .btn-set-nick:hover{opacity:.9}
-.nick-badge{font-size:11px;font-weight:700;color:var(--accent);background:rgba(192,132,252,0.12);border:1px solid var(--border);border-radius:6px;padding:1px 7px;cursor:pointer}
-.nick-badge:hover{background:rgba(192,132,252,0.22)}
+.nick-badge{font-size:11px;font-weight:700;color:var(--accent);background:rgba(124,58,237,0.12);border:1px solid var(--border);border-radius:6px;padding:1px 7px;cursor:pointer}
+.nick-badge:hover{background:rgba(124,58,237,0.22)}
 
 /* USER PROFILE MODAL */
 .profile-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;flex-shrink:0}
@@ -415,7 +415,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .swap-input-wrap{position:relative;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:8px}
 .swap-input-wrap label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:4px}
 .swap-amount{width:100%;background:transparent;border:none;outline:none;font-family:'Share Tech Mono',monospace;font-size:22px;font-weight:700;color:var(--text);caret-color:var(--accent)}
-.swap-max{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(192,132,252,0.15);border:1px solid var(--border);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;color:var(--accent);cursor:pointer;font-family:Nunito,sans-serif}
+.swap-max{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(124,58,237,0.15);border:1px solid var(--border);border-radius:8px;padding:3px 8px;font-size:10px;font-weight:700;color:var(--accent);cursor:pointer;font-family:Nunito,sans-serif}
 .swap-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:11px;color:var(--muted)}
 .btn-swap-exec{width:100%;padding:14px;border:none;border-radius:14px;font-family:'Bangers',cursive;font-size:20px;letter-spacing:2px;cursor:pointer;transition:all .2s}
 .btn-swap-buy{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;box-shadow:0 4px 20px rgba(34,197,94,.35)}
@@ -432,14 +432,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .rank-title-text{font-weight:700;font-size:13px}
 .rank-amount{font-size:10px;color:var(--muted);font-family:'Share Tech Mono',monospace}
 .wallet-option{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:12px 16px;cursor:pointer;margin-bottom:8px;transition:all .2s}
-.wallet-option:hover{border-color:var(--accent);background:rgba(192,132,252,0.06)}
+.wallet-option:hover{border-color:var(--accent);background:rgba(124,58,237,0.06)}
 .wallet-icon{font-size:24px;width:36px;text-align:center}
 .wallet-name{font-weight:700}
 .wallet-sub{font-size:11px;color:var(--muted)}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.8;transform:scale(1.05)}}
 
 /* ── Revenue Dashboard ── */
-.rev-td{padding:7px 4px;border-bottom:1px solid rgba(192,132,252,0.08);vertical-align:middle}
+.rev-td{padding:7px 4px;border-bottom:1px solid rgba(124,58,237,0.08);vertical-align:middle}
 .rev-tc{text-align:center}
 .rev-tr{text-align:right}
 .rev-pt{color:var(--muted);font-size:10px}
@@ -447,7 +447,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .rev-gold{color:var(--gold)}
 .rev-pct{color:var(--accent2)}
 .rev-est{color:var(--green);font-size:11px;font-family:'Share Tech Mono',monospace}
-.rev-my-row td{background:rgba(192,132,252,0.07)}
+.rev-my-row td{background:rgba(124,58,237,0.07)}
 .rev-row-alt td{background:rgba(255,255,255,0.015)}
 
 /* ══════════════════════════════════════════════════════
@@ -563,7 +563,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .chess-label {
   position: absolute;
   font-size: 9px;
-  color: rgba(192,132,252,0.5);
+  color: rgba(124,58,237,0.5);
   font-family: 'Share Tech Mono', monospace;
   pointer-events: none;
   z-index: 4;
@@ -604,7 +604,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .chess-icon-white { color: #f8fafc; text-shadow: 0 0 6px rgba(255,255,255,0.9), 0 0 12px rgba(255,255,255,0.5), 0 1px 3px rgba(0,0,0,0.8); filter: none; }
 .chess-icon-black { color: #111827; text-shadow: 0 0 4px rgba(255,255,255,1), 0 0 8px rgba(255,255,255,0.8), 0 0 14px rgba(255,255,255,0.5); filter: none; }
 .chess-player-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7); }
-.chess-me .chess-player-name { color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(192,132,252,0.8); }
+.chess-me .chess-player-name { color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 10px rgba(124,58,237,0.8); }
 .chess-status-center {
   font-family: 'Bangers', cursive;
   font-size: 15px;
@@ -615,8 +615,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 }
 .chess-you-badge {
   font-size: 9px;
-  background: rgba(192,132,252,0.2);
-  border: 1px solid rgba(192,132,252,0.4);
+  background: rgba(124,58,237,0.2);
+  border: 1px solid rgba(124,58,237,0.4);
   border-radius: 4px;
   padding: 1px 4px;
   color: var(--accent);
@@ -626,7 +626,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 
 /* ── Move history (hidden — removed from layout) ── */
 #chessMoveList { display: none; }
-.chess-move-num { color: rgba(192,132,252,0.4); }
+.chess-move-num { color: rgba(124,58,237,0.4); }
 .chess-move { color: var(--text); margin: 0 3px; }
 .chess-move-pair { margin-right: 6px; }
 
@@ -655,14 +655,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   gap: 5px;
   width: 100%;
   justify-content: center;
-  border-bottom: 1px solid rgba(192,132,252,0.1);
+  border-bottom: 1px solid rgba(124,58,237,0.1);
   padding-bottom: 5px;
 }
 .chess-bgm-btn {
   background: none;
-  border: 1px solid rgba(192,132,252,0.25);
+  border: 1px solid rgba(124,58,237,0.25);
   border-radius: 6px;
-  color: rgba(192,132,252,0.75);
+  color: rgba(124,58,237,0.75);
   cursor: pointer;
   font-size: 13px;
   padding: 2px 7px;
@@ -670,12 +670,12 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   transition: all .15s;
   font-family: inherit;
 }
-.chess-bgm-btn:hover { background: rgba(192,132,252,0.12); border-color: rgba(192,132,252,0.5); }
+.chess-bgm-btn:hover { background: rgba(124,58,237,0.12); border-color: rgba(124,58,237,0.5); }
 .chess-bgm-nav {
   background: none;
-  border: 1px solid rgba(192,132,252,0.2);
+  border: 1px solid rgba(124,58,237,0.2);
   border-radius: 5px;
-  color: rgba(192,132,252,0.55);
+  color: rgba(124,58,237,0.55);
   cursor: pointer;
   font-size: 15px;
   padding: 0px 8px;
@@ -684,11 +684,11 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   font-weight: 700;
   font-family: inherit;
 }
-.chess-bgm-nav:hover { background: rgba(192,132,252,0.12); color: var(--accent); }
+.chess-bgm-nav:hover { background: rgba(124,58,237,0.12); color: var(--accent); }
 .chess-bgm-name {
   font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
-  color: rgba(192,132,252,0.6);
+  color: rgba(124,58,237,0.6);
   min-width: 90px;
   text-align: center;
   letter-spacing: 0.3px;
@@ -712,7 +712,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 
 .chess-forfeit-hint {
   font-size: 10px;
-  color: rgba(192,132,252,0.55);
+  color: rgba(124,58,237,0.55);
   text-align: center;
   letter-spacing: 0.3px;
   padding-bottom: 2px;
@@ -757,7 +757,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   position: relative;
   z-index: 21;
   background: var(--card);
-  border: 1px solid rgba(192,132,252,0.4);
+  border: 1px solid rgba(124,58,237,0.4);
   border-radius: 14px;
   padding: 16px;
   text-align: center;
@@ -769,14 +769,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   align-items: center;
   gap: 4px;
   padding: 10px 12px;
-  background: rgba(192,132,252,0.1);
-  border: 1px solid rgba(192,132,252,0.3);
+  background: rgba(124,58,237,0.1);
+  border: 1px solid rgba(124,58,237,0.3);
   border-radius: 10px;
   cursor: pointer;
   color: var(--text);
   transition: all .15s;
 }
-.chess-promo-btn:hover { background: rgba(192,132,252,0.25); transform: scale(1.05); }
+.chess-promo-btn:hover { background: rgba(124,58,237,0.25); transform: scale(1.05); }
 
 /* ── Game over overlay — covers full frame for dramatic effect ── */
 #chessGameOver {
@@ -795,7 +795,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   padding: 24px 28px;
   text-align: center;
   box-shadow: 0 12px 48px rgba(0,0,0,0.7);
-  border: 2px solid rgba(192,132,252,0.3);
+  border: 2px solid rgba(124,58,237,0.3);
   max-width: 280px;
 }
 .chess-gameover-win { border-color: rgba(250,204,21,0.5); }
@@ -814,7 +814,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 /* ── Invite notification in chat ── */
 .chess-invite-notif {
   background: rgba(139,92,246,0.15);
-  border: 1px solid rgba(192,132,252,0.35);
+  border: 1px solid rgba(124,58,237,0.35);
   border-radius: 10px;
   padding: 10px 12px;
   margin: 4px 0;
@@ -848,8 +848,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   margin-top: 8px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(139,92,246,.3), rgba(192,132,252,.2));
-  border: 1px solid rgba(192,132,252,0.4);
+  background: linear-gradient(135deg, rgba(139,92,246,.3), rgba(124,58,237,.2));
+  border: 1px solid rgba(124,58,237,0.4);
   color: var(--accent);
   font-family: 'Bangers', cursive;
   font-size: 17px;
@@ -858,7 +858,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   transition: all .2s;
 }
 .btn-chess-challenge:hover {
-  background: linear-gradient(135deg, rgba(139,92,246,.5), rgba(192,132,252,.35));
+  background: linear-gradient(135deg, rgba(139,92,246,.5), rgba(124,58,237,.35));
   transform: scale(1.02);
   box-shadow: 0 4px 16px rgba(139,92,246,0.3);
 }
@@ -868,8 +868,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   display: flex;
   align-items: center;
   gap: 4px;
-  background: linear-gradient(135deg, rgba(139,92,246,.2), rgba(192,132,252,.15));
-  border: 1px solid rgba(192,132,252,0.4);
+  background: linear-gradient(135deg, rgba(139,92,246,.2), rgba(124,58,237,.15));
+  border: 1px solid rgba(124,58,237,0.4);
   border-radius: 20px;
   padding: 4px 12px;
   font-size: 11px;
@@ -881,7 +881,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   white-space: nowrap;
 }
 .chess-nav-btn:hover {
-  background: linear-gradient(135deg, rgba(139,92,246,.4), rgba(192,132,252,.3));
+  background: linear-gradient(135deg, rgba(139,92,246,.4), rgba(124,58,237,.3));
   transform: scale(1.05);
 }
 
@@ -936,7 +936,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   left: 50%;
   transform: translateX(-50%);
   background: var(--card);
-  border: 1px solid rgba(192,132,252,0.4);
+  border: 1px solid rgba(124,58,237,0.4);
   border-radius: 12px;
   padding: 10px 20px;
   font-size: 13px;
@@ -959,7 +959,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   border-radius: 8px;
   background: rgba(0,0,0,0.55);
   backdrop-filter: blur(4px);
-  border: 1px solid rgba(192,132,252,0.5);
+  border: 1px solid rgba(124,58,237,0.5);
   min-width: 52px;
   text-align: center;
   transition: color .3s, border-color .3s;
@@ -971,7 +971,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   0%,100% { opacity: 1; }
   50%      { opacity: 0.5; }
 }
-.chess-timer-inactive { color: rgba(192,132,252,0.3); border-color: rgba(192,132,252,0.1); }
+.chess-timer-inactive { color: rgba(124,58,237,0.3); border-color: rgba(124,58,237,0.1); }
 
 /* ── Chess Mini Pip (minimized floating window) ── */
 #chessPip {
@@ -983,7 +983,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   width: 72px;
   height: 88px;
   background: rgba(15,10,30,0.92);
-  border: 2px solid rgba(192,132,252,0.6);
+  border: 2px solid rgba(124,58,237,0.6);
   border-radius: 18px;
   flex-direction: column;
   align-items: center;
@@ -997,7 +997,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 }
 #chessPip:hover {
   transform: scale(1.08);
-  box-shadow: 0 12px 36px rgba(0,0,0,0.7), 0 0 24px rgba(192,132,252,0.5);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.7), 0 0 24px rgba(124,58,237,0.5);
 }
 #chessPip.active { display: flex; }
 .chess-pip-icon { font-size: 28px; line-height: 1; }
@@ -1046,8 +1046,8 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   gap: 10px;
 }
 .buy-route-btn:hover {
-  background: rgba(192,132,252,0.12);
-  border-color: rgba(192,132,252,0.4);
+  background: rgba(124,58,237,0.12);
+  border-color: rgba(124,58,237,0.4);
   transform: translateX(2px);
 }
 .buy-route-btn.dex {
