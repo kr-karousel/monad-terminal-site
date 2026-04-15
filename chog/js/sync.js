@@ -292,13 +292,14 @@ async function syncTestWalletToServer(address, add){
 async function _syncMessagesFromServer(){
   if(!_sbClient) return;
   try{
+    // chog_bal IS NOT NULL → CHOG 터미널에서 보낸 메시지만 로드
     const { data } = await _sbClient
       .from('messages')
-      .select('id, address, nickname, content, created_at')
+      .select('id, address, nickname, content, created_at, chog_bal')
+      .not('chog_bal', 'is', null)
       .order('created_at', { ascending: false })
       .limit(10);
     if(!data || !data.length) return;
-    // 오래된 순으로 정렬해서 렌더링
     data.slice().reverse().forEach(row => {
       const t = new Date(row.created_at);
       const timeStr = t.getHours() + ':' + String(t.getMinutes()).padStart(2,'0');
@@ -316,12 +317,15 @@ async function _syncMessagesFromServer(){
 
 function _subscribeToMessages(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-messages')
+  // 'sync-messages-chog' 채널: CHOG 터미널 전용 (chog_bal 기준 필터)
+  _sbClient.channel('sync-messages-chog')
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'messages' },
       payload => {
         const row = payload.new;
         if(!row) return;
+        // chog_bal이 없으면 MON 터미널 메시지 → 무시
+        if(row.chog_bal === null || row.chog_bal === undefined) return;
         renderMsg({
           addr: row.address,
           addrFull: row.address,

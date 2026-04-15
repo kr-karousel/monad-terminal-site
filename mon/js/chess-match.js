@@ -640,7 +640,7 @@ function _updateNavChessBtn(){
     btn.style.color = 'var(--gold)';
     btn.style.animation = '';
   } else {
-    btn.textContent = '♟️ MON Chess';
+    btn.textContent = '♟️ CHOG Chess';
     btn.style.borderColor = '';
     btn.style.color = '';
     btn.style.animation = '';

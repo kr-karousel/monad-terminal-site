@@ -2,6 +2,7 @@ function updatePriceDisplay(p){
   const str='$'+p.toFixed(4); // MON은 $0.0XXX 수준, 4자리면 충분
   const t=document.getElementById('tickerPrice');if(t)t.textContent=str;
   const t2=document.getElementById('tickerPrice2');if(t2)t2.textContent=str;
+  const ph=document.getElementById('livePriceDisplay');if(ph)ph.textContent=str;
   const pct=priceChange24h;
   const el=document.getElementById('priceChange');
   if(el){el.textContent=(pct>=0?'▲':'▼')+' '+Math.abs(pct).toFixed(2)+'% (24h)';el.className='price-change '+(pct>=0?'up':'down');}
