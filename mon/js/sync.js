@@ -343,11 +343,11 @@ function _subscribeToMessages(){
 
 function _subscribeToContributions(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-contributions')
+  // MON 터미널 전용 테이블 구독
+  _sbClient.channel('sync-mon-contributions')
     .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'contributions' },
+      { event: '*', schema: 'public', table: 'mon_contributions' },
       () => {
-        // Revenue 모달이 열려있으면 자동 갱신
         const modal = document.getElementById('revenueModal');
         if(modal && modal.classList.contains('open') && typeof renderRevenueModal === 'function')
           renderRevenueModal();

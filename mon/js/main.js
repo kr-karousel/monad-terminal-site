@@ -14,6 +14,7 @@ function startApp(){
   if(typeof loadPriceAlerts === 'function') loadPriceAlerts();
   initChart();
   startPriceRefresh();
+  setTimeout(() => { if(typeof initCexFeed === 'function') initCexFeed(); }, 1500);
   setTimeout(() => { if(typeof loadRecentTrades === 'function') loadRecentTrades(5); }, 4000);
   // Supabase 실시간 동기화 초기화
   setTimeout(initSync, 200);

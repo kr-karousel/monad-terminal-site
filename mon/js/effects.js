@@ -16,7 +16,8 @@ function getEmojiCount(monAmount) {
 }
 
 // MON 수량 기준: BIG 100K+ / WHALE 1M+ / MEGA 5M+
-function showTradeFloat(isBuy, usdValue, monAmount) {
+// exchange: 'Binance' | 'OKX' | undefined (DEX)
+function showTradeFloat(isBuy, usdValue, monAmount, exchange) {
   if (monAmount < MON_ALERT_BIG) return; // 100K MON 미만 무시
 
   const container = document.getElementById('tradeFloatContainer');
@@ -28,40 +29,38 @@ function showTradeFloat(isBuy, usdValue, monAmount) {
   const isWhale = monAmount >= MON_ALERT_WHALE;
   const count   = getEmojiCount(monAmount);
 
-  const usdDisplay = '$' + formatK(usdValue);
-  const monDisplay = formatK(monAmount) + ' MON';
-  const clownSrc   = isBuy ? 'img/clown_buy.jpg' : 'img/clown_sell.jpg';
+  const usdDisplay  = '$' + formatK(usdValue);
+  const monDisplay  = formatK(monAmount) + ' MON';
+  const srcTag      = exchange ? `<span style="font-size:9px;opacity:.6;margin-left:4px">[${exchange}]</span>` : '';
+  const clownSrc    = isBuy ? 'img/clown_buy.jpg' : 'img/clown_sell.jpg';
   const clownCls   = isWhale ? 'trade-float-clown whale' : 'trade-float-clown';
   const clownHtml  = (typeof devShowTradePhoto === 'undefined' || devShowTradePhoto)
     ? `<img class="${clownCls}" src="${clownSrc}" alt="">`
     : '';
 
   if (monAmount >= MON_ALERT_MEGA) {
-    // 5M+ MON : MEGA
     const emoji = isBuy ? '🐳' : '☠️';
     const label = isBuy ? '🚨 MEGA BUY!' : '💀 MEGA DUMP!';
     wrap.innerHTML = `
       ${clownHtml}
       <div class="trade-float-emoji whale">${emoji.repeat(count)}</div>
-      <div class="trade-float-bubble ${isBuy ? 'whale' : 'sell'}">${label} ${monDisplay}</div>
+      <div class="trade-float-bubble ${isBuy ? 'whale' : 'sell'}">${label} ${monDisplay}${srcTag}</div>
       <div class="trade-float-amount">${monDisplay} / ${usdDisplay}</div>`;
   } else if (monAmount >= MON_ALERT_WHALE) {
-    // 1M–5M MON : WHALE
     const emoji = isBuy ? '🐳' : '☠️';
     const label = isBuy ? '🐳 WHALE BUY!' : '☠️ WHALE SELL!';
     wrap.innerHTML = `
       ${clownHtml}
       <div class="trade-float-emoji whale">${emoji.repeat(count)}</div>
-      <div class="trade-float-bubble ${isBuy ? 'whale' : 'sell'}">${label} ${monDisplay}</div>
+      <div class="trade-float-bubble ${isBuy ? 'whale' : 'sell'}">${label} ${monDisplay}${srcTag}</div>
       <div class="trade-float-amount">${monDisplay} / ${usdDisplay}</div>`;
   } else {
-    // 100K–1M MON : BIG
     const emoji = isBuy ? '🚀' : '💀';
     const label = isBuy ? '🟢 BIG BUY!' : '🔴 BIG SELL!';
     wrap.innerHTML = `
       ${clownHtml}
       <div class="trade-float-emoji">${emoji.repeat(count)}</div>
-      <div class="trade-float-bubble ${isBuy ? 'buy' : 'sell'}">${label} ${monDisplay}</div>
+      <div class="trade-float-bubble ${isBuy ? 'buy' : 'sell'}">${label} ${monDisplay}${srcTag}</div>
       <div class="trade-float-amount">${monDisplay} / ${usdDisplay}</div>`;
   }
 
