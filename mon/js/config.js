@@ -4,8 +4,8 @@
 const TOKEN_NAME    = 'MON';
 const WMON_CONTRACT = '0x3bd359C1119dA7Da1D913D1C4D2B7c461115433A'; // Wrapped MON (official)
 const USDC_CONTRACT = '0x754704Bc059F8C67012fEd69BC8A327a5aafb603'; // Native USDC on Monad
-// Main WMON/USDC pool (PancakeSwap V3 on Monad)
-const MON_USDC_POOL = '0xb9897986847472cd08b9a0e7bcd31ea4f1322361';
+// Main WMON/USDC pool (Uniswap V3 on Monad)
+const MON_USDC_POOL = '0x659bd0bc4167ba25c62e05656f78043e7ed4a9da';
 const DEV_WALLET    = '0x38A7d00c3494ACFF01c0d216A6115A2af1A72162';
 const MONAD_RPC     = 'https://rpc.monad.xyz';
 const MONAD_CHAIN_ID= '0x8F'; // Monad chainId = 143

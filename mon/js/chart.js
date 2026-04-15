@@ -23,7 +23,7 @@ function initChart(){
   const fallback    = document.getElementById('chart-fallback');
 
   if(tvContainer){
-    var CHART_SRC = 'https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0';
+    var CHART_SRC = 'https://dexscreener.com/monad/0x659bd0bc4167ba25c62e05656f78043e7ed4a9da?embed=1&theme=dark&trades=0&info=0';
     tvContainer.innerHTML = '<iframe src="'+CHART_SRC+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="MON/USDC Chart"></iframe>';
     tvContainer.style.display = 'block';
     tvContainer.style.position = 'relative';
@@ -49,66 +49,6 @@ function initChart(){
       }, {threshold: 0.1});
       observer.observe(tvContainer);
     }
-
-    // MON 캐릭터 - 마우스 따라다니기 (부드럽게)
-    const chog = document.getElementById('chogChar');
-    if(chog){
-      document.body.appendChild(chog);
-      Object.assign(chog.style, {
-        position      : 'fixed',
-        left          : '-200px',
-        top           : '-200px',
-        zIndex        : '9998',
-        width         : '72px',
-        pointerEvents : 'none',
-        transition    : 'opacity 0.25s',
-        willChange    : 'transform',
-      });
-
-      let targetX = window.innerWidth/2;
-      let targetY = window.innerHeight/2;
-      let curX    = targetX;
-      let curY    = targetY;
-      let floatT  = 0;
-      let rafId;
-
-      document.addEventListener('mousemove', e=>{
-        targetX = e.clientX - 36;
-        targetY = e.clientY - 80;
-      });
-
-      document.addEventListener('touchmove', e=>{
-        targetX = e.touches[0].clientX - 36;
-        targetY = e.touches[0].clientY - 80;
-      }, {passive:true});
-
-      function animateChog(){
-        // 체스 모달이 열려 있으면 캐릭터 숨김
-        const chessOpen = document.getElementById('chessModal')?.classList.contains('open');
-        if(chessOpen){
-          chog.style.opacity = '0';
-          rafId = requestAnimationFrame(animateChog);
-          return;
-        }
-        chog.style.opacity = '1';
-
-        // 부드러운 lerp (12% 씩 따라가기)
-        curX += (targetX - curX) * 0.12;
-        curY += (targetY - curY) * 0.12;
-
-        // 둥둥 효과는 transform만 (left/top은 lerp로만)
-        floatT += 0.04;
-        const floatY = Math.sin(floatT) * 5;
-        const floatR = Math.sin(floatT * 0.6) * 4;
-
-        chog.style.left      = curX + 'px';
-        chog.style.top       = curY + 'px';
-        chog.style.transform = `translateY(${floatY}px) rotate(${floatR}deg)`;
-
-        rafId = requestAnimationFrame(animateChog);
-      }
-      animateChog();
-    }
   }
 
   // 실시간 가격 폴링은 계속 유지
@@ -118,7 +58,7 @@ function initChart(){
   // 접근: RAF 루프 대신, 스크롤 종료 후 iframe이 깨졌는지 1회 체크 + display 토글로 복구
   (function(){
     var scrollTimer = null;
-    var chartSrc = 'https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0';
+    var chartSrc = 'https://dexscreener.com/monad/0x659bd0bc4167ba25c62e05656f78043e7ed4a9da?embed=1&theme=dark&trades=0&info=0';
 
     function recoverIframe(){
       var c = document.getElementById('tv-chart-container');

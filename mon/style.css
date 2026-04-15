@@ -3,6 +3,7 @@
   --gold:#fbbf24;--green:#4ade80;--red:#f87171;--text:#e2d9f3;
   --muted:#7c6fa0;--border:rgba(192,132,252,0.18);--card:rgba(19,15,36,0.85);
 }
+#chogChar{display:none!important}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 10%,rgba(192,132,252,0.08) 0%,transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(244,114,182,0.06) 0%,transparent 60%);pointer-events:none;z-index:0}
