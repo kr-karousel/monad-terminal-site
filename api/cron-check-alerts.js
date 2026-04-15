@@ -21,27 +21,33 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ ok: true, triggered: 0, price: currentPrice });
     }
 
-    // 3. 조건 충족 알림 처리 (반복 알림은 1시간 쿨다운)
-    const now = Date.now();
+    // 3. 조건 충족 알림 처리 (반복 알림은 armed 기반 재트리거)
     const triggered = alerts.filter(a => {
       const hit = (a.type === 'above' && currentPrice >= a.price) ||
                   (a.type === 'below' && currentPrice <= a.price);
-      if(!hit) return false;
-      if(a.repeat){
-        const lastMs = a.last_notified ? new Date(a.last_notified).getTime() : 0;
-        return (now - lastMs) >= 60 * 60 * 1000; // 1시간 쿨다운
-      }
-      return true;
+      if(a.repeat) return hit && a.armed !== false;
+      return hit;
     });
+
+    // 반복 알림 중 가격이 반대쪽으로 돌아간 것 → 재무장
+    const toRearm = alerts.filter(a => {
+      if(!a.repeat || a.armed !== false) return false;
+      const hit = (a.type === 'above' && currentPrice >= a.price) ||
+                  (a.type === 'below' && currentPrice <= a.price);
+      return !hit;
+    });
+    for(const a of toRearm){
+      await fetch(`${SB_URL}/rest/v1/price_alerts?id=eq.${a.id}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`,
+                   'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ armed: true }),
+      }).catch(() => {});
+    }
 
     for (const a of triggered) {
       const target  = '$' + parseFloat(a.price).toFixed(7);
       const current = '$' + currentPrice.toFixed(7);
-      const isRepeat = a.repeat && a.last_notified;
-      const subjectPrefix = isRepeat ? '🔁 CHOG Still at Target' : '🎯 CHOG Target Hit';
-      const bodyLine = isRepeat
-        ? 'Price is <b style="color:#c084fc">still</b> at your target (repeat alert)'
-        : 'Your target price was <b style="color:#c084fc">hit</b>';
 
       // 이메일 발송
       await fetch('https://api.resend.com/emails', {
@@ -50,11 +56,11 @@ module.exports = async function handler(req, res) {
         body: JSON.stringify({
           from: 'CHOG Terminal <alerts@monad-terminal.xyz>',
           to:   [a.email],
-          subject: `${subjectPrefix} — ${target}`,
+          subject: `🎯 CHOG Target Hit — ${target}`,
           html: `
             <div style="font-family:monospace;background:#0e0e16;color:#e2e8f0;padding:24px;border-radius:12px;max-width:400px">
-              <div style="font-size:22px;font-weight:700;color:#c084fc;margin-bottom:12px">${subjectPrefix}</div>
-              <div style="font-size:15px;margin-bottom:8px">${bodyLine}</div>
+              <div style="font-size:22px;font-weight:700;color:#c084fc;margin-bottom:12px">🎯 CHOG Price Alert</div>
+              <div style="font-size:15px;margin-bottom:8px">Your target price was <b style="color:#c084fc">hit</b></div>
               <div style="background:#1a1a2e;border-radius:8px;padding:12px;margin:12px 0">
                 <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">TARGET</div>
                 <div style="font-size:20px;font-weight:700">${target}</div>
@@ -72,7 +78,7 @@ module.exports = async function handler(req, res) {
 
       // Supabase 업데이트 (반복이면 last_notified만, 아니면 triggered)
       const patch = a.repeat
-        ? { last_notified: new Date().toISOString() }
+        ? { armed: false }
         : { triggered: true };
       await fetch(`${SB_URL}/rest/v1/price_alerts?id=eq.${a.id}`, {
         method: 'PATCH',

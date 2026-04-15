@@ -23,14 +23,14 @@ async function _sbSaveAlert(type, price, repeat){
   }catch(e){ return null; }
 }
 
-async function _sbMarkLastNotified(sbId){
+async function _sbSetArmed(sbId, armed){
   if(!sbId) return;
   try{
     await fetch(`${_SB_URL}/rest/v1/price_alerts?id=eq.${sbId}`, {
       method: 'PATCH',
       headers: { 'apikey': _SB_KEY, 'Authorization': `Bearer ${_SB_KEY}`,
                  'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ last_notified: new Date().toISOString() })
+      body: JSON.stringify({ armed })
     });
   }catch(e){}
 }
@@ -179,21 +179,30 @@ function renderPriceAlertList(){
 function checkPriceAlerts(currentPrice){
   if(!priceAlerts.length) return;
   let changed = false;
-  const now = Date.now();
   priceAlerts.forEach(a => {
     if(a.triggered) return;
     const hit = (a.type === 'above' && currentPrice >= a.price)
               || (a.type === 'below' && currentPrice <= a.price);
-    if(!hit) return;
     if(a.repeat){
-      // 반복 알림: 1시간 쿨다운 체크
-      if(a.lastNotified && (now - a.lastNotified) < 60 * 60 * 1000) return;
-      a.lastNotified = now;
+      if(hit && a.armed !== false){
+        // 타겟 도달 + armed → 알람 발동 후 disarm
+        a.armed = false;
+        changed = true;
+        _fireAlert(a, currentPrice);
+        if(a.sbId) _sbSetArmed(a.sbId, false);
+      } else if(!hit && a.armed === false){
+        // 가격이 반대쪽으로 이동 → 재무장
+        a.armed = true;
+        changed = true;
+        if(a.sbId) _sbSetArmed(a.sbId, true);
+      }
     } else {
-      a.triggered = true;
+      if(hit){
+        a.triggered = true;
+        changed = true;
+        _fireAlert(a, currentPrice);
+      }
     }
-    changed = true;
-    _fireAlert(a, currentPrice);
   });
   if(changed){
     savePriceAlerts();
@@ -212,10 +221,9 @@ function _fireAlert(alert, currentPrice){
     catch(e){}
   }
 
-  // Supabase 업데이트 (반복이면 last_notified만, 아니면 triggered)
-  if(alert.sbId){
-    if(alert.repeat) _sbMarkLastNotified(alert.sbId);
-    else _sbMarkTriggered(alert.sbId);
+  // Supabase 업데이트 (일회성만 triggered, 반복은 armed를 checkPriceAlerts에서 처리)
+  if(alert.sbId && !alert.repeat){
+    _sbMarkTriggered(alert.sbId);
   }
 
   // Email via Resend (browser-initiated)
