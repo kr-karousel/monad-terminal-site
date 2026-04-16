@@ -40,8 +40,8 @@ var NICK_BANNED  = [
 var nickDB = {};
 
 // ── 거래 알림 임계값 (MON 기준)
-var MON_BIG   = 1000;   // 1,000 MON 이상 플로팅
-var MON_WHALE = 100000; // 100,000 MON 이상 웨일
+var MON_BIG   = 2000;   // 2,000 CHOG 이상 플로팅
+var MON_WHALE = 200000; // 200,000 CHOG 이상 웨일
 var SHOUT_COST = 2000;
 const TOKEN_NAME = 'CHOG';
 

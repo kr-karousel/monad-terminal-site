@@ -11,9 +11,9 @@ const MONAD_RPC     = 'https://rpc.monad.xyz';
 const MONAD_CHAIN_ID= '0x8F'; // Monad chainId = 143
 
 // ── Trade Alert Thresholds (MON 수량 기준) ────────────
-const MON_ALERT_BIG   =   20000; // 20K  MON → BIG BUY/SELL   (~$700)
-const MON_ALERT_WHALE =  200000; // 200K MON → WHALE BUY/SELL  (~$7,000)
-const MON_ALERT_MEGA  = 2000000; // 2M   MON → MEGA BUY/SELL   (~$70,000)
+const MON_ALERT_BIG   =   40000; // 40K  MON → BIG BUY/SELL
+const MON_ALERT_WHALE =  400000; // 400K MON → WHALE BUY/SELL
+const MON_ALERT_MEGA  = 4000000; // 4M   MON → MEGA BUY/SELL
 
 // ── Nickname / Shout 비용 (MON 네이티브 토큰) ─────────
 var NICK_COST    = 100;   // 100 MON for nickname
