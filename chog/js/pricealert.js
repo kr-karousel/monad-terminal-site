@@ -217,7 +217,7 @@ function _fireAlert(alert, currentPrice){
 
   // Browser notification
   if(alertNotifGranted && 'Notification' in window){
-    try{ new Notification('🎯 CHOG Price Alert', { body: msg, icon: '/chog/img/chog_logo.png' }); }
+    try{ new Notification('🎯 Terminal Price Alert', { body: msg, icon: '/chog/img/chog_logo.png' }); }
     catch(e){}
   }
 

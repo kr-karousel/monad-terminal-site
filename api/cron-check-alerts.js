@@ -54,12 +54,12 @@ module.exports = async function handler(req, res) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'CHOG Terminal <alerts@monad-terminal.xyz>',
+          from: 'Monad Terminal <alerts@monad-terminal.xyz>',
           to:   [a.email],
-          subject: `🎯 CHOG Target Hit — ${target}`,
+          subject: `🎯 Target Hit — ${target}`,
           html: `
             <div style="font-family:monospace;background:#0e0e16;color:#e2e8f0;padding:24px;border-radius:12px;max-width:400px">
-              <div style="font-size:22px;font-weight:700;color:#c084fc;margin-bottom:12px">🎯 CHOG Price Alert</div>
+              <div style="font-size:22px;font-weight:700;color:#c084fc;margin-bottom:12px">🎯 Terminal Price Alert</div>
               <div style="font-size:15px;margin-bottom:8px">Your target price was <b style="color:#c084fc">hit</b></div>
               <div style="background:#1a1a2e;border-radius:8px;padding:12px;margin:12px 0">
                 <div style="font-size:12px;color:#94a3b8;margin-bottom:4px">TARGET</div>
@@ -70,7 +70,7 @@ module.exports = async function handler(req, res) {
                 <div style="font-size:20px;font-weight:700;color:#c084fc">${current}</div>
               </div>
               <div style="font-size:11px;color:#475569;margin-top:16px">
-                Sent by <a href="https://monad-terminal.xyz/chog" style="color:#c084fc">CHOG Terminal</a>
+                Sent by <a href="https://monad-terminal.xyz" style="color:#c084fc">Monad Terminal</a>
               </div>
             </div>`,
         }),

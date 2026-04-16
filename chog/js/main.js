@@ -28,6 +28,13 @@ function startApp(){
 if(document.readyState==='complete')setTimeout(startApp,100);
 else{window.addEventListener('load',()=>setTimeout(startApp,100));document.addEventListener('DOMContentLoaded',()=>setTimeout(startApp,200));}
 
+function toggleTerminalMenu(){
+  document.getElementById('terminalMenu')?.classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('#terminalSwitcher')) document.getElementById('terminalMenu')?.classList.remove('open');
+});
+
 // ═══════════════════════════════════════
 //  ONLINE COUNT — 가짜 시뮬 OFF (라이브 모드)
 //  실제 WebSocket/서버 연동 시 여기서 업데이트

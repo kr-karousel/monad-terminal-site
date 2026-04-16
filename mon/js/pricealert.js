@@ -217,7 +217,7 @@ function _fireAlert(alert, currentPrice){
 
   // Browser notification
   if(alertNotifGranted && 'Notification' in window){
-    try{ new Notification('🎯 MON Price Alert', { body: msg, icon: '/mon/img/mon_logo.svg' }); }
+    try{ new Notification('🎯 Terminal Price Alert', { body: msg, icon: '/mon/img/mon_logo.svg' }); }
     catch(e){}
   }
 
