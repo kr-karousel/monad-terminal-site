@@ -132,9 +132,9 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .chat-input:focus{border-color:var(--accent)}
 .btn-send{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:8px 14px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap}
 /* STICKER BUTTON */
-.btn-sticker{background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:10px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s;flex-shrink:0}
-.btn-sticker:hover:not(:disabled){background:rgba(124,58,237,0.15);border-color:var(--accent)}
-.btn-sticker:disabled{opacity:.4;cursor:not-allowed}
+.btn-sticker{background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);border-radius:10px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s;flex-shrink:0;color:var(--accent)}
+.btn-sticker:hover:not(:disabled){background:rgba(124,58,237,0.25);border-color:var(--accent)}
+.btn-sticker:disabled{opacity:.45;cursor:not-allowed}
 /* STICKER PICKER PANEL */
 .sticker-picker{display:none;position:absolute;bottom:calc(100% + 6px);right:0;width:296px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.6);z-index:300;overflow:hidden;animation:stickerIn .15s ease}
 @keyframes stickerIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
