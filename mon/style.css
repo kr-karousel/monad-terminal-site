@@ -132,7 +132,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
 .chat-input:focus{border-color:var(--accent)}
 .btn-send{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:8px 14px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;white-space:nowrap}
 /* PHOTO TOGGLE BUTTON */
-.btn-photo-toggle{background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);border-radius:10px;padding:6px 8px;cursor:pointer;font-size:14px;line-height:1;transition:opacity .15s,background .15s;flex-shrink:0}
+.btn-photo-toggle{background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);border-radius:8px;padding:4px 6px;cursor:pointer;font-size:13px;line-height:1;transition:opacity .15s,background .15s;flex-shrink:0}
 .btn-photo-toggle:hover{background:rgba(124,58,237,0.25)}
 /* STICKER BUTTON */
 .btn-sticker{background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.35);border-radius:10px;padding:6px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,border-color .15s;flex-shrink:0;color:var(--accent)}

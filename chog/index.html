@@ -319,7 +319,10 @@
     <div class="chat-section">
       <div class="section-header">
         <div class="section-title">💬 Live Chat</div>
-        <div style="font-size:10px;color:var(--muted)">Last 20</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn-photo-toggle" id="photoToggleBtn" onclick="toggleTradePhoto()" title="Trade alert images on/off">🖼️</button>
+          <span style="font-size:9px;color:var(--muted);line-height:1.3">trade<br>images</span>
+        </div>
       </div>
 
       <div class="chat-list" id="chatList"></div>
@@ -338,7 +341,6 @@
         </div>
         <input class="chat-input" id="chatInput" placeholder="Connect wallet to chat..." disabled>
         <button class="btn-send" id="sendBtn" onclick="sendChat()" disabled>Send</button>
-        <button class="btn-photo-toggle" id="photoToggleBtn" onclick="toggleTradePhoto()" title="Trade alert images on/off">🖼️</button>
         <button class="btn-sticker" id="stickerBtn" onclick="toggleStickerPicker()" disabled title="Chog Stickers">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect x="2" y="2" width="20" height="20" rx="5" fill="currentColor" opacity="0.15"/>
