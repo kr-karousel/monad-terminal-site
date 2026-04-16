@@ -7,6 +7,11 @@ function startApp(){
   const width=w.getBoundingClientRect().width||w.offsetWidth;
   if(width<10){appStarted=false;setTimeout(startApp,80);return;}
   checkWelcome();
+  // 사진 토글 버튼 초기 상태
+  (function(){
+    const btn = document.getElementById('photoToggleBtn');
+    if(btn) btn.style.opacity = devShowTradePhoto ? '1' : '0.35';
+  })();
   loadNickDB();
   // Supabase 미설정 시에만 로컬 외치기 로드 (설정 시 서버에서 덮어씀)
   if(typeof SUPABASE_URL === 'undefined' || !SUPABASE_URL) loadShoutsFromStorage();

@@ -3,7 +3,17 @@
 // ═══════════════════════════════════════
 var devTestWallets = []; // 테스트 권한 지갑 목록
 var devCustomTiers = {}; // address.toLowerCase() -> custom label
-var devShowTradePhoto = localStorage.getItem('mon_dev_photo') !== 'off'; // persisted
+var devShowTradePhoto = localStorage.getItem('mon_show_photo') !== 'off';
+
+function toggleTradePhoto(){
+  devShowTradePhoto = !devShowTradePhoto;
+  localStorage.setItem('mon_show_photo', devShowTradePhoto ? 'on' : 'off');
+  const btn = document.getElementById('photoToggleBtn');
+  if(btn){
+    btn.style.opacity = devShowTradePhoto ? '1' : '0.35';
+    btn.title = devShowTradePhoto ? 'Trade images ON' : 'Trade images OFF';
+  }
+}
 
 function loadCustomTiersFromStorage(){
   try { devCustomTiers = JSON.parse(localStorage.getItem('mon_custom_tiers')||'{}'); } catch(e){ devCustomTiers={}; }
@@ -65,38 +75,15 @@ function toggleDevPanel(){
     // Chess reset: strictly DEV only (not test wallets, not custom tier wallets)
     const chessSection = document.getElementById('devChessSection');
     if(chessSection) chessSection.style.display = isMainDev ? '' : 'none';
-    // Photo toggle: strictly DEV only
-    const photoSection = document.getElementById('devPhotoSection');
-    if(photoSection) photoSection.style.display = isMainDev ? '' : 'none';
     if(isMainDev){
       const ni = document.getElementById('devNickCostInput');
       const si = document.getElementById('devShoutCostInput');
       if(ni) ni.value = NICK_COST;
       if(si) si.value = SHOUT_COST;
-      _updatePhotoToggleBtn();
     }
   }
 }
 
-function toggleDevPhoto(){
-  devShowTradePhoto = !devShowTradePhoto;
-  localStorage.setItem('mon_dev_photo', devShowTradePhoto ? 'on' : 'off');
-  _updatePhotoToggleBtn();
-}
-
-function _updatePhotoToggleBtn(){
-  const btn = document.getElementById('devPhotoToggleBtn');
-  if(!btn) return;
-  if(devShowTradePhoto){
-    btn.textContent = '🖼️ Photo: ON';
-    btn.style.color = '';
-    btn.style.borderColor = '';
-  } else {
-    btn.textContent = '🖼️ Photo: OFF';
-    btn.style.color = 'var(--muted)';
-    btn.style.borderColor = 'rgba(255,255,255,0.1)';
-  }
-}
 
 // ── Chess Records Reset (DEV wallet only, never test/custom-tier wallets) ──
 async function devResetChessRecords(){
