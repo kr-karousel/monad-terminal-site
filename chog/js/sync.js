@@ -44,7 +44,7 @@ function isSyncEnabled(){ return !!_sbClient; }
 async function _syncNicknamesFromServer(){
   if(!_sbClient) return;
   try{
-    const { data } = await _sbClient.from('nicknames').select('address, nickname');
+    const { data } = await _sbClient.from('nicknames').select('address, nickname').or('terminal.eq.chog,terminal.is.null');
     if(!data) return;
     data.forEach(row => {
       if(row.address && row.nickname)
@@ -72,12 +72,13 @@ function _refreshChatNicknames(){
 
 function _subscribeToNicknames(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-nicknames')
+  _sbClient.channel('sync-nicknames-chog')
     .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'nicknames' },
+      { event: '*', schema: 'public', table: 'nicknames', filter: 'terminal=eq.chog' },
       payload => {
         const row = payload.new;
         if(!row || !row.address || !row.nickname) return;
+        if(row.terminal && row.terminal !== 'chog') return;
         const isNew = !nickDB[row.address.toLowerCase()];
         nickDB[row.address.toLowerCase()] = row.nickname;
         // 기존 채팅 메시지 주소 → 닉네임으로 갱신
@@ -104,8 +105,8 @@ async function syncNickToServer(address, nickname){
   if(!_sbClient) return;
   try{
     await _sbClient.from('nicknames').upsert(
-      { address: address.toLowerCase(), nickname, updated_at: new Date().toISOString() },
-      { onConflict: 'address' }
+      { address: address.toLowerCase(), nickname, terminal: 'chog', updated_at: new Date().toISOString() },
+      { onConflict: 'address,terminal' }
     );
   }catch(e){ console.warn('[Sync] 닉네임 저장 실패:', e.message); }
 }
