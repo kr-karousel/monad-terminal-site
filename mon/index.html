@@ -140,12 +140,10 @@
     <span class="ticker-item"><b>$MON</b> <span id="tickerPrice">—</span> <span id="tickerChg" class="dn"></span></span>
     <span class="ticker-item">MCap <b id="tickerMcap">—</b></span>
     <span class="ticker-item">24h Vol <b id="tickerVol">—</b></span>
-    <span class="ticker-item">Holders <b id="tickerHolders">—</b></span>
     <span class="ticker-item">Monad Chain 🟣</span>
     <span class="ticker-item"><b>$MON</b> <span id="tickerPrice2">—</span> <span id="tickerChg2" class="dn"></span></span>
     <span class="ticker-item">MCap <b id="tickerMcap2">—</b></span>
     <span class="ticker-item">24h Vol <b id="tickerVol2">—</b></span>
-    <span class="ticker-item">Holders <b id="tickerHolders2">—</b></span>
     <span class="ticker-item">Monad Chain 🟣</span>
   </div>
 </div>
@@ -239,10 +237,6 @@
           <div style="text-align:right">
             <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Mkt Cap</div>
             <div style="font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:700;color:var(--accent)" id="statMcap">—</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Holders</div>
-            <div style="font-family:'Share Tech Mono',monospace;font-size:14px;font-weight:700" id="statHolders">—</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px">
             <button onclick="openSwapModal('buy')" class="trade-btn buy-btn" style="padding:6px 14px;font-size:14px;letter-spacing:1px;white-space:nowrap">▲ BUY</button>
@@ -478,10 +472,6 @@
     <div class="modal-hdr">
       <div style="font-family:'Bangers',cursive;font-size:22px;letter-spacing:1px;color:var(--accent)">🏆 MON Holders</div>
       <button class="modal-close" onclick="closeHolderModal()">✕</button>
-    </div>
-    <div class="holder-tabs">
-      <button class="holder-tab active" id="tabHolders" onclick="switchHolderTab('holders')">🏅 Top Holders</button>
-      <button class="holder-tab" id="tabTiers" onclick="switchHolderTab('tiers')">👑 Tier Table</button>
     </div>
     <div id="holderTabContent"></div>
   </div>

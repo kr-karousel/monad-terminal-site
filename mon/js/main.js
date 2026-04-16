@@ -19,14 +19,6 @@ function startApp(){
   // Supabase 실시간 동기화 초기화
   setTimeout(initSync, 200);
   setTimeout(setupTracking,300);
-  // 홀더 수 백그라운드 로드 (statHolders 업데이트)
-  setTimeout(async () => {
-    try {
-      const holders = await fetchTopHolders();
-      const sh = document.getElementById('statHolders');
-      if(sh && holders && holders.length) sh.textContent = holders.length + '+';
-    } catch(e) {}
-  }, 7000);
 }
 
 if(document.readyState==='complete')setTimeout(startApp,100);

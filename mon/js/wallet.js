@@ -431,22 +431,4 @@ async function disconnectWallet() {
     `<button onclick="openWalletModal()" class="btn-connect">🔗 Connect Wallet</button>`;
 }
 
-// ── Holder Rank 조회 (holderCache 기반, fetchTopHolders fallback) ──
-async function getHolderRank(addr) {
-  const lower = addr.toLowerCase();
-  if (typeof holderCache !== 'undefined' && holderCache && holderCache.length > 0) {
-    const idx = holderCache.findIndex(h => (h.address || '').toLowerCase() === lower);
-    if (idx !== -1) return idx + 1;
-    if (holderCache.length >= 50) return null;
-  }
-  try {
-    if (typeof fetchTopHolders === 'function') {
-      const holders = await fetchTopHolders();
-      if (holders && holders.length > 0) {
-        const idx = holders.findIndex(h => (h.address || '').toLowerCase() === lower);
-        if (idx !== -1) return idx + 1;
-      }
-    }
-  } catch(e) {}
-  return null;
-}
+async function getHolderRank(addr) { return null; }

@@ -1,194 +1,25 @@
 function openHolderModal(){
   document.getElementById('holderModal').classList.add('open');
-  switchHolderTab('holders');
+  renderTierTable();
 }
 function closeHolderModal(){
   document.getElementById('holderModal').classList.remove('open');
 }
 
-function switchHolderTab(tab){
-  holderCurrentTab = tab;
-  document.getElementById('tabHolders').classList.toggle('active', tab==='holders');
-  document.getElementById('tabTiers').classList.toggle('active', tab==='tiers');
-  if(tab === 'holders') renderHolderList();
-  else renderTierTable();
-}
-
-async function renderHolderList(){
-  const content = document.getElementById('holderTabContent');
-  content.innerHTML = '<div class="holder-loading">⏳ Loading top holders...</div>';
-
-  // 지갑 미연결 시에도 rpcCallAny로 조회 가능
-  if(false && !window.ethereum){
-    content.innerHTML = `<div class="holder-loading" style="text-align:center">
-      <div style="font-size:32px;margin-bottom:12px">🔗</div>
-      <div style="color:var(--accent);font-weight:700;margin-bottom:6px">Connect Wallet to View Holders</div>
-      <div style="color:var(--muted);font-size:11px">Wallet connection is required to fetch on-chain holder data.<br>Click "Connect Wallet" in the top right.</div>
-    </div>`;
-    return;
-  }
-
-  let holders = await fetchTopHolders();
-  if(!holders || !holders.length){
-    content.innerHTML = `<div class="holder-loading" style="text-align:center">
-      <div style="font-size:32px;margin-bottom:8px">😵</div>
-      <div style="color:var(--red);font-weight:700;margin-bottom:6px">Failed to load holders</div>
-      <div style="color:var(--muted);font-size:11px;margin-bottom:14px">Could not reach MonadVision API.<br>Check your connection and retry.</div>
-      <button onclick="holderCache=null;renderHolderList()" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:8px 20px;color:#fff;font-weight:700;cursor:pointer;font-size:12px">🔄 Retry</button>
-    </div>`;
-    return;
-  }
-
-  // 내 순위 찾기
-  let myRankIdx = -1;
-  if(wallet){
-    myRankIdx = holders.findIndex(h => h.address.toLowerCase() === wallet.addr.toLowerCase());
-  }
-
-  // 내 지갑이 목록에 없으면 추가 (순위 밖)
-  let myOutOfList = false;
-  if(wallet && myRankIdx === -1 && wallet.bal > 0){
-    myOutOfList = true;
-  }
-
-  // 홀더 수 표시 (티커바에도 반영)
-  const holderCount = holders.length;
-  const th1 = document.getElementById('tickerHolders');
-  const th2 = document.getElementById('tickerHolders2');
-  const sh = document.getElementById('statHolders');
-  const countStr = holderCount+'+ found';
-  if(th1) th1.textContent = countStr;
-  if(th2) th2.textContent = countStr;
-  if(sh) sh.textContent = holderCount+'+';
-
-  let html = `<div style="overflow-y:auto;max-height:60vh">
-    <table class="holder-table">
-      <thead><tr>
-        <th>#</th>
-        <th>Holder</th>
-        <th style="text-align:right">Token Amount</th>
-        <th style="text-align:right">Distribution</th>
-      </tr></thead>
-      <tbody>`;
-
-  holders.forEach((h, i) => {
-    const rank = i+1;
-    const nick = getNick(h.address);
-    const tierInfo = getRank(h.balance);
-    const short = h.address.slice(0,6)+'...';
-    const isDev = h.address.toLowerCase() === DEV_WALLET.toLowerCase();
-    const isMe = wallet && wallet.addr.toLowerCase() === h.address.toLowerCase();
-
-    // 표시 이름
-    let displayName = nick || short;
-    if(isDev && !nick) displayName = short + ' <span style="color:var(--muted);font-size:9px">(dev)</span>';
-    else if(nick) displayName = nick;
-
-    const rowStyle = isMe ? 'background:rgba(124,58,237,0.12);border-left:3px solid var(--accent);' : '';
-    const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
-    const rankColor = rank <= 3 ? 'top3' : '';
-
-    // 금액 포맷
-    const amtM = h.balance >= 1e6 ? (h.balance/1e6).toFixed(0)+'M'
-               : h.balance >= 1e3 ? (h.balance/1e3).toFixed(0)+'K'
-               : h.balance.toFixed(0);
-    const usd = h.balance * (livePrice||0.000731);
-    const usdStr = usd >= 1000 ? '($'+(usd/1000).toFixed(2)+'K)' : '($'+usd.toFixed(0)+')';
-
-    html += `<tr class="holder-row" style="${rowStyle}" onclick="closeHolderModal();openProfileModal('${h.address}',${Math.floor(h.balance)},'${tierInfo.cls}','${tierInfo.badge}')">
-      <td class="holder-rank-num ${rankColor}">${medal||rank}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="rank-badge ${tierInfo.cls}" style="font-size:8px;padding:1px 5px">${tierInfo.badge}</span>
-          <span class="holder-nick">${displayName}</span>
-          ${isMe ? '<span style="color:var(--accent);font-size:9px;font-weight:700;background:rgba(124,58,237,0.2);padding:1px 5px;border-radius:8px">YOU</span>' : ''}
-        </div>
-      </td>
-      <td class="holder-amount">${amtM} <span style="color:var(--muted);font-size:9px">${usdStr}</span></td>
-      <td class="holder-pct">${h.pct ? h.pct.toFixed(2)+'%' : '—'}</td>
-    </tr>`;
-  });
-
-  html += '</tbody></table></div>';
-
-  // 내가 목록 밖에 있을 때 별도 표시
-  if(myOutOfList){
-    const myTier = getRank(wallet.bal);
-    const myAmtM = wallet.bal >= 1e6 ? (wallet.bal/1e6).toFixed(0)+'M'
-                 : wallet.bal >= 1e3 ? (wallet.bal/1e3).toFixed(0)+'K'
-                 : wallet.bal.toFixed(0);
-    html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(124,58,237,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;display:flex;align-items:center;gap:8px">
-      <span style="color:var(--accent);font-weight:700">📍 Your Rank:</span>
-      <span class="rank-badge ${myTier.cls}" style="font-size:8px">${myTier.badge}</span>
-      <span style="color:var(--text)">${wallet.addr.slice(0,6)}...</span>
-      <span style="margin-left:auto;font-family:'Share Tech Mono',monospace">${myAmtM} MON</span>
-    </div>`;
-  } else if(wallet && myRankIdx >= 0){
-    html += `<div style="margin-top:8px;padding:10px 14px;background:rgba(124,58,237,0.08);border:1px solid var(--accent);border-radius:10px;font-size:12px;text-align:center;color:var(--accent);font-weight:700">
-      📍 Your Rank: #${myRankIdx+1} of ${holderCount}+ holders
-    </div>`;
-  }
-
-  html += `<div style="font-size:10px;color:var(--muted);text-align:center;margin-top:6px">
-    Click any holder to view profile · Top ${holderCount} holders via MonadVision
-  </div>`;
-  content.innerHTML = html;
-}
-
-async function fetchTopHolders(){
-  if(holderCache && Date.now() - holderCacheTime < 60000) return holderCache;
-
-  const fromWei = (v) => { try{ return Number(BigInt(v)*1000n/BigInt('1000000000000000000'))/1000; }catch(_){ return 0; } };
-  const parseData = (d) => {
-    if(d?.items?.length){
-      return d.items.map(h => ({
-        address: (h.address?.hash || h.address || '').toLowerCase(),
-        balance: h.value ? fromWei(h.value) : parseFloat(h.balance || 0),
-        pct: parseFloat(h.percentage || 0)
-      })).filter(h => h.address && h.balance > 0);
-    }
-    const list = d?.result?.data || d?.result?.list || d?.result || d?.data || d?.holders || d?.list || [];
-    if(!list.length) throw new Error('empty list');
-    return list.map(h => ({
-      address: (h.holder || h.wallet_address || h.accountAddress || h.address?.hash || h.address || '').toLowerCase(),
-      balance: h.amount ? fromWei(h.amount) : h.value ? fromWei(h.value) : parseFloat(h.balance || 0),
-      pct: parseFloat(h.percentage || h.share || h.pct || 0)
-    })).filter(h => h.address && h.balance > 0);
-  };
-
-  // Vercel 서버리스 프록시만 사용 (클라이언트 직접 호출 모두 제거 — CORS/403 에러 방지)
-  try {
-    const res = await fetch(`/api/holders?contract=${WMON_CONTRACT}&limit=50`, {
-      headers: { accept: 'application/json' },
-      signal: AbortSignal.timeout(12000)
-    });
-    if(res.ok){
-      const d = await res.json();
-      const valid = parseData(d);
-      if(valid.length > 0){
-        console.log('✅ Holders loaded:', valid.length);
-        holderCache = valid; holderCacheTime = Date.now();
-        return valid;
-      }
-    }
-  } catch(e){ /* silent — holder count optional */ }
-
-  return null;
-}
 
 function renderTierTable(){
   const content = document.getElementById('holderTabContent');
   const TIERS = [
-    {min:1000000, label:'Monad Overlord',  badge:'👑 OVERLORD', cls:'r1', color:'#ffd700'},
-    {min:500000,  label:'Monad Titan',     badge:'🐉 TITAN',    cls:'r2', color:'#e5e7eb'},
-    {min:100000,  label:'Monad Validator', badge:'⚡ VALID',     cls:'r3', color:'#7c3aed'},
-    {min:50000,   label:'Monad Whale',     badge:'🐳 WHALE',    cls:'r4', color:'#38bdf8'},
-    {min:10000,   label:'Monad Maxi',      badge:'💎 MAXI',     cls:'r5', color:'#60a5fa'},
-    {min:1000,    label:'Monad Degen',     badge:'🔥 DEGEN',    cls:'r6', color:'#34d399'},
-    {min:100,     label:'Monad Pleb',      badge:'🟣 PLEB',     cls:'r7', color:'#fbbf24'},
-    {min:10,      label:'MON Holder',      badge:'💸 HOLDER',   cls:'r8', color:'#a78bfa'},
-    {min:1,       label:'Dust Collector',  badge:'🙏 DUST',     cls:'r9', color:'#94a3b8'},
-    {min:0,       label:'Zero Gas Ghost',  badge:'👻 GHOST',    cls:'r10',color:'#6b7280'},
+    {min:100000000, label:'Monad Overlord',  badge:'👑 OVERLORD', cls:'r1', color:'#ffd700'},
+    {min:10000000,  label:'Monad Titan',     badge:'🐉 TITAN',    cls:'r2', color:'#e5e7eb'},
+    {min:5000000,   label:'Monad Validator', badge:'⚡ VALID',     cls:'r3', color:'#7c3aed'},
+    {min:1000000,   label:'Monad Whale',     badge:'🐳 WHALE',    cls:'r4', color:'#38bdf8'},
+    {min:10000,     label:'Monad Maxi',      badge:'💎 MAXI',     cls:'r5', color:'#60a5fa'},
+    {min:1000,      label:'Monad Degen',     badge:'🔥 DEGEN',    cls:'r6', color:'#34d399'},
+    {min:100,       label:'Monad Pleb',      badge:'🟣 PLEB',     cls:'r7', color:'#fbbf24'},
+    {min:10,        label:'MON Holder',      badge:'💸 HOLDER',   cls:'r8', color:'#a78bfa'},
+    {min:1,         label:'Dust Collector',  badge:'🙏 DUST',     cls:'r9', color:'#94a3b8'},
+    {min:0,         label:'Zero Gas Ghost',  badge:'👻 GHOST',    cls:'r10',color:'#6b7280'},
   ];
 
   const myBal = wallet ? wallet.bal : 0;
