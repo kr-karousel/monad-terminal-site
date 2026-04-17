@@ -1,11 +1,11 @@
 :root{
-  --bg:#2a1200;--bg2:#381a00;--accent:#ff6b1a;--accent2:#ff8c42;
-  --gold:#fbbf24;--green:#4ade80;--red:#f87171;--text:#fff3e8;
-  --muted:#cc8844;--border:rgba(255,107,26,0.35);--card:rgba(20,10,0,0.80);
+  --bg:#e05000;--bg2:#c84400;--accent:#ff8c00;--accent2:#ffaa33;
+  --gold:#fbbf24;--green:#4ade80;--red:#ff3b3b;--text:#fff8f0;
+  --muted:#ffcc99;--border:rgba(255,200,100,0.40);--card:rgba(0,0,0,0.82);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#2a1200;color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:linear-gradient(180deg,rgba(255,140,50,0.06) 0%,transparent 40%);pointer-events:none;z-index:0}
+body{background:#e05000;color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0}
 
 /* TICKER */
 .ticker-bar{background:rgba(12,6,0,0.90);border-bottom:1px solid rgba(255,107,26,0.35);padding:6px 0;overflow:hidden}
