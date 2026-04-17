@@ -104,16 +104,26 @@ function buildOHLCV(logs, intervalMin, curBlock) {
     let priceUsd = 0;
     if(log.data && log.data.length >= 2 + 64*5) {
       try {
-        // V3 Swap data layout: amount0(32), amount1(32), sqrtPriceX96(32), liquidity(32), tick(32)
-        const sqrtHex = log.data.slice(2 + 64*2, 2 + 64*3);
-        const sqrtVal = BigInt('0x' + sqrtHex);
-        if(sqrtVal === 0n) return;
-        const ratio = Number(sqrtVal) / Number(Q96);
-        let priceInWMON = ratio * ratio;
-        if(!isChogToken0) priceInWMON = 1 / priceInWMON;
-        priceUsd = priceInWMON * monPrice;
-        // Sanity: BOB should be between $0.0000001 and $0.1
-        if(priceUsd < 1e-8 || priceUsd > 0.5) return;
+        const d = log.data;
+        const isKuru = log.topics && log.topics[0] &&
+          log.topics[0].toLowerCase() === TRADE_TOPIC_KURU.toLowerCase();
+        if(isKuru) {
+          const qtyWei  = BigInt('0x' + d.slice(2, 66));
+          const costWei = BigInt('0x' + d.slice(130, 194));
+          const bobAmt  = Number(qtyWei) / 1e18;
+          const monAmt  = Number(costWei) / 1e18;
+          priceUsd = bobAmt > 0 ? (monAmt / bobAmt) * monPrice : 0;
+          if(priceUsd < 1e-12 || priceUsd > 0.5) return;
+        } else {
+          // V3 Swap: amount0(32), amount1(32), sqrtPriceX96(32), liquidity(32), tick(32)
+          const sqrtVal = BigInt('0x' + d.slice(2 + 64*2, 2 + 64*3));
+          if(sqrtVal === 0n) return;
+          const ratio = Number(sqrtVal) / Number(Q96);
+          let priceInWMON = ratio * ratio;
+          if(!isChogToken0) priceInWMON = 1 / priceInWMON;
+          priceUsd = priceInWMON * monPrice;
+          if(priceUsd < 1e-8 || priceUsd > 0.5) return;
+        }
       } catch(e) { return; }
     }
 

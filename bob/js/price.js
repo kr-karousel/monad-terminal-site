@@ -69,30 +69,40 @@ async function loadInitialTrades(){
         const blk = parseInt(log.blockNumber, 16);
         const ts  = now - (cur - blk);
 
-        function toSigned(hex){
-          const v = BigInt('0x'+hex);
-          const MAX = BigInt('0x8'+'0'.repeat(63));
-          return v >= MAX ? v - BigInt('0x1'+'0'.repeat(64)) : v;
-        }
-        const amount0 = toSigned(data.slice(2,66));
-        const amount1 = toSigned(data.slice(66,130));
-        const sqrtHex = data.slice(130,194);
-        const sqrtVal = BigInt('0x'+sqrtHex);
-        if(sqrtVal === 0n) return;
+        const isKuru = log.topics && log.topics[0] &&
+          log.topics[0].toLowerCase() === TRADE_TOPIC_KURU.toLowerCase();
 
-        const ratio = Number(sqrtVal) / Number(Q96);
-        let priceInWMON = ratio * ratio;
-        if(!isBobToken0) priceInWMON = 1 / priceInWMON;
-        const priceUsd = priceInWMON * monPx;
-        if(priceUsd < 1e-9 || priceUsd > 1) return;
-
-        let isBuy, monAmount;
-        if(isBobToken0){
-          isBuy = amount0 < 0n;
-          monAmount = Number(amount1 < 0n ? -amount1 : amount1) / 1e18;
+        let priceUsd, isBuy, monAmount;
+        if(isKuru) {
+          const qtyWei  = BigInt('0x' + data.slice(2, 66));
+          const costWei = BigInt('0x' + data.slice(130, 194));
+          const bobAmt  = Number(qtyWei) / 1e18;
+          monAmount = Number(costWei) / 1e18;
+          priceUsd  = bobAmt > 0 ? (monAmount / bobAmt) * monPx : 0;
+          isBuy     = log.topics[3] === '0x0000000000000000000000000000000000000000000000000000000000000001';
+          if(priceUsd < 1e-12 || priceUsd > 1) return;
         } else {
-          isBuy = amount1 < 0n;
-          monAmount = Number(amount0 < 0n ? -amount0 : amount0) / 1e18;
+          function toSigned(hex){
+            const v = BigInt('0x'+hex);
+            const MAX = BigInt('0x8'+'0'.repeat(63));
+            return v >= MAX ? v - BigInt('0x1'+'0'.repeat(64)) : v;
+          }
+          const amount0 = toSigned(data.slice(2,66));
+          const amount1 = toSigned(data.slice(66,130));
+          const sqrtVal = BigInt('0x'+data.slice(130,194));
+          if(sqrtVal === 0n) return;
+          const ratio = Number(sqrtVal) / Number(Q96);
+          let priceInWMON = ratio * ratio;
+          if(!isBobToken0) priceInWMON = 1 / priceInWMON;
+          priceUsd = priceInWMON * monPx;
+          if(priceUsd < 1e-9 || priceUsd > 1) return;
+          if(isBobToken0){
+            isBuy = amount0 < 0n;
+            monAmount = Number(amount1 < 0n ? -amount1 : amount1) / 1e18;
+          } else {
+            isBuy = amount1 < 0n;
+            monAmount = Number(amount0 < 0n ? -amount0 : amount0) / 1e18;
+          }
         }
 
         const mcap = priceUsd * TOTAL_SUPPLY;
@@ -273,54 +283,54 @@ function startPolling() {
 
 function handleSwapLog(log) {
   try {
-    const Q96 = BigInt('0x1000000000000000000000000');
-    const isBobToken0 = CHOG_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
     const data = log.data;
     if(!data || data.length < 2 + 64*5) return;
 
-    // amount0, amount1 (int256 — signed)
-    const amount0Hex = data.slice(2, 66);
-    const amount1Hex = data.slice(66, 130);
-    const sqrtHex    = data.slice(130, 194);
+    const isKuru = log.topics && log.topics[0] &&
+      log.topics[0].toLowerCase() === TRADE_TOPIC_KURU.toLowerCase();
 
-    // int256 파싱 (signed)
-    function toSignedInt(hex) {
-      const val = BigInt('0x' + hex);
-      const MAX = BigInt('0x8000000000000000000000000000000000000000000000000000000000000000');
-      return val >= MAX ? val - BigInt('0x10000000000000000000000000000000000000000000000000000000000000000') : val;
-    }
+    let isBuy, bobAmount, monAmount, priceUsd, usdValue;
 
-    const amount0 = toSignedInt(amount0Hex); // BOB if token0
-    const amount1 = toSignedInt(amount1Hex); // WMON if token1
-    const sqrtVal = BigInt('0x' + sqrtHex);
-    if(sqrtVal === 0n) return;
-
-    // 가격 계산
-    const ratio = Number(sqrtVal) / Number(Q96);
-    let priceInWMON = ratio * ratio;
-    if(!isBobToken0) priceInWMON = 1 / priceInWMON;
-    const priceUsd = priceInWMON * (cachedMonPrice || 2.8);
-    if(priceUsd < 1e-9 || priceUsd > 1) return;
-
-    // 매수/매도 판별
-    // Uniswap V3: amount < 0 = 풀에서 나감 = 사용자가 받음
-    // BOB/WMON 풀에서:
-    //   BOB amount < 0 → BOB 풀에서 나감 → 사용자가 BOB 받음 → BUY
-    //   BOB amount > 0 → BOB 풀로 들어옴 → 사용자가 BOB 넣음 → SELL
-    let isBuy, bobAmount, monAmount, usdValue;
-    if(isBobToken0) {
-      isBuy      = amount0 < 0n;
-      bobAmount = Number(amount0 < 0n ? -amount0 : amount0) / 1e18;
-      monAmount  = Number(amount1 < 0n ? -amount1 : amount1) / 1e18; // WMON
+    if(isKuru) {
+      // Kuru Trade: topics=[hash,maker,taker,isBuy], data=[qty,price,cost,makerFee,takerFee]
+      isBuy     = log.topics[3] === '0x0000000000000000000000000000000000000000000000000000000000000001';
+      const qtyWei  = BigInt('0x' + data.slice(2, 66));
+      const costWei = BigInt('0x' + data.slice(130, 194));
+      bobAmount = Number(qtyWei) / 1e18;
+      monAmount = Number(costWei) / 1e18;
+      priceUsd  = bobAmount > 0 ? (monAmount / bobAmount) * (cachedMonPrice || 2.8) : 0;
+      if(priceUsd < 1e-12 || priceUsd > 1) return;
     } else {
-      isBuy      = amount1 < 0n;
-      bobAmount = Number(amount1 < 0n ? -amount1 : amount1) / 1e18;
-      monAmount  = Number(amount0 < 0n ? -amount0 : amount0) / 1e18; // WMON
+      // Uniswap V3 Swap: data=[amount0,amount1,sqrtPriceX96,liquidity,tick]
+      const Q96 = BigInt('0x1000000000000000000000000');
+      const isBobToken0 = CHOG_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
+      function toSignedInt(hex) {
+        const val = BigInt('0x' + hex);
+        const MAX = BigInt('0x8000000000000000000000000000000000000000000000000000000000000000');
+        return val >= MAX ? val - BigInt('0x10000000000000000000000000000000000000000000000000000000000000000') : val;
+      }
+      const amount0 = toSignedInt(data.slice(2, 66));
+      const amount1 = toSignedInt(data.slice(66, 130));
+      const sqrtVal = BigInt('0x' + data.slice(130, 194));
+      if(sqrtVal === 0n) return;
+      const ratio = Number(sqrtVal) / Number(Q96);
+      let priceInWMON = ratio * ratio;
+      if(!isBobToken0) priceInWMON = 1 / priceInWMON;
+      priceUsd = priceInWMON * (cachedMonPrice || 2.8);
+      if(priceUsd < 1e-9 || priceUsd > 1) return;
+      if(isBobToken0) {
+        isBuy     = amount0 < 0n;
+        bobAmount = Number(amount0 < 0n ? -amount0 : amount0) / 1e18;
+        monAmount = Number(amount1 < 0n ? -amount1 : amount1) / 1e18;
+      } else {
+        isBuy     = amount1 < 0n;
+        bobAmount = Number(amount1 < 0n ? -amount1 : amount1) / 1e18;
+        monAmount = Number(amount0 < 0n ? -amount0 : amount0) / 1e18;
+      }
     }
 
-    // MON 기준 USD (더 정확)
     usdValue = monAmount * (cachedMonPrice || 2.8);
-    if(usdValue < 0.5) usdValue = bobAmount * priceUsd; // fallback
+    if(usdValue < 0.5) usdValue = bobAmount * priceUsd;
 
     // Min $0.5 이상 거래만 표시
     if(usdValue < 0.5) return;
@@ -447,24 +457,36 @@ async function loadRecentTrades(maxCount){
         try {
           const d = log.data;
           if(!d || d.length < 2 + 64*5) continue;
-          const a0 = toSigned(d.slice(2, 66));
-          const a1 = toSigned(d.slice(66, 130));
-          const sq = BigInt('0x' + d.slice(130, 194));
-          if(sq === 0n) continue;
-          const ratio = Number(sq) / Number(Q96);
-          let pMON = ratio * ratio;
-          if(!isBobToken0) pMON = 1 / pMON;
-          const pUsd = pMON * (cachedMonPrice || 0.026);
-          if(pUsd < 1e-9 || pUsd > 1) continue;
-          let isBuy, bobAmt, mon;
-          if(isBobToken0){
-            isBuy = a0 < 0n;
-            bobAmt  = Number(a0 < 0n ? -a0 : a0) / 1e18;
-            mon   = Number(a1 < 0n ? -a1 : a1) / 1e18;
+          const isKuruLog = log.topics && log.topics[0] &&
+            log.topics[0].toLowerCase() === TRADE_TOPIC_KURU.toLowerCase();
+          let isBuy, bobAmt, mon, pUsd;
+          if(isKuruLog) {
+            const qtyWei  = BigInt('0x' + d.slice(2, 66));
+            const costWei = BigInt('0x' + d.slice(130, 194));
+            bobAmt = Number(qtyWei) / 1e18;
+            mon    = Number(costWei) / 1e18;
+            pUsd   = bobAmt > 0 ? (mon / bobAmt) * (cachedMonPrice || 0.026) : 0;
+            isBuy  = log.topics[3] === '0x0000000000000000000000000000000000000000000000000000000000000001';
+            if(pUsd < 1e-12 || pUsd > 1) continue;
           } else {
-            isBuy = a1 < 0n;
-            bobAmt  = Number(a1 < 0n ? -a1 : a1) / 1e18;
-            mon   = Number(a0 < 0n ? -a0 : a0) / 1e18;
+            const a0 = toSigned(d.slice(2, 66));
+            const a1 = toSigned(d.slice(66, 130));
+            const sq = BigInt('0x' + d.slice(130, 194));
+            if(sq === 0n) continue;
+            const ratio = Number(sq) / Number(Q96);
+            let pMON = ratio * ratio;
+            if(!isBobToken0) pMON = 1 / pMON;
+            pUsd = pMON * (cachedMonPrice || 0.026);
+            if(pUsd < 1e-9 || pUsd > 1) continue;
+            if(isBobToken0){
+              isBuy = a0 < 0n;
+              bobAmt = Number(a0 < 0n ? -a0 : a0) / 1e18;
+              mon    = Number(a1 < 0n ? -a1 : a1) / 1e18;
+            } else {
+              isBuy = a1 < 0n;
+              bobAmt = Number(a1 < 0n ? -a1 : a1) / 1e18;
+              mon    = Number(a0 < 0n ? -a0 : a0) / 1e18;
+            }
           }
           let usd = mon * (cachedMonPrice || 0.026);
           if(usd < 0.5) usd = bobAmt * pUsd;

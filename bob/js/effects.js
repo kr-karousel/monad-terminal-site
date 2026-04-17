@@ -43,7 +43,7 @@ function showTradeFloat(isBuy, usdValue, bobAmount, monAmount){
   // 토큰 수량 표시
   const tokenDisplay = Math.floor(bobAmount).toLocaleString()+' '+TOKEN_NAME;
 
-  const clownSrc  = isBuy ? 'img/clown_buy.jpg' : 'img/clown_sell.jpg';
+  const clownSrc  = isBuy ? 'img/bob_happy.jpg' : 'img/bob_sad.jpg';
   const clownCls  = isWhale ? 'trade-float-clown whale' : 'trade-float-clown';
   const clownHtml = (typeof devShowTradePhoto === 'undefined' || devShowTradePhoto)
     ? `<img class="${clownCls}" src="${clownSrc}" alt="">`
