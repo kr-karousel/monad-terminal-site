@@ -23,7 +23,7 @@ function initChart(){
   const fallback    = document.getElementById('chart-fallback');
 
   if(tvContainer){
-    var CHART_SRC = 'https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0';
+    var CHART_SRC = 'https://dexscreener.com/monad/0xe5a8f88c3db25434b6b4320a8e14348c447dd7a8?embed=1&theme=dark&trades=0&info=0';
     tvContainer.innerHTML = '<iframe src="'+CHART_SRC+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="BOB/MON Chart"></iframe>';
     tvContainer.style.display = 'block';
     tvContainer.style.position = 'relative';
@@ -51,7 +51,7 @@ function initChart(){
     }
 
     // BOB 캐릭터 - 마우스 따라다니기 (부드럽게)
-    const bob = document.getElementById('bobChar');
+    const bobEl = document.getElementById('bobChar');
     if(bobEl){
       document.body.appendChild(bobEl);
       Object.assign(bobEl.style, {
@@ -118,7 +118,7 @@ function initChart(){
   // 접근: RAF 루프 대신, 스크롤 종료 후 iframe이 깨졌는지 1회 체크 + display 토글로 복구
   (function(){
     var scrollTimer = null;
-    var chartSrc = 'https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0';
+    var chartSrc = 'https://dexscreener.com/monad/0xe5a8f88c3db25434b6b4320a8e14348c447dd7a8?embed=1&theme=dark&trades=0&info=0';
 
     function recoverIframe(){
       var c = document.getElementById('tv-chart-container');
