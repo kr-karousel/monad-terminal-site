@@ -2,7 +2,8 @@
   "redirects": [
     { "source": "/mon",  "destination": "/mon/",  "permanent": false },
     { "source": "/chog", "destination": "/chog/", "permanent": false },
-    { "source": "/emo",  "destination": "/emo/",  "permanent": false }
+    { "source": "/emo",  "destination": "/emo/",  "permanent": false },
+    { "source": "/bob",  "destination": "/bob/",  "permanent": false }
   ],
   "crons": [
     { "path": "/api/cron-check-alerts", "schedule": "0 0 * * *" }

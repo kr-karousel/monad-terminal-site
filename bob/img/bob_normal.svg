@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <!-- Black background -->
+  <rect width="400" height="400" fill="#000000"/>
+  <!-- Body shadow -->
+  <ellipse cx="202" cy="222" rx="78" ry="90" fill="#b84a00" opacity="0.4"/>
+  <!-- Blue shirt body -->
+  <ellipse cx="198" cy="240" rx="72" ry="68" fill="#4a7fd4"/>
+  <ellipse cx="198" cy="258" rx="60" ry="52" fill="#3a6bc4"/>
+  <!-- Diamond logo on shirt -->
+  <rect x="183" y="258" width="30" height="30" rx="3" fill="#2a5ab4" transform="rotate(45 198 273)"/>
+  <rect x="187" y="262" width="22" height="22" rx="2" fill="#fff" transform="rotate(45 198 273)"/>
+  <!-- Orange head/body -->
+  <ellipse cx="198" cy="178" rx="72" ry="80" fill="#e85d04"/>
+  <!-- Head highlight -->
+  <ellipse cx="185" cy="150" rx="28" ry="22" fill="#f97316" opacity="0.5"/>
+  <!-- Beak -->
+  <path d="M155 205 Q170 215 178 205 L182 225 Q170 235 155 222 Z" fill="#d97706"/>
+  <path d="M155 205 Q165 208 178 205" fill="none" stroke="#c06000" stroke-width="1.5"/>
+  <!-- Cool half-lidded eyes -->
+  <ellipse cx="178" cy="175" rx="18" ry="16" fill="white"/>
+  <ellipse cx="220" cy="175" rx="18" ry="16" fill="white"/>
+  <!-- Heavy eyelids -->
+  <path d="M160 168 Q178 163 196 168" fill="#e85d04" stroke="#c04000" stroke-width="1"/>
+  <path d="M202 168 Q220 163 238 168" fill="#e85d04" stroke="#c04000" stroke-width="1"/>
+  <!-- Pupils -->
+  <circle cx="180" cy="178" r="9" fill="#1a1a1a"/>
+  <circle cx="222" cy="178" r="9" fill="#1a1a1a"/>
+  <circle cx="177" cy="175" r="3" fill="white"/>
+  <circle cx="219" cy="175" r="3" fill="white"/>
+  <!-- Smirk -->
+  <path d="M175 215 Q195 225 210 215" fill="none" stroke="#c04000" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Arms -->
+  <ellipse cx="128" cy="230" rx="28" ry="18" fill="#e85d04" transform="rotate(-20 128 230)"/>
+  <ellipse cx="110" cy="245" rx="22" ry="16" fill="#e85d04" transform="rotate(-30 110 245)"/>
+  <!-- Pointing fingers -->
+  <ellipse cx="95" cy="255" rx="14" ry="10" fill="#e85d04" transform="rotate(-10 95 255)"/>
+  <ellipse cx="82" cy="260" rx="10" ry="8" fill="#e85d04"/>
+  <!-- Right wing -->
+  <ellipse cx="268" cy="245" rx="22" ry="14" fill="#e85d04" transform="rotate(20 268 245)"/>
+  <!-- Feet/tail -->
+  <ellipse cx="175" cy="305" rx="25" ry="12" fill="#e85d04" transform="rotate(-15 175 305)"/>
+  <ellipse cx="220" cy="308" rx="22" ry="10" fill="#e85d04" transform="rotate(10 220 308)"/>
+  <!-- Ear tuft -->
+  <path d="M248 155 Q255 135 248 120" stroke="#c04000" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>

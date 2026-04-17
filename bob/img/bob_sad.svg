@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <rect width="400" height="400" fill="#000000"/>
+  <!-- Red speed lines -->
+  <line x1="80" y1="90" x2="135" y2="105" stroke="#ef4444" stroke-width="6" stroke-linecap="round" opacity="0.9"/>
+  <line x1="265" y1="80" x2="318" y2="95" stroke="#ef4444" stroke-width="6" stroke-linecap="round" opacity="0.9"/>
+  <line x1="70" y1="310" x2="128" y2="300" stroke="#ef4444" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+  <line x1="272" y1="315" x2="325" y2="305" stroke="#ef4444" stroke-width="5" stroke-linecap="round" opacity="0.8"/>
+  <!-- Body -->
+  <ellipse cx="200" cy="275" rx="82" ry="78" fill="#4a7fd4"/>
+  <ellipse cx="200" cy="290" rx="70" ry="62" fill="#3a6bc4"/>
+  <!-- Diamond logo -->
+  <rect x="185" y="288" width="30" height="30" rx="3" fill="#2a5ab4" transform="rotate(45 200 303)"/>
+  <rect x="189" y="292" width="22" height="22" rx="2" fill="#fff" transform="rotate(45 200 303)"/>
+  <!-- Orange head -->
+  <ellipse cx="200" cy="195" rx="75" ry="88" fill="#e85d04"/>
+  <ellipse cx="186" cy="163" rx="30" ry="24" fill="#f97316" opacity="0.45"/>
+  <!-- Anger marks on forehead -->
+  <text x="170" y="148" font-size="20" fill="#ff6b35">✦</text>
+  <text x="215" y="142" font-size="16" fill="#ff6b35">✦</text>
+  <!-- Angry furrowed eyes -->
+  <ellipse cx="178" cy="185" rx="20" ry="15" fill="white"/>
+  <ellipse cx="222" cy="185" rx="20" ry="15" fill="white"/>
+  <!-- Heavy brows angled down toward center -->
+  <path d="M158 170 Q178 178 196 172" fill="#c04000" stroke="#8b2000" stroke-width="1"/>
+  <path d="M204 172 Q222 178 242 170" fill="#c04000" stroke="#8b2000" stroke-width="1"/>
+  <!-- Pupils (angry) -->
+  <circle cx="180" cy="188" r="9" fill="#1a1a1a"/>
+  <circle cx="224" cy="188" r="9" fill="#1a1a1a"/>
+  <circle cx="177" cy="185" r="3" fill="white"/>
+  <circle cx="221" cy="185" r="3" fill="white"/>
+  <!-- Tears -->
+  <ellipse cx="162" cy="205" rx="5" ry="8" fill="#60a5fa" opacity="0.9"/>
+  <ellipse cx="166" cy="218" rx="4" ry="7" fill="#60a5fa" opacity="0.8"/>
+  <ellipse cx="238" cy="205" rx="5" ry="8" fill="#60a5fa" opacity="0.9"/>
+  <ellipse cx="234" cy="218" rx="4" ry="7" fill="#60a5fa" opacity="0.8"/>
+  <!-- Beak/mouth (gritted) -->
+  <path d="M165 220 Q178 210 190 218 L192 232 Q178 240 162 230 Z" fill="#d97706"/>
+  <path d="M162 222 Q180 230 192 222" fill="none" stroke="#8b2000" stroke-width="2"/>
+  <!-- Gritted teeth line -->
+  <line x1="167" y1="228" x2="190" y2="226" stroke="#fff" stroke-width="3" opacity="0.7"/>
+  <!-- Fists raised -->
+  <ellipse cx="140" cy="295" rx="30" ry="25" fill="#e85d04"/>
+  <ellipse cx="262" cy="295" rx="30" ry="25" fill="#e85d04"/>
+  <!-- Knuckle lines -->
+  <path d="M125 285 Q140 278 155 285" fill="none" stroke="#c04000" stroke-width="2"/>
+  <path d="M248 285 Q262 278 277 285" fill="none" stroke="#c04000" stroke-width="2"/>
+  <!-- Arms -->
+  <ellipse cx="148" cy="268" rx="22" ry="30" fill="#e85d04" transform="rotate(10 148 268)"/>
+  <ellipse cx="254" cy="268" rx="22" ry="30" fill="#e85d04" transform="rotate(-10 254 268)"/>
+  <!-- Ear tuft -->
+  <path d="M258 168 Q270 145 262 130" stroke="#c04000" stroke-width="4" fill="none" stroke-linecap="round"/>
+</svg>
