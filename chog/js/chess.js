@@ -228,41 +228,6 @@ function chessMoveNote(piece, fr, fc, tr, tc, captured, special, promoteTo){
 //  UI FUNCTIONS
 // ══════════════════════════════════════════════════════
 
-// ── Move sound (Web Audio API — no file needed) ───────
-let _chessAudioCtx = null;
-function _chessGetAudioCtx(){
-  if(!_chessAudioCtx || _chessAudioCtx.state==='closed'){
-    _chessAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
-  }
-  if(_chessAudioCtx.state==='suspended') _chessAudioCtx.resume();
-  return _chessAudioCtx;
-}
-function chessPlayMoveSound(isCapture){
-  try {
-    const ctx = _chessGetAudioCtx();
-    const sr  = ctx.sampleRate;
-    const dur = isCapture ? 0.10 : 0.07;          // capture slightly longer
-    const buf = ctx.createBuffer(1, Math.ceil(sr*dur), sr);
-    const data= buf.getChannelData(0);
-    for(let i=0; i<data.length; i++){
-      const t     = i/sr;
-      const decay = Math.exp(-t * (isCapture ? 38 : 55)); // slower decay for capture
-      data[i] = (Math.random()*2-1) * decay;
-    }
-    const src  = ctx.createBufferSource();
-    src.buffer = buf;
-    // Bandpass: 900–1400 Hz gives a wood-on-wood "tock" character
-    const bp   = ctx.createBiquadFilter();
-    bp.type           = 'bandpass';
-    bp.frequency.value= isCapture ? 900 : 1200;
-    bp.Q.value        = 1.2;
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(isCapture ? 0.75 : 0.55, ctx.currentTime);
-    src.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
-    src.start();
-  } catch(e){}
-}
-
 // ── Piece slide animation ─────────────────────────────
 function chessAnimatePieceSlide(fr, fc, tr, tc){
   // Source square element (now empty after board re-render)
@@ -310,18 +275,10 @@ function openChessModal(){
 }
 
 function closeChessModal(){
-  chessClearTurnTimer();
-  chessStopBGM();
   document.getElementById('chessModal').classList.remove('open');
-  // 게임이 끝난 상태면 반드시 null — 다음 매칭 시 구독 핸들러가 막히지 않도록
-  if(chessGame && chessGame.status !== 'normal' && chessGame.status !== 'check'){
-    chessGame = null;
-  }
 }
 
 function chessPlayAgain(){
-  chessClearTurnTimer();
-  chessStopBGM();
   // Hide game over overlay and reset game state
   const go = document.getElementById('chessGameOver');
   if(go){ go.style.display='none'; go.innerHTML=''; }
@@ -423,7 +380,7 @@ function renderChessInfo(){
 
   infoEl.innerHTML = `
     <div class="chess-player ${g.myColor==='black'?'chess-me':''}" title="${g.blackAddr}">
-      <span class="chess-player-icon chess-icon-black">♚</span>
+      <span class="chess-player-icon">♚</span>
       <span class="chess-player-name">${bNick}</span>
       ${g.myColor==='black'?'<span class="chess-you-badge">YOU</span>':''}
     </div>
@@ -434,10 +391,11 @@ function renderChessInfo(){
     <div class="chess-player ${g.myColor==='white'?'chess-me':''}" title="${g.whiteAddr}">
       ${g.myColor==='white'?'<span class="chess-you-badge">YOU</span>':''}
       <span class="chess-player-name">${wNick}</span>
-      <span class="chess-player-icon chess-icon-white">♔</span>
+      <span class="chess-player-icon">♔</span>
     </div>
     <div style="display:flex;gap:2px;padding-left:6px;flex-shrink:0">
       <button class="modal-close" onclick="chessMinimize()" title="Minimize">▾</button>
+      <button class="modal-close" onclick="closeChessModal()" title="Close">✕</button>
     </div>`;
 }
 
@@ -524,7 +482,6 @@ function chessMakeMove(fr, fc, tr, tc, special, promoteTo){
   // Re-render
   renderChessBoard();
   chessAnimatePieceSlide(fr, fc, tr, tc);
-  chessPlayMoveSound(!!captured);
   renderChessInfo();
 
   // Animations
@@ -583,10 +540,10 @@ function closeChessPromotion(){
 }
 
 function chessFinishPromotion(promoteTo){
-  const pending = chessPending;   // closeChessPromotion이 null로 지우기 전에 저장
   closeChessPromotion();
-  if(!pending) return;
-  const {fr,fc,tr,tc,sp} = pending;
+  if(!chessPending) return;
+  const {fr,fc,tr,tc,sp} = chessPending;
+  chessPending = null;
   chessMakeMove(fr,fc,tr,tc,sp,promoteTo.toUpperCase());
 }
 
@@ -620,7 +577,6 @@ function chessStartGame(matchId, whiteAddr, blackAddr, myColor, existingState){
   };
   _chessTimeouts = 0;
   openChessModal();
-  chessStartBGM();
   if(typeof _subscribeToChessMatch==='function') _subscribeToChessMatch(matchId);
   chessStartTurnTimer();
 }
@@ -629,7 +585,6 @@ function chessStartGame(matchId, whiteAddr, blackAddr, myColor, existingState){
 function chessResign(){
   if(!chessGame||!wallet) return;
   if(!confirm('Resign this game? You will lose the match.')) return;
-  chessClearTurnTimer();
   const winner = chessGame.whiteAddr===wallet.addr.toLowerCase()?'black':'white';
   chessGame.status = 'resigned';
   chessGame.winner = winner;
@@ -719,7 +674,6 @@ function chessApplyOpponentMove(state){
 
   renderChessBoard();
   if(state.lastMove) chessAnimatePieceSlide(...state.lastMove);
-  if(state.lastMove) chessPlayMoveSound(false);
   renderChessInfo();
 
   if(chessGame.status==='check') chessAnimCheck();
@@ -789,39 +743,26 @@ function _chessUpdateTimerUI(){
 
 function _chessHandleTimeout(){
   if(!chessGame) return;
-  // Game already finished — don't double-forfeit
-  if(chessGame.status!=='normal' && chessGame.status!=='check') return;
-
-  const myAddr  = wallet ? wallet.addr.toLowerCase() : null;
+  // Only handle timeout if it's YOUR turn
+  const myAddr = wallet ? wallet.addr.toLowerCase() : null;
   const turnAddr = chessGame.turn==='white' ? chessGame.whiteAddr : chessGame.blackAddr;
+  if(!myAddr || myAddr !== turnAddr) return;
 
-  if(!myAddr) return; // wallet disconnected — can't act
-
-  if(myAddr === turnAddr){
-    // MY turn timed out → I forfeit
-    _chessTimeouts++;
-    if(_chessTimeouts >= CHESS_MAX_TIMEOUTS){
-      _chessTimeouts = 0;
-      const winner = chessOpponent(chessGame.myColor);
-      chessGame.status = 'resigned';
-      chessGame.winner = winner;
-      chessShowResult('⏰','Time\'s Up!',`You ran out of time — ${winner.toUpperCase()} wins!`,'resigned');
-      if(typeof chessSyncResign==='function') chessSyncResign(chessGame);
-      if(typeof chessAwardPoints==='function') chessAwardPoints(winner, chessGame);
-    } else {
-      chessSpawnFloater('⏰ TIME WARNING!','#f59e0b');
-      _chessTimeLeft = CHESS_TURN_SECS;
-      chessStartTurnTimer();
-    }
-  } else {
-    // OPPONENT's turn timed out — claim win on their behalf
+  _chessTimeouts++;
+  if(_chessTimeouts >= CHESS_MAX_TIMEOUTS){
+    // Auto-forfeit by timeout
     _chessTimeouts = 0;
-    const winner = chessGame.myColor;
+    const winner = chessOpponent(chessGame.myColor);
     chessGame.status = 'resigned';
     chessGame.winner = winner;
-    chessShowResult('⏰','Opponent Timed Out!',`${winner.toUpperCase()} wins by timeout!`,'resigned');
+    chessShowResult('⏰','Time\'s Up!',`You ran out of time — ${winner.toUpperCase()} wins!`,'resigned');
     if(typeof chessSyncResign==='function') chessSyncResign(chessGame);
     if(typeof chessAwardPoints==='function') chessAwardPoints(winner, chessGame);
+  } else {
+    // Warning: restart with same limit
+    chessSpawnFloater('⏰ TIME WARNING!','#f59e0b');
+    _chessTimeLeft = CHESS_TURN_SECS;
+    chessStartTurnTimer();
   }
 }
 
@@ -875,80 +816,4 @@ function _chessPipUpdateTurn(){
     (chessGame.turn==='white'?chessGame.whiteAddr:chessGame.blackAddr).toLowerCase();
   pip.textContent = isMyTurn ? 'YOUR TURN' : 'WAITING...';
   pip.style.color = isMyTurn ? '#4ade80' : 'rgba(192,132,252,0.6)';
-}
-
-// ══════════════════════════════════════════════════════
-//  🎵 CHESS BGM
-//  오디오 파일은 chog/audio/ 에 업로드하면 즉시 적용
-//  트랙 순서: 0=메인, 1=서브1, 2=서브2
-// ══════════════════════════════════════════════════════
-
-const CHESS_BGM_TRACKS = [
-  { name: 'Main Theme',   src: 'audio/chess-bgm-main.mp3' },
-  { name: 'Arena Vibes',  src: 'audio/chess-bgm-sub1.mp3' },
-  { name: 'Night Duel',   src: 'audio/chess-bgm-sub2.mp3' },
-  { name: 'Dark Court',   src: 'audio/chess-bgm-sub3.mp3' },
-];
-
-let _chessBgmAudio    = null;
-let _chessBgmMuted    = false;
-let _chessBgmTrackIdx = 0;
-let _chessBgmActive   = false;
-
-function _chessBgmLoadPrefs(){
-  try{
-    const s = JSON.parse(localStorage.getItem('chog_chess_bgm')||'{}');
-    if(typeof s.muted === 'boolean') _chessBgmMuted    = s.muted;
-    if(typeof s.track === 'number')  _chessBgmTrackIdx = Math.min(Math.max(0,s.track), CHESS_BGM_TRACKS.length-1);
-  }catch(e){}
-}
-
-function _chessBgmSavePrefs(){
-  try{ localStorage.setItem('chog_chess_bgm', JSON.stringify({muted:_chessBgmMuted, track:_chessBgmTrackIdx})); }catch(e){}
-}
-
-function chessStartBGM(){
-  _chessBgmLoadPrefs();
-  chessStopBGM();
-  const track = CHESS_BGM_TRACKS[_chessBgmTrackIdx];
-  _chessBgmAudio        = new Audio(track.src);
-  _chessBgmAudio.loop   = true;
-  _chessBgmAudio.volume = 0.4;
-  _chessBgmAudio.muted  = _chessBgmMuted;
-  _chessBgmAudio.play().catch(()=>{}); // 파일 없거나 autoplay 차단 시 무시
-  _chessBgmActive = true;
-  _chessBgmUpdateUI();
-}
-
-function chessStopBGM(){
-  if(_chessBgmAudio){
-    _chessBgmAudio.pause();
-    _chessBgmAudio.src = '';
-    _chessBgmAudio = null;
-  }
-  _chessBgmActive = false;
-}
-
-function chessBGMToggleMute(){
-  _chessBgmMuted = !_chessBgmMuted;
-  if(_chessBgmAudio) _chessBgmAudio.muted = _chessBgmMuted;
-  if(!_chessBgmMuted && _chessBgmActive && _chessBgmAudio)
-    _chessBgmAudio.play().catch(()=>{});
-  _chessBgmSavePrefs();
-  _chessBgmUpdateUI();
-}
-
-function chessBGMSelectTrack(delta){
-  const len = CHESS_BGM_TRACKS.length;
-  _chessBgmTrackIdx = ((_chessBgmTrackIdx + delta) % len + len) % len;
-  _chessBgmSavePrefs();
-  if(_chessBgmActive) chessStartBGM();
-  else _chessBgmUpdateUI();
-}
-
-function _chessBgmUpdateUI(){
-  const muteBtn   = document.getElementById('chessBgmMute');
-  const trackName = document.getElementById('chessBgmTrackName');
-  if(muteBtn)   muteBtn.textContent = _chessBgmMuted ? '🔇' : '🔊';
-  if(trackName) trackName.textContent = CHESS_BGM_TRACKS[_chessBgmTrackIdx].name;
 }

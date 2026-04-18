@@ -175,55 +175,26 @@ function _subscribeToChessInvites(){
         _showInviteNotif(invite);
       }
     )
-    // Watch for the invite being accepted (we are the challenger = white)
+    // Also watch for the match being created after we sent an invite
     .on('postgres_changes',
       { event:'UPDATE', schema:'public', table:'chess_invites',
         filter:`from_addr=eq.${myAddr}` },
       async payload => {
         const invite = payload.new;
         if(!invite||invite.status!=='accepted') return;
-        // 진행 중인 활성 게임이 있으면 스킵 (종료된 게임이면 새 매칭 허용)
-        if(chessGame && (chessGame.status==='normal'||chessGame.status==='check')) return;
-        await _chessStartAsWhiteWithRetry(myAddr);
-      }
-    )
-    // Also watch for a new match row where we're white — more reliable path
-    .on('postgres_changes',
-      { event:'INSERT', schema:'public', table:'chess_matches',
-        filter:`white_addr=eq.${myAddr}` },
-      payload => {
-        const row = payload.new;
-        if(!row || row.status !== 'active') return;
-        // 같은 매치거나 진행 중인 다른 게임이면 스킵
-        if(chessGame && chessGame.matchId === row.id) return;
-        if(chessGame && (chessGame.status==='normal'||chessGame.status==='check')) return;
-        const gs = row.game_state;
-        chessStartGame(row.id, row.white_addr, row.black_addr, 'white', gs);
+        // Find the match created for this invite
+        try{
+          const {data} = await _sbClient.from('chess_matches')
+            .select('*').eq('white_addr',myAddr).eq('status','active')
+            .order('created_at',{ascending:false}).limit(1).single();
+          if(!data) return;
+          // Start game as white
+          const gs = data.game_state;
+          chessStartGame(data.id, data.white_addr, data.black_addr, 'white', gs);
+        }catch(e){ console.warn('[Chess] Match lookup failed:', e.message); }
       }
     )
     .subscribe();
-}
-
-// Retry helper: look up the match for white player up to 4 times
-async function _chessStartAsWhiteWithRetry(myAddr){
-  for(let attempt=0; attempt<=3; attempt++){
-    if(attempt > 0) await new Promise(r=>setTimeout(r, 600*attempt));
-    // 진행 중인 활성 게임이 시작됐으면 중단 (종료된 게임은 override 허용)
-    if(chessGame && (chessGame.status==='normal'||chessGame.status==='check')) return;
-    try{
-      const {data} = await _sbClient.from('chess_matches')
-        .select('*').eq('white_addr',myAddr).eq('status','active')
-        .order('created_at',{ascending:false}).limit(1).single();
-      if(data){
-        if(chessGame && chessGame.matchId === data.id) return; // 이미 이 매치 중
-        if(chessGame && (chessGame.status==='normal'||chessGame.status==='check')) return;
-        const gs = data.game_state;
-        chessStartGame(data.id, data.white_addr, data.black_addr, 'white', gs);
-        return;
-      }
-    }catch(e){ console.warn('[Chess] Match lookup attempt', attempt+1, ':', e.message); }
-  }
-  console.warn('[Chess] Could not find match for accepted invite after retries');
 }
 
 // Subscribe to active match for real-time move sync

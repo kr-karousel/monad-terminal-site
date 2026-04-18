@@ -208,7 +208,7 @@ function initChart(){
         zIndex        : '9998',
         width         : '72px',
         pointerEvents : 'none',
-        transition    : 'opacity 0.25s',
+        transition    : 'none',
         willChange    : 'transform',
       });
 
@@ -230,15 +230,6 @@ function initChart(){
       }, {passive:true});
 
       function animateChog(){
-        // 체스 모달이 열려 있으면 캐릭터 숨김
-        const chessOpen = document.getElementById('chessModal')?.classList.contains('open');
-        if(chessOpen){
-          chog.style.opacity = '0';
-          rafId = requestAnimationFrame(animateChog);
-          return;
-        }
-        chog.style.opacity = '1';
-
         // 부드러운 lerp (12% 씩 따라가기)
         curX += (targetX - curX) * 0.12;
         curY += (targetY - curY) * 0.12;
@@ -1660,9 +1651,7 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
     <div class="profile-action-row">
       <button class="btn-profile-action" onclick="window.open('${explorerUrl}','_blank')">🔍 Explorer</button>
       <button class="btn-profile-action" onclick="copyAddr('${addrFull}')">📋 Copy Address</button>
-      <button class="btn-profile-action" onclick="toggleProfileTrades('${addrFull}')" id="btnProfileTrades">📊 Trades</button>
     </div>
-    <div id="profileTradesPanel" style="display:none;margin-top:8px"></div>
 
     <!-- Chess Stats -->
     <div id="profileChessStats" style="margin:8px 0;padding:8px 12px;background:rgba(139,92,246,0.08);border:1px solid rgba(192,132,252,0.2);border-radius:10px">
@@ -1761,20 +1750,6 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
 
 function closeProfileModal(){
   document.getElementById('profileModal').classList.remove('open');
-}
-
-function toggleProfileTrades(addr){
-  const panel = document.getElementById('profileTradesPanel');
-  const btn   = document.getElementById('btnProfileTrades');
-  if(!panel) return;
-  if(panel.style.display === 'none'){
-    panel.style.display = '';
-    if(btn) btn.style.background = 'rgba(192,132,252,0.15)';
-    if(typeof loadProfileTrades === 'function') loadProfileTrades(addr, 'profileTradesPanel');
-  } else {
-    panel.style.display = 'none';
-    if(btn) btn.style.background = '';
-  }
 }
 
 async function getHolderRank(addr){

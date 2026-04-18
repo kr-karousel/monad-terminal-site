@@ -193,8 +193,6 @@ function updateWalletDisplay(){
         <span class="nick-badge" title="Change nickname">✏️</span>
       </span>
       <span style="width:1px;height:14px;background:rgba(255,255,255,0.15);margin:0 2px;flex-shrink:0"></span>
-      <button onclick="openPnlModal()" title="My trades & position" style="background:none;border:none;color:var(--muted);font-size:12px;padding:0 3px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">📊</button>
-      <span style="width:1px;height:14px;background:rgba(255,255,255,0.15);margin:0 2px;flex-shrink:0"></span>
       <button onclick="disconnectWallet()" title="Disconnect wallet" style="background:none;border:none;color:var(--muted);font-size:15px;font-weight:700;padding:0 2px;cursor:pointer;line-height:1;flex-shrink:0" onmouseover="this.style.color='#f87171'" onmouseout="this.style.color='var(--muted)'">×</button>
     </div>`;
 }
@@ -244,9 +242,7 @@ function openProfileModal(addrFull, bal, rankCls, rankBadge, txHash){
     <div class="profile-action-row">
       <button class="btn-profile-action" onclick="window.open('${explorerUrl}','_blank')">🔍 Explorer</button>
       <button class="btn-profile-action" onclick="copyAddr('${addrFull}')">📋 Copy Address</button>
-      <button class="btn-profile-action" id="btnProfileTrades" onclick="toggleProfileTrades('${addrFull}')">📊 Trades</button>
     </div>
-    <div id="profileTradesPanel" style="display:none;margin-top:8px"></div>
 
     <!-- Chess Stats -->
     <div style="margin:8px 0;padding:8px 12px;background:rgba(139,92,246,0.08);border:1px solid rgba(192,132,252,0.2);border-radius:10px">
@@ -444,18 +440,4 @@ var swapQuoteTimer = null;
 
 // Capricorn V3 / nad.fun Router 주소 (Monad mainnet)
 const NADFUN_URL    = 'https://nad.fun/tokens/' + CHOG_CONTRACT;
-
-function toggleProfileTrades(addr){
-  const panel = document.getElementById('profileTradesPanel');
-  const btn   = document.getElementById('btnProfileTrades');
-  if(!panel) return;
-  if(panel.style.display === 'none'){
-    panel.style.display = '';
-    if(btn) btn.style.background = 'rgba(192,132,252,0.15)';
-    if(typeof loadProfileTrades === 'function') loadProfileTrades(addr, 'profileTradesPanel');
-  } else {
-    panel.style.display = 'none';
-    if(btn) btn.style.background = '';
-  }
-}
 

@@ -44,7 +44,7 @@ function isSyncEnabled(){ return !!_sbClient; }
 async function _syncNicknamesFromServer(){
   if(!_sbClient) return;
   try{
-    const { data } = await _sbClient.from('nicknames').select('address, nickname').or('terminal.eq.chog,terminal.is.null');
+    const { data } = await _sbClient.from('nicknames').select('address, nickname');
     if(!data) return;
     data.forEach(row => {
       if(row.address && row.nickname)
@@ -72,13 +72,12 @@ function _refreshChatNicknames(){
 
 function _subscribeToNicknames(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-nicknames-chog')
+  _sbClient.channel('sync-nicknames')
     .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'nicknames', filter: 'terminal=eq.chog' },
+      { event: '*', schema: 'public', table: 'nicknames' },
       payload => {
         const row = payload.new;
         if(!row || !row.address || !row.nickname) return;
-        if(row.terminal && row.terminal !== 'chog') return;
         const isNew = !nickDB[row.address.toLowerCase()];
         nickDB[row.address.toLowerCase()] = row.nickname;
         // 기존 채팅 메시지 주소 → 닉네임으로 갱신
@@ -105,8 +104,8 @@ async function syncNickToServer(address, nickname){
   if(!_sbClient) return;
   try{
     await _sbClient.from('nicknames').upsert(
-      { address: address.toLowerCase(), nickname, terminal: 'chog', updated_at: new Date().toISOString() },
-      { onConflict: 'address,terminal' }
+      { address: address.toLowerCase(), nickname, updated_at: new Date().toISOString() },
+      { onConflict: 'address' }
     );
   }catch(e){ console.warn('[Sync] 닉네임 저장 실패:', e.message); }
 }
@@ -119,7 +118,6 @@ async function _syncShoutsFromServer(){
     const { data } = await _sbClient
       .from('shouts')
       .select('id, address, nickname, message, created_at')
-      .or('terminal.eq.chog,terminal.is.null')
       .order('created_at', { ascending: false })
       .limit(SHOUT_MAX_SLOTS);
     if(!data || !data.length) return;
@@ -139,14 +137,12 @@ async function _syncShoutsFromServer(){
 
 function _subscribeToShouts(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-shouts-chog')
+  _sbClient.channel('sync-shouts')
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'shouts' },
       payload => {
         const row = payload.new;
         if(!row) return;
-        // CHOG 터미널 shout만 처리 (terminal='chog' 또는 NULL=기존 데이터)
-        if(row.terminal && row.terminal !== 'chog') return;
         const entry = { addr: row.nickname || row.address, msg: row.message, id: row.id };
         const isMyShout = wallet && wallet.addr.toLowerCase() === row.address.toLowerCase();
 
@@ -172,7 +168,7 @@ function _subscribeToShouts(){
 async function syncShoutToServer(address, nickname, message){
   if(!_sbClient) return;
   try{
-    await _sbClient.from('shouts').insert({ address: address.toLowerCase(), nickname, message, terminal: 'chog' });
+    await _sbClient.from('shouts').insert({ address: address.toLowerCase(), nickname, message });
   }catch(e){ console.warn('[Sync] 외치기 저장 실패:', e.message); }
 }
 
@@ -296,14 +292,13 @@ async function syncTestWalletToServer(address, add){
 async function _syncMessagesFromServer(){
   if(!_sbClient) return;
   try{
-    // chog_bal IS NOT NULL → CHOG 터미널에서 보낸 메시지만 로드
     const { data } = await _sbClient
       .from('messages')
-      .select('id, address, nickname, content, created_at, chog_bal')
-      .not('chog_bal', 'is', null)
+      .select('id, address, nickname, content, created_at')
       .order('created_at', { ascending: false })
       .limit(10);
     if(!data || !data.length) return;
+    // 오래된 순으로 정렬해서 렌더링
     data.slice().reverse().forEach(row => {
       const t = new Date(row.created_at);
       const timeStr = t.getHours() + ':' + String(t.getMinutes()).padStart(2,'0');
@@ -321,15 +316,12 @@ async function _syncMessagesFromServer(){
 
 function _subscribeToMessages(){
   if(!_sbClient) return;
-  // 'sync-messages-chog' 채널: CHOG 터미널 전용 (chog_bal 기준 필터)
-  _sbClient.channel('sync-messages-chog')
+  _sbClient.channel('sync-messages')
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'messages' },
       payload => {
         const row = payload.new;
         if(!row) return;
-        // chog_bal이 없으면 MON 터미널 메시지 → 무시
-        if(row.chog_bal === null || row.chog_bal === undefined) return;
         renderMsg({
           addr: row.address,
           addrFull: row.address,

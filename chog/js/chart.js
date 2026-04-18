@@ -61,15 +61,16 @@ function initChart(){
         zIndex        : '9998',
         width         : '72px',
         pointerEvents : 'none',
-        transition    : 'opacity 0.25s',
+        transition    : 'none',
         willChange    : 'transform',
-        display       : 'block',
-        animation     : 'none',
       });
 
       let targetX = window.innerWidth/2;
       let targetY = window.innerHeight/2;
-      let curX = targetX, curY = targetY, floatT = 0;
+      let curX    = targetX;
+      let curY    = targetY;
+      let floatT  = 0;
+      let rafId;
 
       document.addEventListener('mousemove', e=>{
         targetX = e.clientX - 36;
@@ -81,17 +82,23 @@ function initChart(){
         targetY = e.touches[0].clientY - 80;
       }, {passive:true});
 
-      (function animateChog(){
-        const chessOpen = document.getElementById('chessModal')?.classList.contains('open');
-        chog.style.opacity = chessOpen ? '0' : '1';
+      function animateChog(){
+        // 부드러운 lerp (12% 씩 따라가기)
         curX += (targetX - curX) * 0.12;
         curY += (targetY - curY) * 0.12;
+
+        // 둥둥 효과는 transform만 (left/top은 lerp로만)
         floatT += 0.04;
+        const floatY = Math.sin(floatT) * 5;
+        const floatR = Math.sin(floatT * 0.6) * 4;
+
         chog.style.left      = curX + 'px';
         chog.style.top       = curY + 'px';
-        chog.style.transform = `translateY(${Math.sin(floatT)*5}px) rotate(${Math.sin(floatT*0.6)*4}deg)`;
-        requestAnimationFrame(animateChog);
-      })();
+        chog.style.transform = `translateY(${floatY}px) rotate(${floatR}deg)`;
+
+        rafId = requestAnimationFrame(animateChog);
+      }
+      animateChog();
     }
   }
 

@@ -19,19 +19,17 @@ function renderMsg(item){
 
   const addrHtml = `<span class="msg-addr" data-addr="${addrFull}" style="cursor:pointer;text-decoration:underline dotted" onclick="openProfileModal('${addrFull}',${item.bal||0},'${rank.cls}','${rank.badge}','${item.txHash||''}')">${displayAddr}</span>`;
 
-  // bal=0 → retry balance fetch with backoff (buyers may have 0 balance due to block timing)
+  // bal=0이고 custom tier 없을 때 → 실제 잔고 비동기 조회 후 뱃지 업데이트
   if(!item.bal && addrFull && addrFull.startsWith('0x') && !devCustomTiers[addrFull.toLowerCase()] && typeof fetchChogBalance === 'function'){
-    (function retry(attempt){
-      if(attempt > 3) return;
-      setTimeout(() => {
-        fetchChogBalance(addrFull).then(realBal => {
-          if(!realBal || realBal <= 0){ retry(attempt + 1); return; }
-          const realRank = getRank(Math.floor(realBal), addrFull);
-          const badge = div.querySelector('.rank-badge');
-          if(badge){ badge.textContent = realRank.badge; badge.className = 'rank-badge ' + realRank.cls; }
-        }).catch(() => retry(attempt + 1));
-      }, attempt * 3000); // 3s, 6s, 9s
-    })(1);
+    const msgId = 'msg-' + Date.now() + Math.random().toString(36).slice(2);
+    div.dataset.msgId = msgId;
+    fetchChogBalance(addrFull).then(realBal => {
+      if(!realBal) return;
+      const balInt = Math.floor(realBal);
+      const realRank = getRank(balInt, addrFull);
+      const badge = div.querySelector('.rank-badge');
+      if(badge){ badge.textContent = realRank.badge; badge.className = 'rank-badge ' + realRank.cls; }
+    }).catch(()=>{});
   }
 
   if(item.type==='trade'){
@@ -52,7 +50,7 @@ function renderMsg(item){
 
     div.className='chat-msg '+(isBuy?'trade-alert':'trade-sell');
     if(mon >= 10000) div.style.cssText += ';border-width:2px;';
-    if(!item.silent) chogEmotion(item.side);
+    chogEmotion(item.side);
     const baseEmoji = isBuy ? '🟢' : '🔴';
     const usd = ((item.amount||0)*(item.price||0)).toFixed(0);
     const monStr = mon >= 1000 ? (mon>=1000?Math.floor(mon).toLocaleString()+' MON':'') : '';

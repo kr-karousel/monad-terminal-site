@@ -11,7 +11,6 @@ function updatePriceDisplay(p){
   if(tc){tc.textContent=chgStr;tc.className=chgCls;}
   const tc2=document.getElementById('tickerChg2');
   if(tc2){tc2.textContent=chgStr;tc2.className=chgCls;}
-  if(typeof checkPriceAlerts === 'function') checkPriceAlerts(p);
 }
 
 function updateMcap(mcap){
@@ -391,106 +390,5 @@ function handleSwapLog(log) {
 
     console.log(isBuy?'🟢 BUY':'🔴 SELL', chogAmount.toFixed(0),'CHOG | $'+usdValue.toFixed(2),'| $'+priceUsd.toFixed(8));
   } catch(e) { console.warn('handleSwapLog:', e.message); }
-}
-
-// Direct RPC fetch (bypasses MetaMask + skips rpc.monad.xyz which 413s on eth_getLogs)
-const _LOGS_RPC_LIST = [
-  'https://monad-mainnet.rpc.thirdweb.com',
-  'https://monad.drpc.org',
-];
-async function _rpcDirect(method, params){
-  for(const rpc of _LOGS_RPC_LIST){
-    try{
-      const res = await fetch(rpc,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
-      if(!res.ok) continue;
-      const d = await res.json();
-      if(d.error) continue;
-      if(d.result !== undefined) return d.result;
-    }catch(e){}
-  }
-  return null;
-}
-
-// ── Load last N qualifying trades on startup ──────
-async function loadRecentTrades(maxCount){
-  maxCount = maxCount || 5;
-  try {
-    const blockHex = await _rpcDirect('eth_blockNumber', []);
-    if(!blockHex) return;
-    const curBlock = parseInt(blockHex, 16);
-    const CHUNK      = 400;
-    const MAX_SCAN   = 43200; // scan up to ~12h back max
-
-    const Q96 = BigInt('0x1000000000000000000000000');
-    const isChogToken0 = CHOG_CONTRACT.toLowerCase() < WMON_CONTRACT.toLowerCase();
-    function toSigned(hex){
-      const v = BigInt('0x'+hex);
-      const M = BigInt('0x8000000000000000000000000000000000000000000000000000000000000000');
-      return v >= M ? v - BigInt('0x10000000000000000000000000000000000000000000000000000000000000000') : v;
-    }
-
-    const qualifying = [];
-    // Scan backwards in chunks until we have enough trades
-    for(let end = curBlock; end > curBlock - MAX_SCAN && qualifying.length < maxCount; end -= CHUNK){
-      const start = Math.max(end - CHUNK + 1, curBlock - MAX_SCAN);
-      const logs = await _rpcDirect('eth_getLogs', [{
-        address: NADFUN_POOL,
-        topics:  [[SWAP_TOPIC_V3, TRADE_TOPIC_KURU]],
-        fromBlock: '0x' + start.toString(16),
-        toBlock:   '0x' + end.toString(16),
-      }]);
-      if(!logs || !logs.length) continue;
-
-      // Parse newest-first within this chunk
-      for(let i = logs.length - 1; i >= 0 && qualifying.length < maxCount; i--){
-        const log = logs[i];
-        try {
-          const d = log.data;
-          if(!d || d.length < 2 + 64*5) continue;
-          const a0 = toSigned(d.slice(2, 66));
-          const a1 = toSigned(d.slice(66, 130));
-          const sq = BigInt('0x' + d.slice(130, 194));
-          if(sq === 0n) continue;
-          const ratio = Number(sq) / Number(Q96);
-          let pMON = ratio * ratio;
-          if(!isChogToken0) pMON = 1 / pMON;
-          const pUsd = pMON * (cachedMonPrice || 0.026);
-          if(pUsd < 1e-9 || pUsd > 1) continue;
-          let isBuy, chog, mon;
-          if(isChogToken0){
-            isBuy = a0 < 0n;
-            chog  = Number(a0 < 0n ? -a0 : a0) / 1e18;
-            mon   = Number(a1 < 0n ? -a1 : a1) / 1e18;
-          } else {
-            isBuy = a1 < 0n;
-            chog  = Number(a1 < 0n ? -a1 : a1) / 1e18;
-            mon   = Number(a0 < 0n ? -a0 : a0) / 1e18;
-          }
-          let usd = mon * (cachedMonPrice || 0.026);
-          if(usd < 0.5) usd = chog * pUsd;
-          if(usd < 0.5 || mon < MON_BIG) continue;
-          const sec = curBlock - parseInt(log.blockNumber, 16);
-          const hr  = Math.floor(sec / 3600);
-          const t   = sec < 60 ? sec+'s ago' : sec < 3600 ? Math.floor(sec/60)+'m ago' : hr+'h ago';
-          qualifying.push({ txHash: log.transactionHash, isBuy, chog, mon, pUsd, t });
-        } catch(e){}
-      }
-    }
-    if(!qualifying.length) return;
-
-    // Render oldest→newest so newest ends up at bottom
-    for(const tr of qualifying.reverse()){
-      const txData   = await _rpcDirect('eth_getTransactionByHash', [tr.txHash]);
-      const addrFull = (txData && txData.from) ? txData.from : '';
-      renderMsg({
-        type: 'trade', side: tr.isBuy ? 'buy' : 'sell',
-        addr: addrFull ? addrFull.slice(0,6)+'...'+addrFull.slice(-4) : '0xUnknown',
-        addrFull, txHash: tr.txHash, bal: 0,
-        amount: Math.floor(tr.chog), price: tr.pUsd, mon: tr.mon,
-        time: tr.t, silent: true,
-      });
-    }
-    console.log('✅ Loaded', qualifying.length, 'recent trades');
-  } catch(e){ console.warn('loadRecentTrades:', e.message); }
 }
 
