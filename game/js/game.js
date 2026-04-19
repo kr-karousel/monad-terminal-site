@@ -112,6 +112,10 @@
     hudBest.textContent = rec.bestSector;
     updateHud();
     Storage.incrementRuns();
+
+    // Safety: restart frame loop in case it died on a previous frame.
+    lastT = performance.now();
+    requestAnimationFrame(frame);
   }
 
   btnStart.addEventListener('click', () => {
@@ -232,20 +236,14 @@
       rg.addColorStop(0.4, '#281840');
       rg.addColorStop(1, '#120a20');
       ctx.fillStyle = rg;
-      // Rounded rect
-      const rad = Math.min(4, r.h / 2);
-      ctx.beginPath();
-      ctx.roundRect(sx, sy, r.w, r.h, rad);
-      ctx.fill();
+      ctx.fillRect(sx, sy, r.w, r.h);
       // Top highlight
       ctx.fillStyle = 'rgba(200,160,255,0.18)';
-      ctx.fillRect(sx + rad, sy, r.w - rad * 2, 2);
+      ctx.fillRect(sx + 2, sy, r.w - 4, 2);
       // Outline
       ctx.strokeStyle = 'rgba(8,5,16,0.9)';
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(sx + 0.5, sy + 0.5, r.w - 1, r.h - 1, rad);
-      ctx.stroke();
+      ctx.strokeRect(sx + 0.5, sy + 0.5, r.w - 1, r.h - 1);
       // Crack detail
       if (r.w > 80) {
         ctx.strokeStyle = 'rgba(100,70,140,0.3)';

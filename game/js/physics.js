@@ -75,6 +75,59 @@ function pushPointOut(px, py, rect) {
                 return { x:  r, y:  0  };
 }
 
+// Ray-vs-AABB segment intersection.
+// Walks the segment (sx,sy)→(tx,ty) and finds the FIRST hit on rect.
+// Returns { t, nx, ny, hx, hy } where t∈[0,1] is the parametric distance
+// along the segment, (nx,ny) is the outward normal of the hit face, and
+// (hx,hy) is the entry point (just outside the surface).
+function segmentVsRect(sx, sy, tx, ty, rect) {
+  const dx = tx - sx, dy = ty - sy;
+  const eps = 1e-6;
+  const x1 = rect.x, y1 = rect.y;
+  const x2 = rect.x + rect.w, y2 = rect.y + rect.h;
+
+  // Slab test.
+  let tmin = 0, tmax = 1;
+  let nx = 0, ny = 0;
+
+  // X slab
+  if (Math.abs(dx) < eps) {
+    if (sx < x1 || sx > x2) return null;
+  } else {
+    const inv = 1 / dx;
+    let t1 = (x1 - sx) * inv;
+    let t2 = (x2 - sx) * inv;
+    let nEnter = -1;
+    if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; nEnter = 1; }
+    if (t1 > tmin) { tmin = t1; nx = nEnter; ny = 0; }
+    if (t2 < tmax) tmax = t2;
+    if (tmin > tmax) return null;
+  }
+
+  // Y slab
+  if (Math.abs(dy) < eps) {
+    if (sy < y1 || sy > y2) return null;
+  } else {
+    const inv = 1 / dy;
+    let t1 = (y1 - sy) * inv;
+    let t2 = (y2 - sy) * inv;
+    let nEnter = -1;
+    if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; nEnter = 1; }
+    if (t1 > tmin) { tmin = t1; nx = 0; ny = nEnter; }
+    if (t2 < tmax) tmax = t2;
+    if (tmin > tmax) return null;
+  }
+
+  if (tmin < 0 || tmin > 1) return null;
+
+  return {
+    t: tmin,
+    nx, ny,
+    hx: sx + dx * tmin,
+    hy: sy + dy * tmin,
+  };
+}
+
 // One physics substep. Returns render info.
 function stepPlayer(body, mouseWorld, terrain, dt) {
   // Shoulder position.
@@ -83,29 +136,33 @@ function stepPlayer(body, mouseWorld, terrain, dt) {
 
   // Arm angle toward mouse.
   const armAngle = Math.atan2(mouseWorld.y - shY, mouseWorld.x - shX);
+  const cosA = Math.cos(armAngle), sinA = Math.sin(armAngle);
 
-  // Target hand position.
-  let tipX = shX + Math.cos(armAngle) * ARM_LEN;
-  let tipY = shY + Math.sin(armAngle) * ARM_LEN;
+  // Target hand position (at full arm length).
+  const fullTipX = shX + cosA * ARM_LEN;
+  const fullTipY = shY + sinA * ARM_LEN;
 
-  // Push hand out of terrain.
-  let anyHit = false;
-  for (let iter = 0; iter < 4; iter++) {
-    let moved = false;
-    for (const r of terrain) {
-      const push = pushPointOut(tipX, tipY, r);
-      if (push) { tipX += push.x; tipY += push.y; moved = true; anyHit = true; }
-    }
-    if (!moved) break;
+  // Cast the arm segment from shoulder outward. Find the FIRST surface
+  // the arm crosses — that's the contact point (correct face).
+  let bestT = Infinity;
+  let bestHit = null;
+  for (const r of terrain) {
+    const hit = segmentVsRect(shX, shY, fullTipX, fullTipY, r);
+    if (hit && hit.t < bestT) { bestT = hit.t; bestHit = hit; }
   }
 
+  let tipX, tipY;
   let anchored = false;
 
-  if (anyHit) {
+  if (bestHit) {
+    // Arm hits a surface. Place tip at the contact point (just outside it).
+    tipX = bestHit.hx + bestHit.nx * 0.5;
+    tipY = bestHit.hy + bestHit.ny * 0.5;
+
     // ── PIVOT MECHANIC ───────────────────────────────────────────────────
-    // Hand is on a surface. New shoulder = surface_point − arm_dir × ARM_LEN.
-    const newShX = tipX - Math.cos(armAngle) * ARM_LEN;
-    const newShY = tipY - Math.sin(armAngle) * ARM_LEN;
+    // Hand is anchored. New shoulder = pivot − arm_dir × ARM_LEN.
+    const newShX = tipX - cosA * ARM_LEN;
+    const newShY = tipY - sinA * ARM_LEN;
     const dX = newShX - shX;
     const dY = newShY - shY;
     body.x += dX;
@@ -116,7 +173,9 @@ function stepPlayer(body, mouseWorld, terrain, dt) {
     clampSpeed(body);
     anchored = true;
   } else {
-    // ── FREE FLIGHT ──────────────────────────────────────────────────────
+    // No contact — hand at full extension, free fall.
+    tipX = fullTipX;
+    tipY = fullTipY;
     body.vy += GRAVITY * dt;
     body.vx *= AIR_DRAG;
     body.vy *= AIR_DRAG;
@@ -133,5 +192,5 @@ function stepPlayer(body, mouseWorld, terrain, dt) {
 
 window.MonadPhysics = {
   GRAVITY, ARM_LEN, SHOULDER_OY, BODY_RADIUS,
-  stepPlayer, resolveCircleRect, pushPointOut,
+  stepPlayer, resolveCircleRect, pushPointOut, segmentVsRect,
 };
