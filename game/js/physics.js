@@ -10,6 +10,7 @@
 //   • Body shifts so shoulder reaches new position (pure lever constraint).
 //   • When hand is free, normal gravity + Euler integration.
 
+(function () {
 const GRAVITY      = 1100;   // px / s²
 const ARM_LEN      = 130;    // shoulder → hand
 const SHOULDER_OY  = -22;    // shoulder above body centre (negative = up)
@@ -194,3 +195,4 @@ window.MonadPhysics = {
   GRAVITY, ARM_LEN, SHOULDER_OY, BODY_RADIUS,
   stepPlayer, resolveCircleRect, pushPointOut, segmentVsRect,
 };
+})();
