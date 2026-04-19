@@ -3,7 +3,9 @@
     { "source": "/mon",  "destination": "/mon/",  "permanent": false },
     { "source": "/chog", "destination": "/chog/", "permanent": false },
     { "source": "/emo",  "destination": "/emo/",  "permanent": false },
-    { "source": "/bob",  "destination": "/bob/",  "permanent": false }
+    { "source": "/bob",  "destination": "/bob/",  "permanent": false },
+    { "source": "/game",       "destination": "/", "permanent": false },
+    { "source": "/game/:path*", "destination": "/", "permanent": false }
   ],
   "crons": [
     { "path": "/api/cron-check-alerts", "schedule": "0 0 * * *" }
