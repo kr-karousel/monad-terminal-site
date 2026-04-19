@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monad Climb — Getting Up Is Hard</title>
+  <link rel="stylesheet" href="css/game.css" />
+</head>
+<body>
+
+  <!-- Start overlay -->
+  <div id="start-screen" class="overlay">
+    <div class="overlay-card">
+      <h1>MONAD <span>CLIMB</span></h1>
+      <p class="tagline">Swing the hammer. Push off rocks. Reach the sky.</p>
+
+      <div class="field">
+        <label for="username-input">PLAYER NAME</label>
+        <input id="username-input" type="text" maxlength="18" placeholder="anon" />
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-start" class="btn primary">START CLIMB</button>
+        <a href="user.html" class="btn ghost">MY RECORD</a>
+      </div>
+
+      <div class="how">
+        <b>HOW TO PLAY</b><br/>
+        · Move the mouse to swing your hammer.<br/>
+        · Press the hammer against rocks to push yourself up.<br/>
+        · Touch a <span class="flag-chip">🚩 flag</span> to save the sector.<br/>
+        · Falling is part of the game. Keep going.
+      </div>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-line">
+      <span class="hud-label">SECTOR</span>
+      <span id="hud-sector" class="hud-val">0</span>
+      <span class="hud-sep">/</span>
+      <span id="hud-total" class="hud-val-dim">8</span>
+    </div>
+    <div class="hud-line">
+      <span class="hud-label">BEST</span>
+      <span id="hud-best" class="hud-val">0</span>
+    </div>
+    <div class="hud-line">
+      <span class="hud-label">HEIGHT</span>
+      <span id="hud-height" class="hud-val">0</span>
+      <span class="hud-unit">m</span>
+    </div>
+    <button id="btn-reset" class="hud-btn" title="reset to last checkpoint">↺ RESTART</button>
+    <a href="user.html" class="hud-btn" title="my record">👤 PROFILE</a>
+  </div>
+
+  <!-- Flag toast -->
+  <div id="flag-toast" class="toast hidden">
+    <div class="toast-title">🚩 SECTOR <span id="toast-num">1</span> REACHED</div>
+    <div class="toast-sub" id="toast-sub">checkpoint saved</div>
+  </div>
+
+  <!-- Summit overlay -->
+  <div id="summit-screen" class="overlay hidden">
+    <div class="overlay-card">
+      <h1>🏁 SUMMIT</h1>
+      <p class="tagline">You reached the top of the Monad.</p>
+      <div class="btn-row">
+        <button id="btn-restart" class="btn primary">CLIMB AGAIN</button>
+        <a href="user.html" class="btn ghost">MY RECORD</a>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="game-canvas"></canvas>
+
+  <script src="js/storage.js"></script>
+  <script src="js/level.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>

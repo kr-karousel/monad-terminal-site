@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monad Climb — My Record</title>
+  <link rel="stylesheet" href="css/game.css" />
+  <style>
+    html, body { overflow: auto; cursor: default; }
+    #game-canvas { display: none; }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(130,80,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(130,80,255,0.05) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="profile-container">
+    <div class="profile-header">
+      <h1>MONAD <span>CLIMB</span></h1>
+      <p class="tagline">Your climbing record</p>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-label">PLAYER</div>
+      <div class="profile-name" id="p-name">anon</div>
+      <div class="field" style="margin-top:16px">
+        <label for="rename-input">CHANGE NAME</label>
+        <input id="rename-input" type="text" maxlength="18" placeholder="new name" />
+      </div>
+      <div class="btn-row" style="margin-top:12px; justify-content:flex-start">
+        <button id="btn-rename" class="btn primary" style="font-size:0.72rem; padding:8px 14px">SAVE</button>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-label">SUMMARY</div>
+      <div class="stat-row"><span class="k">BEST SECTOR</span>  <span class="v"><span id="p-best">0</span> / <span id="p-total">8</span></span></div>
+      <div class="stat-row"><span class="k">SECTORS CLEARED</span><span class="v" id="p-cleared">0</span></div>
+      <div class="stat-row"><span class="k">TOTAL RUNS</span>    <span class="v" id="p-runs">0</span></div>
+      <div class="stat-row"><span class="k">TIMES FALLEN</span>  <span class="v" id="p-falls">0</span></div>
+      <div class="stat-row"><span class="k">PLAYING SINCE</span> <span class="v" id="p-since">—</span></div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-label">SECTOR CHECKPOINTS</div>
+      <div class="sector-grid" id="sector-grid"></div>
+    </div>
+
+    <div class="profile-actions">
+      <a href="index.html" class="btn primary">CLIMB AGAIN</a>
+      <a href="../" class="btn ghost">← MONAD TERMINAL</a>
+      <button id="btn-wipe" class="danger-btn">RESET RECORD</button>
+    </div>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/level.js"></script>
+  <script src="js/user.js"></script>
+</body>
+</html>
