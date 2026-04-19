@@ -1,10 +1,10 @@
-// Main game loop for Monad Climb.
+// Main game loop for CHOG Climb.
 
 (function () {
   const { WORLD_HALF_WIDTH, SECTOR_HEIGHT, TOTAL_SECTORS, GROUND_Y,
           buildTerrain, buildFlags } = window.MonadLevel;
   const { stepPlayer } = window.MonadPhysics;
-  const { createPlayer, drawPlayer, drawHammer } = window.MonadPlayer;
+  const { createPlayer, drawPlayer } = window.MonadPlayer;
   const Storage = window.MonadStorage;
 
   // ── DOM ────────────────────────────────────────────────────────────────
@@ -16,6 +16,7 @@
   const btnStart   = document.getElementById('btn-start');
   const btnReset   = document.getElementById('btn-reset');
   const btnRestart = document.getElementById('btn-restart');
+  const hudEl      = document.getElementById('hud');
   const hudSector  = document.getElementById('hud-sector');
   const hudTotal   = document.getElementById('hud-total');
   const hudBest    = document.getElementById('hud-best');
@@ -24,27 +25,21 @@
   const toastNum   = document.getElementById('toast-num');
   const toastSub   = document.getElementById('toast-sub');
 
-  // ── State ──────────────────────────────────────────────────────────────
+  // ── Level data ────────────────────────────────────────────────────────
   const terrain = buildTerrain();
   const flags   = buildFlags(terrain);
+  hudTotal.textContent = TOTAL_SECTORS;
 
+  // ── State ──────────────────────────────────────────────────────────────
   const state = {
-    running: false,
     player: null,
-    mouse: { sx: 0, sy: 0 },             // screen coords
+    mouse: { sx: 0, sy: 0 },
     cam:   { x: 0, y: 0 },
-    camTargetY: 0,
-    currentSector: 0,                     // sector the player is currently inside
+    currentSector: 0,
     bestSector: 0,
-    reachedThisRun: new Set(),            // flags touched this run
-    summitShown: false,
-    lastCheckpoint: { x: 0, y: GROUND_Y - 80 },
-    lastFallY: -Infinity,                 // for fall detection
-    prevHeightM: 0,
+    reachedThisRun: new Set(),
     record: null,
   };
-
-  hudTotal.textContent = TOTAL_SECTORS;
 
   // ── Canvas sizing ──────────────────────────────────────────────────────
   function resize() {
@@ -59,63 +54,63 @@
   resize();
 
   // ── Input ──────────────────────────────────────────────────────────────
-  canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    state.mouse.sx = e.clientX - rect.left;
-    state.mouse.sy = e.clientY - rect.top;
+  canvas.addEventListener('mousemove', e => {
+    const r = canvas.getBoundingClientRect();
+    state.mouse.sx = e.clientX - r.left;
+    state.mouse.sy = e.clientY - r.top;
   });
-  // Touch: treat first touch as the mouse.
-  canvas.addEventListener('touchmove', (e) => {
-    if (e.touches.length === 0) return;
-    const rect = canvas.getBoundingClientRect();
-    state.mouse.sx = e.touches[0].clientX - rect.left;
-    state.mouse.sy = e.touches[0].clientY - rect.top;
+  canvas.addEventListener('touchmove', e => {
+    if (!e.touches.length) return;
+    const r = canvas.getBoundingClientRect();
+    state.mouse.sx = e.touches[0].clientX - r.left;
+    state.mouse.sy = e.touches[0].clientY - r.top;
     e.preventDefault();
   }, { passive: false });
 
   function screenToWorld(sx, sy) {
-    const viewW = window.innerWidth;
-    const viewH = window.innerHeight;
     return {
-      x: sx - viewW / 2 + state.cam.x,
-      y: sy - viewH / 2 + state.cam.y,
+      x: sx - window.innerWidth  / 2 + state.cam.x,
+      y: sy - window.innerHeight / 2 + state.cam.y,
     };
   }
 
-  // ── Start / reset ──────────────────────────────────────────────────────
+  function worldToScreen(wx, wy) {
+    return {
+      x: wx - state.cam.x + window.innerWidth  / 2,
+      y: wy - state.cam.y + window.innerHeight / 2,
+    };
+  }
+
+  // ── Start / respawn ────────────────────────────────────────────────────
   function startRun(respawn = 'ground') {
     const rec = Storage.loadRecord();
-    state.record    = rec;
+    state.record     = rec;
     state.bestSector = rec.bestSector;
 
-    let spawn = { x: 0, y: GROUND_Y - 80 };
+    let spawnX = 0;
+    let spawnY = GROUND_Y - 80;
+
     if (respawn === 'checkpoint' && rec.bestSector > 0) {
       const f = flags.find(f => f.sector === rec.bestSector);
-      if (f) spawn = { x: f.x, y: f.y - 20 };
+      if (f) { spawnX = f.x; spawnY = f.y - 30; }
     }
-    state.lastCheckpoint = spawn;
-    state.player = createPlayer(spawn.x, spawn.y);
+
+    state.player = createPlayer(spawnX, spawnY);
     state.reachedThisRun = new Set();
     if (respawn === 'checkpoint') {
-      // Already-earned flags shouldn't fire the toast on respawn.
       for (let s = 1; s <= rec.bestSector; s++) state.reachedThisRun.add(s);
     }
     state.currentSector = 0;
-    state.summitShown = false;
-    state.lastFallY = spawn.y;
-    state.prevHeightM = heightMeters(state.player.y);
 
-    // Centre camera on spawn.
     state.cam.x = 0;
-    state.cam.y = spawn.y - window.innerHeight * 0.1;
-    state.camTargetY = state.cam.y;
+    state.cam.y = spawnY - window.innerHeight * 0.12;
 
     summitScr.classList.add('hidden');
     startScr.classList.add('hidden');
+    hudEl.classList.remove('hidden');
 
     hudBest.textContent = rec.bestSector;
     updateHud();
-
     Storage.incrementRuns();
   }
 
@@ -123,17 +118,12 @@
     Storage.setUsername(nameInput.value || 'anon');
     startRun('ground');
   });
-  nameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') btnStart.click();
-  });
-  btnReset.addEventListener('click', () => {
-    Storage.incrementFalls();
-    startRun('checkpoint');
-  });
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') btnStart.click(); });
+  btnReset.addEventListener('click', () => { Storage.incrementFalls(); startRun('checkpoint'); });
   btnRestart.addEventListener('click', () => startRun('ground'));
 
-  // Pre-fill name from storage.
-  (function initName() {
+  // Pre-fill name.
+  (function () {
     const r = Storage.loadRecord();
     if (r.username) nameInput.value = r.username;
     hudBest.textContent = r.bestSector;
@@ -141,7 +131,6 @@
 
   // ── Helpers ────────────────────────────────────────────────────────────
   function heightMeters(y) {
-    // 0 at the ground, grows upward. 40 world-px ≈ 1 m (arbitrary).
     return Math.max(0, Math.round((GROUND_Y - y) / 40));
   }
 
@@ -151,16 +140,16 @@
     hudHeight.textContent = heightMeters(state.player ? state.player.y : 0);
   }
 
-  function showFlagToast(sector, isNewBest) {
+  function showToast(sector, newBest) {
     toastNum.textContent = sector;
-    toastSub.textContent = isNewBest ? 'new personal best!' : 'checkpoint saved';
+    toastSub.textContent = newBest ? 'new personal best! 🎉' : 'checkpoint saved';
     toast.classList.remove('hidden');
     requestAnimationFrame(() => toast.classList.add('show'));
-    clearTimeout(showFlagToast._t);
-    showFlagToast._t = setTimeout(() => {
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => {
       toast.classList.remove('show');
       setTimeout(() => toast.classList.add('hidden'), 300);
-    }, 2000);
+    }, 2200);
   }
 
   function checkFlags() {
@@ -169,222 +158,225 @@
       if (state.reachedThisRun.has(f.sector)) continue;
       const dx = state.player.x - f.x;
       const dy = state.player.y - f.y;
-      if (dx * dx + dy * dy <= f.radius * f.radius) {
+      if (dx*dx + dy*dy <= f.radius * f.radius) {
         state.reachedThisRun.add(f.sector);
-        const prevBest = state.bestSector;
+        const prev = state.bestSector;
         Storage.markSectorReached(f.sector);
-        const isNewBest = f.sector > prevBest;
-        if (isNewBest) state.bestSector = f.sector;
-        state.lastCheckpoint = { x: f.x, y: f.y - 20 };
-        showFlagToast(f.sector, isNewBest);
-
+        const isNew = f.sector > prev;
+        if (isNew) state.bestSector = f.sector;
+        showToast(f.sector, isNew);
         if (f.sector === TOTAL_SECTORS) {
-          setTimeout(() => { summitScr.classList.remove('hidden'); }, 1400);
+          setTimeout(() => summitScr.classList.remove('hidden'), 1500);
         }
       }
     }
+    let max = 0;
+    for (const n of state.reachedThisRun) if (n > max) max = n;
+    state.currentSector = max;
   }
 
   // ── Render ─────────────────────────────────────────────────────────────
-  function drawBackground(viewW, viewH) {
-    // Stars parallax. Deterministic per world-y band.
+
+  function drawBackground(vW, vH) {
+    // Deep space gradient
+    const bg = ctx.createLinearGradient(0, 0, 0, vH);
+    bg.addColorStop(0, '#04020c');
+    bg.addColorStop(1, '#0c0820');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, vW, vH);
+
+    // Parallax stars (3 layers)
     const layers = [
-      { z: 0.2, count: 70, color: 'rgba(255,255,255,0.35)', size: 1 },
-      { z: 0.4, count: 50, color: 'rgba(160,140,255,0.55)', size: 1.4 },
-      { z: 0.7, count: 30, color: 'rgba(255,255,255,0.75)', size: 1.8 },
+      { z: 0.15, n: 80, color: 'rgba(255,255,255,0.30)', s: 1 },
+      { z: 0.35, n: 50, color: 'rgba(180,160,255,0.50)', s: 1.5 },
+      { z: 0.60, n: 28, color: 'rgba(255,255,255,0.80)', s: 2 },
     ];
     for (const L of layers) {
-      const parY = state.cam.y * L.z;
-      for (let i = 0; i < L.count; i++) {
+      const offY = state.cam.y * L.z;
+      for (let i = 0; i < L.n; i++) {
         const seed = i * 9301 + 49297;
-        const sx = ((seed % 1000) / 1000) * viewW;
-        const sy = (((seed * 7) % 1500) / 1500) * viewH;
-        const wobble = ((seed + Math.floor(parY)) % 800) / 800 * viewH;
-        const drawY = (sy + wobble) % viewH;
+        const sx = ((seed % 1000) / 1000) * vW;
+        const sy = (((seed * 7) % 1500) / 1500) * vH;
+        const wobble = ((seed + Math.floor(offY)) % 900) / 900 * vH;
         ctx.fillStyle = L.color;
-        ctx.fillRect(sx, drawY, L.size, L.size);
+        ctx.fillRect(sx, (sy + wobble) % vH, L.s, L.s);
       }
     }
   }
 
-  function drawTerrain(viewW, viewH) {
-    // Sector bands (subtle horizontal lines + labels on the left).
+  function drawTerrain(vW, vH) {
+    // Sector marker lines
     for (let s = 1; s <= TOTAL_SECTORS; s++) {
-      const y = -SECTOR_HEIGHT * s;
-      const sy = y - state.cam.y + viewH / 2;
-      if (sy < -40 || sy > viewH + 40) continue;
-      ctx.strokeStyle = 'rgba(130,80,255,0.15)';
+      const wy = -SECTOR_HEIGHT * s;
+      const sy = wy - state.cam.y + vH / 2;
+      if (sy < -40 || sy > vH + 40) continue;
+      ctx.strokeStyle = 'rgba(130,80,255,0.12)';
       ctx.lineWidth = 1;
-      ctx.setLineDash([6, 8]);
-      ctx.beginPath();
-      ctx.moveTo(0, sy);
-      ctx.lineTo(viewW, sy);
-      ctx.stroke();
+      ctx.setLineDash([5, 9]);
+      ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(vW, sy); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = 'rgba(130,80,255,0.55)';
-      ctx.font = '11px "Courier New", monospace';
-      ctx.fillText(`SECTOR ${s}`, 14, sy - 6);
+      ctx.fillStyle = 'rgba(130,80,255,0.40)';
+      ctx.font = '10px "Courier New", monospace';
+      ctx.fillText(`SECTOR ${s}`, 14, sy - 5);
     }
 
-    // Rocks.
+    // Platforms / rocks
     for (const r of terrain) {
-      const sx = r.x - state.cam.x + viewW / 2;
-      const sy = r.y - state.cam.y + viewH / 2;
-      if (sx + r.w < -20 || sx > viewW + 20 || sy + r.h < -20 || sy > viewH + 20) continue;
-      // Base fill
-      const grad = ctx.createLinearGradient(sx, sy, sx, sy + r.h);
-      grad.addColorStop(0, '#3a2a5a');
-      grad.addColorStop(1, '#1a1228');
-      ctx.fillStyle = grad;
-      ctx.fillRect(sx, sy, r.w, r.h);
+      const sx = r.x - state.cam.x + vW / 2;
+      const sy = r.y - state.cam.y + vH / 2;
+      if (sx + r.w < -20 || sx > vW + 20 || sy + r.h < -20 || sy > vH + 20) continue;
+
+      // Rock gradient
+      const rg = ctx.createLinearGradient(sx, sy, sx, sy + r.h);
+      rg.addColorStop(0, '#3d2b5a');
+      rg.addColorStop(0.4, '#281840');
+      rg.addColorStop(1, '#120a20');
+      ctx.fillStyle = rg;
+      // Rounded rect
+      const rad = Math.min(4, r.h / 2);
+      ctx.beginPath();
+      ctx.roundRect(sx, sy, r.w, r.h, rad);
+      ctx.fill();
       // Top highlight
-      ctx.fillStyle = 'rgba(180,140,255,0.22)';
-      ctx.fillRect(sx, sy, r.w, 2);
+      ctx.fillStyle = 'rgba(200,160,255,0.18)';
+      ctx.fillRect(sx + rad, sy, r.w - rad * 2, 2);
       // Outline
-      ctx.strokeStyle = 'rgba(10,8,18,0.8)';
+      ctx.strokeStyle = 'rgba(8,5,16,0.9)';
       ctx.lineWidth = 1;
-      ctx.strokeRect(sx + 0.5, sy + 0.5, r.w - 1, r.h - 1);
+      ctx.beginPath();
+      ctx.roundRect(sx + 0.5, sy + 0.5, r.w - 1, r.h - 1, rad);
+      ctx.stroke();
+      // Crack detail
+      if (r.w > 80) {
+        ctx.strokeStyle = 'rgba(100,70,140,0.3)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(sx + r.w * 0.3, sy + 2);
+        ctx.lineTo(sx + r.w * 0.28, sy + r.h * 0.6);
+        ctx.stroke();
+      }
     }
   }
 
-  function drawFlags(viewW, viewH) {
+  function drawFlags(vW, vH) {
     const t = performance.now() / 1000;
     for (const f of flags) {
-      const sx = f.x - state.cam.x + viewW / 2;
-      const sy = f.y - state.cam.y + viewH / 2;
-      if (sx < -40 || sx > viewW + 40 || sy < -60 || sy > viewH + 40) continue;
+      const { x: sx, y: sy } = worldToScreen(f.x, f.y);
+      if (sx < -60 || sx > vW + 60 || sy < -80 || sy > vH + 40) continue;
 
       const reached = state.reachedThisRun.has(f.sector) ||
                       (state.record && state.record.bestSector >= f.sector);
 
-      // Pole.
-      ctx.strokeStyle = '#bbb';
+      // Pole
+      ctx.strokeStyle = '#d0c0e0';
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.moveTo(sx, sy + 40);
-      ctx.lineTo(sx, sy - 40);
+      ctx.moveTo(sx, sy + 36);
+      ctx.lineTo(sx, sy - 36);
       ctx.stroke();
 
-      // Flag cloth.
-      const wave = Math.sin(t * 3 + f.sector) * 3;
+      // Waving flag cloth
+      const w = Math.sin(t * 3.5 + f.sector * 1.2) * 4;
       ctx.beginPath();
-      ctx.moveTo(sx, sy - 40);
-      ctx.lineTo(sx + 26, sy - 34 + wave);
-      ctx.lineTo(sx + 22, sy - 26);
-      ctx.lineTo(sx, sy - 22);
+      ctx.moveTo(sx, sy - 36);
+      ctx.bezierCurveTo(sx + 10, sy - 38 + w, sx + 22, sy - 30, sx + 24, sy - 24 + w * 0.5);
+      ctx.lineTo(sx + 22, sy - 18);
+      ctx.bezierCurveTo(sx + 18, sy - 22 + w * 0.3, sx + 8, sy - 26, sx, sy - 24);
       ctx.closePath();
-      ctx.fillStyle = reached ? '#50ff82' : '#ef4444';
+      ctx.fillStyle = reached ? '#50ee82' : '#ef4444';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      // Number on flag.
+      // Sector number
       ctx.fillStyle = '#0a0a14';
-      ctx.font = 'bold 11px "Courier New", monospace';
-      ctx.fillText(String(f.sector), sx + 6, sy - 27);
+      ctx.font = 'bold 10px "Courier New"';
+      ctx.fillText(String(f.sector), sx + 5, sy - 25);
 
-      // Glow if not reached yet.
+      // Glow for unreached flags
       if (!reached) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        const g = ctx.createRadialGradient(sx + 10, sy - 30, 0, sx + 10, sy - 30, 40);
-        g.addColorStop(0, 'rgba(239,68,68,0.35)');
-        g.addColorStop(1, 'rgba(239,68,68,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(sx + 10, sy - 30, 40, 0, Math.PI * 2);
-        ctx.fill();
+        const gg = ctx.createRadialGradient(sx, sy - 24, 0, sx, sy - 24, 44);
+        gg.addColorStop(0, 'rgba(239,68,68,0.30)');
+        gg.addColorStop(1, 'rgba(239,68,68,0)');
+        ctx.fillStyle = gg;
+        ctx.beginPath(); ctx.arc(sx, sy - 24, 44, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
       }
     }
   }
 
-  function drawCursor(viewW, viewH) {
-    const cx = state.mouse.sx;
-    const cy = state.mouse.sy;
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  function drawCursor() {
+    const cx = state.mouse.sx, cy = state.mouse.sy;
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
     ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2); ctx.stroke();
     ctx.beginPath();
-    ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+    ctx.moveTo(cx - 5, cy); ctx.lineTo(cx + 5, cy);
+    ctx.moveTo(cx, cy - 5); ctx.lineTo(cx, cy + 5);
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx - 4, cy);
-    ctx.lineTo(cx + 4, cy);
-    ctx.moveTo(cx, cy - 4);
-    ctx.lineTo(cx, cy + 4);
-    ctx.stroke();
-    void viewW; void viewH;
   }
 
   function render() {
-    const viewW = window.innerWidth;
-    const viewH = window.innerHeight;
-
-    ctx.clearRect(0, 0, viewW, viewH);
-    drawBackground(viewW, viewH);
-
-    // World transform is applied manually per-element (cheaper than save/restore
-    // for the whole scene in this size).
-    drawTerrain(viewW, viewH);
-    drawFlags(viewW, viewH);
+    const vW = window.innerWidth, vH = window.innerHeight;
+    ctx.clearRect(0, 0, vW, vH);
+    drawBackground(vW, vH);
+    drawTerrain(vW, vH);
+    drawFlags(vW, vH);
 
     if (state.player) {
-      // Translate player coords to screen and invoke its draw routines in a
-      // translated frame.
       const p = state.player;
-      const tmpX = p.x, tmpY = p.y, tmpHx = p.hammerX, tmpHy = p.hammerY;
-      p.x       = tmpX       - state.cam.x + viewW / 2;
-      p.y       = tmpY       - state.cam.y + viewH / 2;
-      p.hammerX = tmpHx      - state.cam.x + viewW / 2;
-      p.hammerY = tmpHy      - state.cam.y + viewH / 2;
-      drawHammer(ctx, p);
+      // Translate to screen coords for rendering, then restore.
+      const { x: sx, y: sy } = worldToScreen(p.x, p.y);
+      const { x: hx, y: hy } = worldToScreen(p.hammerX, p.hammerY);
+      const ox = p.x, oy = p.y, ohx = p.hammerX, ohy = p.hammerY;
+      p.x = sx; p.y = sy; p.hammerX = hx; p.hammerY = hy;
       drawPlayer(ctx, p);
-      p.x = tmpX; p.y = tmpY; p.hammerX = tmpHx; p.hammerY = tmpHy;
+      p.x = ox; p.y = oy; p.hammerX = ohx; p.hammerY = ohy;
     }
-
-    drawCursor(viewW, viewH);
+    drawCursor();
   }
 
-  // ── Loop ───────────────────────────────────────────────────────────────
+  // ── Physics step ───────────────────────────────────────────────────────
+  function step(dt) {
+    if (!state.player) return;
+    const world = screenToWorld(state.mouse.sx, state.mouse.sy);
+    const result = stepPlayer(state.player, world, terrain, dt);
+    state.player.armAngle = result.armAngle;
+    state.player.hammerX  = result.hammerX;
+    state.player.hammerY  = result.hammerY;
+    state.player.anchored = result.anchored;
+  }
+
+  // ── Game loop ──────────────────────────────────────────────────────────
   let lastT = performance.now();
+
   function frame(now) {
-    const dtRaw = Math.min(0.033, (now - lastT) / 1000); // cap at 30 FPS step
+    const dtRaw = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
 
-    // Physics substeps for stability with fast motion.
-    const steps = 3;
-    const dt = dtRaw / steps;
-    for (let i = 0; i < steps; i++) {
-      const world = screenToWorld(state.mouse.sx, state.mouse.sy);
-      stepPlayer(state.player, world, terrain, dt);
+    if (state.player) {
+      // Substeps for stability.
+      const SUB = 4;
+      const dt  = dtRaw / SUB;
+      for (let i = 0; i < SUB; i++) step(dt);
+
+      checkFlags();
+
+      // Camera: follow player, keep them at 60% from top.
+      const targetCamY = state.player.y - window.innerHeight * 0.40;
+      state.cam.y += (targetCamY - state.cam.y) * 0.10;
     }
-
-    // Flag pickups.
-    checkFlags();
-    // HUD sector counter = highest flag reached this run.
-    let maxFlag = 0;
-    for (const n of state.reachedThisRun) if (n > maxFlag) maxFlag = n;
-    state.currentSector = maxFlag;
-
-    // Camera smoothing.
-    state.camTargetY = state.player.y - window.innerHeight * 0.12;
-    state.cam.y += (state.camTargetY - state.cam.y) * 0.12;
-
-    // Fall detection: if we drop 1.5 sectors below the highest point seen so far.
-    if (state.player.y < state.lastFallY - 50) state.lastFallY = state.player.y;
-    // (Intentionally do not auto-respawn — falling is part of the game.)
 
     updateHud();
     render();
     requestAnimationFrame(frame);
   }
 
-  // ── Boot ───────────────────────────────────────────────────────────────
-  // Pre-build a dummy player so the background renders nicely under the
-  // start overlay; actual run starts on click.
-  state.player = createPlayer(0, GROUND_Y - 80);
-  state.cam.y = state.player.y - window.innerHeight * 0.1;
-  state.running = true;
+  // Boot: run the background animation even during story/start screens.
+  // Player physics only run once state.player is set (on START click).
+  state.cam.y = GROUND_Y - window.innerHeight * 0.4;
   requestAnimationFrame(frame);
 })();

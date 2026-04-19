@@ -10,6 +10,115 @@ html, body {
   user-select: none;
 }
 
+/* ── Story intro ── */
+.story-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #0a0a12;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.story-screen.hidden { display: none; }
+
+.panels-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(40px);
+  transition: opacity 0.32s, transform 0.32s;
+}
+
+.panel.active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.panel-scene {
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid #2a1a40;
+  box-shadow: 0 0 20px rgba(130,80,255,0.2);
+}
+
+.panel-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.panel-bubble {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid #2a2a40;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 0.80rem;
+  line-height: 1.65;
+  color: #ddd;
+}
+
+.panel-bubble.danger {
+  background: rgba(239,68,68,0.06);
+  border-color: rgba(239,68,68,0.25);
+}
+
+.panel-bubble b { color: #fff; }
+
+.panel-caption {
+  font-size: 0.72rem;
+  color: #8250ff;
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding: 2px 0;
+}
+
+.story-nav {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 6px;
+  gap: 16px;
+}
+
+.story-dots { display: flex; gap: 8px; }
+
+.dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #333;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.dot.active { background: #8250ff; transform: scale(1.3); }
+
+.story-skip {
+  padding-bottom: 8px;
+  text-align: center;
+}
+
 #game-canvas {
   display: block;
   width: 100vw;

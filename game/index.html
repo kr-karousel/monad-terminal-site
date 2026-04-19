@@ -3,39 +3,106 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monad Climb — Getting Up Is Hard</title>
+  <title>CHOG Climb — Getting Up Is Hard</title>
   <link rel="stylesheet" href="css/game.css" />
 </head>
 <body>
 
-  <!-- Start overlay -->
-  <div id="start-screen" class="overlay">
+  <!-- ══ STORY INTRO ══════════════════════════════════════════════════════ -->
+  <div id="story-screen" class="story-screen">
+    <div class="panels-wrap">
+
+      <!-- Panel 1 -->
+      <div class="panel active" id="panel-1">
+        <div class="panel-scene scene-1">
+          <canvas class="panel-canvas" id="pcanvas-1" width="320" height="240"></canvas>
+        </div>
+        <div class="panel-bubble">
+          <p class="panel-text">High on <b>Monster Mountain</b>, CHOG spotted
+          the most beautiful apple in the world — just barely out of reach…</p>
+        </div>
+        <div class="panel-caption">"Just a liiittle stretch…" 🍎</div>
+      </div>
+
+      <!-- Panel 2 -->
+      <div class="panel" id="panel-2">
+        <div class="panel-scene scene-2">
+          <canvas class="panel-canvas" id="pcanvas-2" width="320" height="240"></canvas>
+        </div>
+        <div class="panel-bubble">
+          <p class="panel-text">One tiny step closer to the edge —
+          what could possibly go wrong?</p>
+        </div>
+        <div class="panel-caption">— Famous last words —</div>
+      </div>
+
+      <!-- Panel 3 -->
+      <div class="panel" id="panel-3">
+        <div class="panel-scene scene-3">
+          <canvas class="panel-canvas" id="pcanvas-3" width="320" height="240"></canvas>
+        </div>
+        <div class="panel-bubble danger">
+          <p class="panel-text"><b>WAAAAAAH!!!</b><br/>
+          CHOG tumbled off the cliff — the apple drifted away into the sky.</p>
+        </div>
+        <div class="panel-caption">🍎💨  &nbsp; <span style="color:#f87171">Everything is fine.</span></div>
+      </div>
+
+      <!-- Panel 4 -->
+      <div class="panel" id="panel-4">
+        <div class="panel-scene scene-4">
+          <canvas class="panel-canvas" id="pcanvas-4" width="320" height="240"></canvas>
+        </div>
+        <div class="panel-bubble">
+          <p class="panel-text">CLONK! A mysterious cauldron at the bottom of
+          the ravine swallowed CHOG whole. But the apple is still up there…</p>
+        </div>
+        <div class="panel-caption">"I'm getting that apple." 🫙😤</div>
+      </div>
+
+    </div><!-- /panels-wrap -->
+
+    <!-- Nav dots & controls -->
+    <div class="story-nav">
+      <div class="story-dots">
+        <span class="dot active" data-p="0"></span>
+        <span class="dot" data-p="1"></span>
+        <span class="dot" data-p="2"></span>
+        <span class="dot" data-p="3"></span>
+      </div>
+      <button id="story-next" class="btn primary">NEXT →</button>
+    </div>
+    <div class="story-skip"><button id="story-skip-btn" class="btn ghost" style="font-size:.65rem;padding:5px 10px">SKIP INTRO</button></div>
+  </div>
+
+  <!-- ══ START SCREEN ══════════════════════════════════════════════════════ -->
+  <div id="start-screen" class="overlay hidden">
     <div class="overlay-card">
-      <h1>MONAD <span>CLIMB</span></h1>
-      <p class="tagline">Swing the hammer. Push off rocks. Reach the sky.</p>
+      <h1>CHOG <span>CLIMB</span></h1>
+      <p class="tagline">Stuck in a pot. Apple at the top. Let's go.</p>
 
       <div class="field">
-        <label for="username-input">PLAYER NAME</label>
-        <input id="username-input" type="text" maxlength="18" placeholder="anon" />
+        <label for="username-input">YOUR NAME</label>
+        <input id="username-input" type="text" maxlength="18" placeholder="anon" autocomplete="off" />
       </div>
 
       <div class="btn-row">
-        <button id="btn-start" class="btn primary">START CLIMB</button>
+        <button id="btn-start" class="btn primary">BEGIN CLIMB</button>
         <a href="user.html" class="btn ghost">MY RECORD</a>
       </div>
 
       <div class="how">
         <b>HOW TO PLAY</b><br/>
-        · Move the mouse to swing your hammer.<br/>
-        · Press the hammer against rocks to push yourself up.<br/>
-        · Touch a <span class="flag-chip">🚩 flag</span> to save the sector.<br/>
-        · Falling is part of the game. Keep going.
+        · Move the mouse to extend your arm.<br/>
+        · Press your hand against rocks to push yourself up.<br/>
+        · Reach each <span class="flag-chip">🚩 flag</span> to save your sector.<br/>
+        · Falling is part of the game.
       </div>
     </div>
   </div>
 
-  <!-- HUD -->
-  <div id="hud">
+  <!-- ══ HUD ═══════════════════════════════════════════════════════════════ -->
+  <div id="hud" class="hidden">
     <div class="hud-line">
       <span class="hud-label">SECTOR</span>
       <span id="hud-sector" class="hud-val">0</span>
@@ -48,24 +115,23 @@
     </div>
     <div class="hud-line">
       <span class="hud-label">HEIGHT</span>
-      <span id="hud-height" class="hud-val">0</span>
-      <span class="hud-unit">m</span>
+      <span id="hud-height" class="hud-val">0</span><span class="hud-unit">m</span>
     </div>
-    <button id="btn-reset" class="hud-btn" title="reset to last checkpoint">↺ RESTART</button>
-    <a href="user.html" class="hud-btn" title="my record">👤 PROFILE</a>
+    <button id="btn-reset" class="hud-btn" title="respawn at last checkpoint">↺ RESPAWN</button>
+    <a href="user.html" class="hud-btn">👤 PROFILE</a>
   </div>
 
-  <!-- Flag toast -->
+  <!-- ══ TOAST ══════════════════════════════════════════════════════════════ -->
   <div id="flag-toast" class="toast hidden">
-    <div class="toast-title">🚩 SECTOR <span id="toast-num">1</span> REACHED</div>
+    <div class="toast-title">🚩 SECTOR <span id="toast-num">1</span> CLEARED</div>
     <div class="toast-sub" id="toast-sub">checkpoint saved</div>
   </div>
 
-  <!-- Summit overlay -->
+  <!-- ══ SUMMIT ═════════════════════════════════════════════════════════════ -->
   <div id="summit-screen" class="overlay hidden">
     <div class="overlay-card">
-      <h1>🏁 SUMMIT</h1>
-      <p class="tagline">You reached the top of the Monad.</p>
+      <h1>🍎 GOT IT!</h1>
+      <p class="tagline">CHOG finally got the apple. Worth it.</p>
       <div class="btn-row">
         <button id="btn-restart" class="btn primary">CLIMB AGAIN</button>
         <a href="user.html" class="btn ghost">MY RECORD</a>
@@ -79,6 +145,7 @@
   <script src="js/level.js"></script>
   <script src="js/physics.js"></script>
   <script src="js/player.js"></script>
+  <script src="js/story.js"></script>
   <script src="js/game.js"></script>
 </body>
 </html>

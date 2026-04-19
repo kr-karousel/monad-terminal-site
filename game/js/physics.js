@@ -1,173 +1,137 @@
-// Physics for Monad Climb.
+// Physics engine — Getting Over It faithful pivot model.
 //
-// Core model (Getting-Over-It style):
-//  - The player is a disc with position + velocity. Gravity pulls it down.
-//  - The hammer is a rigid rod from the player centre to a "tip". The tip
-//    follows the mouse, but is clamped to HAMMER_LEN from the player.
-//  - If the mouse would push the tip into terrain, we shove the tip back out
-//    along the nearest edge. The displacement we had to apply is translated
-//    into a push on the player in the OPPOSITE direction — that is the
-//    "leverage" that lets the player climb.
-//
-// All collisions are circle-vs-AABB (body) and point-vs-AABB (hammer tip).
+// MECHANIC:
+//   • Character body is a circle (the cauldron).
+//   • One arm (shoulder → hand) is controlled by the mouse.
+//   • Arm direction = atan2(mouse − shoulder), length = ARM_LEN.
+//   • Each frame: compute target hand position.
+//   • If hand lands inside terrain → push it to the nearest surface → PIVOT.
+//   • New shoulder = pivot − arm_direction × ARM_LEN.
+//   • Body shifts so shoulder reaches new position (pure lever constraint).
+//   • When hand is free, normal gravity + Euler integration.
 
-const GRAVITY        = 1500;   // px/s²
-const HAMMER_LEN     = 110;    // max distance from player to hammer tip
-const HAMMER_MIN     = 30;     // min distance so you cannot retract into yourself
-const LEVERAGE_POS   = 1.0;    // fraction of tip-correction transferred to player position
-const LEVERAGE_VEL   = 11;     // velocity boost per unit displacement
-const AIR_DRAG       = 0.998;
-const FRICTION_TAN   = 0.20;   // tangential friction on body vs terrain
-const RESTITUTION    = 0.15;   // tiny bounce on hard hits
-const MAX_SPEED      = 2200;
+const GRAVITY      = 1100;   // px / s²
+const ARM_LEN      = 130;    // shoulder → hand
+const SHOULDER_OY  = -22;    // shoulder above body centre (negative = up)
+const BODY_RADIUS  = 26;
+const AIR_DRAG     = 0.993;
+const RESTITUTION  = 0.08;
+const FRICTION_TAN = 0.18;
+const MAX_SPEED    = 2600;
+const VEL_CARRY    = 0.72;   // velocity fraction carried into free flight
 
-function clampSpeed(p) {
-  const s = Math.hypot(p.vx, p.vy);
-  if (s > MAX_SPEED) {
-    p.vx = p.vx / s * MAX_SPEED;
-    p.vy = p.vy / s * MAX_SPEED;
-  }
+function clampSpeed(b) {
+  const s = Math.hypot(b.vx, b.vy);
+  if (s > MAX_SPEED) { b.vx = b.vx / s * MAX_SPEED; b.vy = b.vy / s * MAX_SPEED; }
 }
 
-// Push the circle out of the AABB if overlapping. Adjusts position + velocity.
-function resolveCircleRect(p, r) {
-  const cx = Math.max(r.x, Math.min(p.x, r.x + r.w));
-  const cy = Math.max(r.y, Math.min(p.y, r.y + r.h));
-  const dx = p.x - cx;
-  const dy = p.y - cy;
+// Push circle (b.x, b.y, radius=BODY_RADIUS) out of an AABB.
+function resolveCircleRect(b, rect) {
+  const R = BODY_RADIUS;
+  const cx = Math.max(rect.x, Math.min(b.x, rect.x + rect.w));
+  const cy = Math.max(rect.y, Math.min(b.y, rect.y + rect.h));
+  const dx = b.x - cx, dy = b.y - cy;
   const d2 = dx * dx + dy * dy;
-  const R = p.radius;
-
   if (d2 >= R * R) return false;
 
   let nx, ny, pen;
-  if (d2 === 0) {
-    // Centre inside the rect: push out along the shallowest axis.
-    const left   = p.x - r.x;
-    const right  = r.x + r.w - p.x;
-    const top    = p.y - r.y;
-    const bottom = r.y + r.h - p.y;
-    const m = Math.min(left, right, top, bottom);
-    if (m === top)         { nx =  0; ny = -1; pen = top + R; }
-    else if (m === bottom) { nx =  0; ny =  1; pen = bottom + R; }
-    else if (m === left)   { nx = -1; ny =  0; pen = left + R; }
-    else                   { nx =  1; ny =  0; pen = right + R; }
+  if (d2 < 1e-6) {
+    const l = b.x - rect.x, r = rect.x + rect.w - b.x;
+    const t = b.y - rect.y, bt = rect.y + rect.h - b.y;
+    const m = Math.min(l, r, t, bt);
+    if (m === t)       { nx =  0; ny = -1; pen = t  + R; }
+    else if (m === bt) { nx =  0; ny =  1; pen = bt + R; }
+    else if (m === l)  { nx = -1; ny =  0; pen = l  + R; }
+    else               { nx =  1; ny =  0; pen = r  + R; }
   } else {
     const d = Math.sqrt(d2);
-    nx = dx / d;
-    ny = dy / d;
-    pen = R - d;
+    nx = dx / d; ny = dy / d; pen = R - d;
   }
 
-  p.x += nx * pen;
-  p.y += ny * pen;
+  b.x += nx * pen; b.y += ny * pen;
 
-  // Normal component of velocity: remove + tiny bounce.
-  const vDotN = p.vx * nx + p.vy * ny;
-  if (vDotN < 0) {
-    p.vx -= vDotN * nx * (1 + RESTITUTION);
-    p.vy -= vDotN * ny * (1 + RESTITUTION);
+  const vn = b.vx * nx + b.vy * ny;
+  if (vn < 0) {
+    b.vx -= vn * nx * (1 + RESTITUTION);
+    b.vy -= vn * ny * (1 + RESTITUTION);
   }
-  // Tangential friction.
   const tx = -ny, ty = nx;
-  const vDotT = p.vx * tx + p.vy * ty;
-  p.vx -= vDotT * tx * FRICTION_TAN;
-  p.vy -= vDotT * ty * FRICTION_TAN;
+  const vt = b.vx * tx + b.vy * ty;
+  b.vx -= vt * tx * FRICTION_TAN;
+  b.vy -= vt * ty * FRICTION_TAN;
   return true;
 }
 
-// If (px,py) is inside the AABB, return the minimum-translation vector to
-// push it out; otherwise null.
-function pushPointOutOfRect(px, py, r) {
-  if (px <= r.x || px >= r.x + r.w || py <= r.y || py >= r.y + r.h) return null;
-  const left   = px - r.x;
-  const right  = r.x + r.w - px;
-  const top    = py - r.y;
-  const bottom = r.y + r.h - py;
-  const m = Math.min(left, right, top, bottom);
-  if (m === top)    return { x: 0, y: -top };
-  if (m === bottom) return { x: 0, y: bottom };
-  if (m === left)   return { x: -left, y: 0 };
-  return { x: right, y: 0 };
+// Push a POINT out of an AABB. Returns correction vector or null.
+function pushPointOut(px, py, rect) {
+  if (px <= rect.x || px >= rect.x + rect.w ||
+      py <= rect.y || py >= rect.y + rect.h) return null;
+  const l = px - rect.x, r = rect.x + rect.w - px;
+  const t = py - rect.y, bt = rect.y + rect.h - py;
+  const m = Math.min(l, r, t, bt);
+  if (m === t)  return { x: 0,  y: -t  };
+  if (m === bt) return { x: 0,  y:  bt };
+  if (m === l)  return { x: -l, y:  0  };
+                return { x:  r, y:  0  };
 }
 
-// Compute the (clamped) hammer tip position given a desired target.
-function clampHammer(px, py, tx, ty) {
-  let dx = tx - px;
-  let dy = ty - py;
-  let d  = Math.hypot(dx, dy);
-  if (d < 0.0001) { dx = 0; dy = 1; d = 1; }
-  if (d > HAMMER_LEN) { const k = HAMMER_LEN / d; dx *= k; dy *= k; }
-  else if (d < HAMMER_MIN) { const k = HAMMER_MIN / d; dx *= k; dy *= k; }
-  return { x: px + dx, y: py + dy };
-}
+// One physics substep. Returns render info.
+function stepPlayer(body, mouseWorld, terrain, dt) {
+  // Shoulder position.
+  const shX = body.x;
+  const shY = body.y + SHOULDER_OY;
 
-// Main per-frame update. mouseWorld = {x,y} in world coordinates.
-function stepPlayer(player, mouseWorld, terrain, dt) {
-  // 1. Gravity + drag.
-  player.vy += GRAVITY * dt;
-  player.vx *= AIR_DRAG;
-  player.vy *= AIR_DRAG;
-  clampSpeed(player);
+  // Arm angle toward mouse.
+  const armAngle = Math.atan2(mouseWorld.y - shY, mouseWorld.x - shX);
 
-  // 2. Integrate body.
-  player.x += player.vx * dt;
-  player.y += player.vy * dt;
+  // Target hand position.
+  let tipX = shX + Math.cos(armAngle) * ARM_LEN;
+  let tipY = shY + Math.sin(armAngle) * ARM_LEN;
 
-  // 3. Body vs terrain.
-  for (const r of terrain) resolveCircleRect(player, r);
-
-  // 4. Desired hammer tip.
-  let tip = clampHammer(player.x, player.y, mouseWorld.x, mouseWorld.y);
-
-  // 5. Push tip out of terrain. Iterate a few times for stability across
-  // overlapping rects (rare, but safe).
-  let totalDx = 0, totalDy = 0;
-  for (let iter = 0; iter < 3; iter++) {
+  // Push hand out of terrain.
+  let anyHit = false;
+  for (let iter = 0; iter < 4; iter++) {
     let moved = false;
     for (const r of terrain) {
-      const push = pushPointOutOfRect(tip.x, tip.y, r);
-      if (push) {
-        tip.x += push.x;
-        tip.y += push.y;
-        totalDx += push.x;
-        totalDy += push.y;
-        moved = true;
-      }
+      const push = pushPointOut(tipX, tipY, r);
+      if (push) { tipX += push.x; tipY += push.y; moved = true; anyHit = true; }
     }
     if (!moved) break;
   }
 
-  // 6. Leverage: apply an opposite push on the player. The magnitude scales
-  // with how hard we tried to shove the tip into the rock.
-  if (totalDx !== 0 || totalDy !== 0) {
-    const px = -totalDx * LEVERAGE_POS;
-    const py = -totalDy * LEVERAGE_POS;
-    player.x += px;
-    player.y += py;
-    // Only accelerate in the direction of the push (no stalling bounce).
-    player.vx += px * LEVERAGE_VEL * dt * 60;   // scale roughly framerate-independent
-    player.vy += py * LEVERAGE_VEL * dt * 60;
-    clampSpeed(player);
+  let anchored = false;
 
-    // Re-resolve body in case leverage pushed us into another wall.
-    for (const r of terrain) resolveCircleRect(player, r);
-
-    player.hammerAnchored = true;
+  if (anyHit) {
+    // ── PIVOT MECHANIC ───────────────────────────────────────────────────
+    // Hand is on a surface. New shoulder = surface_point − arm_dir × ARM_LEN.
+    const newShX = tipX - Math.cos(armAngle) * ARM_LEN;
+    const newShY = tipY - Math.sin(armAngle) * ARM_LEN;
+    const dX = newShX - shX;
+    const dY = newShY - shY;
+    body.x += dX;
+    body.y += dY;
+    // Carry velocity for when hand lifts off.
+    body.vx = dX / dt * VEL_CARRY;
+    body.vy = dY / dt * VEL_CARRY;
+    clampSpeed(body);
+    anchored = true;
   } else {
-    player.hammerAnchored = false;
+    // ── FREE FLIGHT ──────────────────────────────────────────────────────
+    body.vy += GRAVITY * dt;
+    body.vx *= AIR_DRAG;
+    body.vy *= AIR_DRAG;
+    clampSpeed(body);
+    body.x += body.vx * dt;
+    body.y += body.vy * dt;
   }
 
-  // 7. Final clamped tip position for rendering.
-  const finalTip = clampHammer(player.x, player.y, tip.x, tip.y);
-  player.hammerX = finalTip.x;
-  player.hammerY = finalTip.y;
+  // Resolve body circle vs all terrain (both modes).
+  for (const r of terrain) resolveCircleRect(body, r);
+
+  return { armAngle, hammerX: tipX, hammerY: tipY, anchored };
 }
 
 window.MonadPhysics = {
-  GRAVITY, HAMMER_LEN, HAMMER_MIN,
-  stepPlayer,
-  resolveCircleRect,
-  pushPointOutOfRect,
-  clampHammer,
+  GRAVITY, ARM_LEN, SHOULDER_OY, BODY_RADIUS,
+  stepPlayer, resolveCircleRect, pushPointOut,
 };
