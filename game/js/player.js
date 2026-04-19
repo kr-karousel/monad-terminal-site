@@ -8,6 +8,7 @@
 //   body.x, body.y  → cauldron centre
 //   body.angle       → cosmetic tilt (visual only, in radians)
 
+(function () {
 const { ARM_LEN, SHOULDER_OY, BODY_RADIUS } = window.MonadPhysics;
 
 // ── Palette ──────────────────────────────────────────────────────────────────
@@ -309,3 +310,4 @@ function drawPlayer(ctx, player) {
 }
 
 window.MonadPlayer = { createPlayer, drawPlayer, PLAYER_RADIUS: BODY_RADIUS };
+})();
