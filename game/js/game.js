@@ -113,9 +113,8 @@
     updateHud();
     Storage.incrementRuns();
 
-    // Safety: restart frame loop in case it died on a previous frame.
+    // Reset frame timer so the first physics dt isn't a huge catch-up.
     lastT = performance.now();
-    requestAnimationFrame(frame);
   }
 
   btnStart.addEventListener('click', () => {
@@ -352,24 +351,28 @@
   let lastT = performance.now();
 
   function frame(now) {
-    const dtRaw = Math.min(0.05, (now - lastT) / 1000);
-    lastT = now;
+    try {
+      const dtRaw = Math.min(0.05, (now - lastT) / 1000);
+      lastT = now;
 
-    if (state.player) {
-      // Substeps for stability.
-      const SUB = 4;
-      const dt  = dtRaw / SUB;
-      for (let i = 0; i < SUB; i++) step(dt);
+      if (state.player) {
+        // Substeps for stability.
+        const SUB = 4;
+        const dt  = dtRaw / SUB;
+        for (let i = 0; i < SUB; i++) step(dt);
 
-      checkFlags();
+        checkFlags();
 
-      // Camera: follow player, keep them at 60% from top.
-      const targetCamY = state.player.y - window.innerHeight * 0.40;
-      state.cam.y += (targetCamY - state.cam.y) * 0.10;
+        // Camera: follow player, keep them at 60% from top.
+        const targetCamY = state.player.y - window.innerHeight * 0.40;
+        state.cam.y += (targetCamY - state.cam.y) * 0.10;
+      }
+
+      updateHud();
+      render();
+    } catch (err) {
+      console.error('[climb] frame error:', err);
     }
-
-    updateHud();
-    render();
     requestAnimationFrame(frame);
   }
 
