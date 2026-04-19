@@ -345,6 +345,11 @@
   nextBtn.addEventListener('click', advance);
   skipBtn.addEventListener('click', showStartScreen);
   document.addEventListener('keydown', (e) => {
+    // Only respond while the story screen is actually visible.
+    if (screen.classList.contains('hidden')) return;
+    // Don't hijack Enter while the user is typing in an input.
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
     if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') advance();
   });
   dots.forEach((d, i) => d.addEventListener('click', () => goTo(i)));
