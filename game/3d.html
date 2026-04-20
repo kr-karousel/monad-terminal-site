@@ -59,34 +59,22 @@ canvas{display:block}
   <button id="btn-start" class="btn">BEGIN CLIMB</button>
 </div>
 <div id="summit-overlay" class="overlay hidden">
-  <h1>🌸 SUMMIT!</h1>
-  <p>CHOG reached the top and grabbed both flowers!<br/>Worth every tumble.</p>
+  <h1>🍎 CLEAR!</h1>
+  <p>CHOG grabbed the apple at the very top!<br/>Worth every tumble.</p>
+  <div style="margin:8px 0;text-align:center">
+    <div style="color:#ffe066;font-size:10px;letter-spacing:3px">CLEAR TIME</div>
+    <div id="clear-time-display" style="font-size:48px;font-weight:bold;text-shadow:2px 2px 0 #333">0:00</div>
+  </div>
   <button id="btn-restart" class="btn">CLIMB AGAIN</button>
 </div>
-<!-- Result overlay shown when 3-min timer runs out -->
-<div id="result-overlay" class="overlay hidden">
-  <div class="result-card">
-    <h1>⏰ TIME'S UP!</h1>
-    <p style="color:#bbb;font-size:13px;margin-top:-8px">CHOG ran out of time…</p>
-    <div class="result-row">
-      <div class="result-stat">
-        <span class="r-label">MAX HEIGHT</span>
-        <span class="r-val"><span id="res-height">0</span></span>
-        <span class="r-unit">meters</span>
-      </div>
-      <div class="result-stat">
-        <span class="r-label">BEST HEIGHT</span>
-        <span class="r-val"><span id="res-best">0</span></span>
-        <span class="r-unit">meters</span>
-      </div>
-    </div>
-    <div id="res-rating" style="font-size:18px;letter-spacing:2px;color:#d94fa0;margin:4px 0"></div>
-    <button id="btn-result-retry" class="btn" style="margin-top:8px">TRY AGAIN</button>
-  </div>
+<div id="gameover-overlay" class="overlay hidden">
+  <h1 style="color:#ff4444">☠️ GAME OVER</h1>
+  <p>Touched a poisonous mushroom!<br/>CHOG did not make it.</p>
+  <button id="btn-gameover-retry" class="btn" style="background:#ef4444;border-color:#b91c1c">TRY AGAIN</button>
 </div>
 <div id="hud">
   <div class="row"><div class="label">HEIGHT</div><div class="val"><span id="h-val">0</span><span class="unit">m</span></div></div>
-  <div class="row"><div class="label">BEST</div><div class="val"><span id="b-val">0</span><span class="unit">m</span></div></div>
+  <div class="row"><div class="label">STAGE</div><div class="val"><span id="stage-val">1</span><span class="unit">/5</span></div></div>
 </div>
 <div id="timer-wrap">
   <div id="timer-label">TIME</div>
@@ -332,64 +320,158 @@ function createFlower(scale=1) {
   const petalMat = new THREE.MeshLambertMaterial({ color:0xffffff, side:THREE.DoubleSide });
   const N = 10;
   for (let i=0; i<N; i++) {
-    const a = (i/N) * Math.PI * 2;
+    const a = (i/N)*Math.PI*2;
     const p = new THREE.Mesh(new THREE.SphereGeometry(0.44*scale, 6, 4), petalMat);
     p.scale.set(0.32, 1.0, 0.14);
     p.position.set(Math.cos(a)*0.82*scale, Math.sin(a)*0.82*scale, 0);
     p.rotation.z = a;
     g.add(p);
   }
-  g.add(new THREE.Mesh(
-    new THREE.SphereGeometry(0.5*scale, 10, 8),
-    new THREE.MeshLambertMaterial({ color:0xffd700, emissive:0x443300 })
-  ));
-  const stem = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.07*scale, 0.1*scale, 3.0*scale, 6),
-    new THREE.MeshLambertMaterial({ color:0x2d7a44 })
-  );
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.5*scale,10,8),
+    new THREE.MeshLambertMaterial({ color:0xffd700, emissive:0x443300 })));
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07*scale,0.1*scale,3.0*scale,6),
+    new THREE.MeshLambertMaterial({ color:0x2d7a44 }));
   stem.position.y = -1.7*scale;
   g.add(stem);
-  // Small leaves on stem
-  [-0.8, 0.4].forEach((oy, i) => {
-    const leaf = new THREE.Mesh(
-      new THREE.SphereGeometry(0.28*scale, 5, 4),
-      new THREE.MeshLambertMaterial({ color:0x3a9a50 })
-    );
-    leaf.scale.set(1.6, 0.5, 0.5);
+  [-0.8,0.4].forEach((oy,i) => {
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.28*scale,5,4),
+      new THREE.MeshLambertMaterial({ color:0x3a9a50 }));
+    leaf.scale.set(1.6,0.5,0.5);
     leaf.position.set((i%2===0?1:-1)*0.4*scale, oy*scale, 0);
     g.add(leaf);
   });
   return g;
 }
 
-/* ── Stage 1 flower (bonus — +60s) at top of stage 1 ─────────────────────── */
-const FLOWER_S1_Y = 56;
-const flowerS1 = createFlower(1.1);
-flowerS1.position.set(0, FLOWER_S1_Y, 0);
-scene.add(flowerS1);
-const glowS1 = new THREE.PointLight(0xfff0aa, 2.0, 12);
-glowS1.position.set(0, FLOWER_S1_Y, 0);
-scene.add(glowS1);
+/* ── Poison mushroom factory (placeholder — swap with GLB) ──────────────── */
+function createMushroom(scale=0.75) {
+  const g = new THREE.Group();
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.7*scale,10,7),
+    new THREE.MeshLambertMaterial({ color:0xcc2200, emissive:0x440000 }));
+  cap.scale.y = 0.65; cap.position.y = 0.8*scale; g.add(cap);
+  [[0,0.28,0.62],[0.38,0.08,0.52],[-0.32,0.18,0.56],[0.08,0.34,0.6]].forEach(([ox,oy,r]) => {
+    const spot = new THREE.Mesh(new THREE.SphereGeometry(0.13*scale,5,4),
+      new THREE.MeshLambertMaterial({ color:0xffffff }));
+    spot.position.set(ox*scale,(0.6+oy)*scale,r*scale); g.add(spot);
+  });
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.22*scale,0.28*scale,0.9*scale,8),
+    new THREE.MeshLambertMaterial({ color:0xf0e6c0 }));
+  stem.position.y = 0.25*scale; g.add(stem);
+  return g;
+}
 
-/* ── Stage 2 platforms — 1/3 count, wider gaps ────────────────────────────── */
-const stage2Defs = [
-  { x: 3,  y:62,  z:0, w:6,   h:1, d:6 },
-  { x:-5,  y:70,  z:0, w:4,   h:1, d:6 },
-  { x: 5,  y:78,  z:0, w:3.5, h:1, d:6 },
-  { x:-4,  y:86,  z:0, w:3,   h:1, d:6 },
-  { x: 4,  y:94,  z:0, w:3,   h:1, d:6 },
-  { x: 0,  y:102, z:0, w:9,   h:1, d:8, summit:true },
-];
-stage2Defs.forEach(addPlatform);
+/* ── Purple disappearing cloud ───────────────────────────────────────────── */
+const cloudObjects = [];
+function addCloudPlatform(def) {
+  const baseMat = new THREE.MeshLambertMaterial({ color:0xaa66ff, transparent:true, opacity:0.85 });
+  const puffMat = new THREE.MeshLambertMaterial({ color:0xcc99ff, transparent:true, opacity:0.9 });
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(def.w,def.h,def.d), baseMat));
+  const pc = Math.round(def.w/1.2);
+  for (let i=0;i<pc;i++) {
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(0.46+Math.random()*0.28,6,5), puffMat);
+    puff.position.set((i-pc/2+0.5)*1.1, def.h*0.5+0.22, 0);
+    g.add(puff);
+  }
+  g.position.set(def.x, def.y, def.z);
+  scene.add(g);
+  const aabb = { minX:def.x-def.w/2, maxX:def.x+def.w/2,
+                 minY:def.y-def.h/2, maxY:def.y+def.h/2,
+                 minZ:def.z-def.d/2, maxZ:def.z+def.d/2,
+                 disabled:false, isCloud:true };
+  platforms.push(aabb);
+  cloudObjects.push({ group:g, aabb, state:'active', timer:0, baseMat, puffMat });
+}
 
-/* ── Stage 2 flowers — 2 at summit (game win) ─────────────────────────────── */
-const FLOWER_S2_Y = 106;
-const flowerS2a = createFlower(1.2);  flowerS2a.position.set(-1.8, FLOWER_S2_Y, 0);
-const flowerS2b = createFlower(1.2);  flowerS2b.position.set( 1.8, FLOWER_S2_Y, 0);
-scene.add(flowerS2a); scene.add(flowerS2b);
-const glowS2 = new THREE.PointLight(0xff88cc, 2.5, 14);
-glowS2.position.set(0, FLOWER_S2_Y, 0);
-scene.add(glowS2);
+function updateClouds(dt) {
+  for (const c of cloudObjects) {
+    if (c.state !== 'fading') continue;
+    c.timer -= dt;
+    const a = Math.max(0, c.timer / 0.8);
+    c.baseMat.opacity = a * 0.85;
+    c.puffMat.opacity = a * 0.9;
+    if (c.timer <= 0) { c.state='gone'; c.aabb.disabled=true; c.group.visible=false; }
+  }
+}
+
+/* ── Mushroom + flower tracking ─────────────────────────────────────────── */
+const mushroomObjects = [];
+function placeMushroom(x, y, z) {
+  const g = createMushroom();
+  g.position.set(x, y, z);
+  scene.add(g);
+  mushroomObjects.push({ group:g, pos:new THREE.Vector3(x,y,z) });
+}
+
+const stageFlowers = []; // [stage0:[{group,pos,collected},...], stage1:...]
+function buildFlowers(positions, scale=1.1) {
+  const arr = positions.map(({x,y,z}) => {
+    const g = createFlower(scale);
+    g.position.set(x,y,z); scene.add(g);
+    const lt = new THREE.PointLight(0xfff0aa,1.4,10);
+    lt.position.set(x,y,z); scene.add(lt);
+    return { group:g, lt, pos:new THREE.Vector3(x,y,z), collected:false };
+  });
+  stageFlowers.push(arr);
+}
+
+/* ══ STAGE 1 — 18 platforms (already built), 1 flower ═══════════════════ */
+buildFlowers([{x:0,y:56,z:0}]);
+
+/* ══ STAGE 2 — 6 platforms, mushrooms, 2 flowers ════════════════════════ */
+[{x:3,y:62,z:0,w:6,h:1,d:6},{x:-5,y:70,z:0,w:4,h:1,d:6},
+ {x:5,y:78,z:0,w:3.5,h:1,d:6},{x:-4,y:86,z:0,w:3,h:1,d:6},
+ {x:4,y:94,z:0,w:3,h:1,d:6},{x:0,y:102,z:0,w:9,h:1,d:8,summit:true}
+].forEach(addPlatform);
+placeMushroom(3,63.5,0); placeMushroom(-5,71.5,0); placeMushroom(-4,87.5,0);
+buildFlowers([{x:-2,y:106,z:0},{x:2,y:106,z:0}]);
+
+/* ══ STAGE 3 — regular + clouds, mushrooms, 3 flowers ═══════════════════ */
+[{x:-3,y:112,z:0,w:5,h:1,d:6},{x:4,y:124,z:0,w:4,h:1,d:6},
+ {x:4,y:142,z:0,w:3.5,h:1,d:6},{x:0,y:155,z:0,w:7,h:1,d:8,summit:true}
+].forEach(addPlatform);
+addCloudPlatform({x:4,y:118,z:0,w:3.5,h:0.5,d:5});
+addCloudPlatform({x:-3,y:130,z:0,w:3,h:0.5,d:5});
+addCloudPlatform({x:5,y:136,z:0,w:3,h:0.5,d:5});
+addCloudPlatform({x:-5,y:148,z:0,w:3,h:0.5,d:5});
+placeMushroom(-3,113.5,0); placeMushroom(4,143.5,0);
+buildFlowers([{x:-2.2,y:159,z:0},{x:0,y:160,z:0},{x:2.2,y:159,z:0}]);
+
+/* ══ STAGE 4 — more clouds, mushrooms, 4 flowers ════════════════════════ */
+[{x:-4,y:170,z:0,w:4,h:1,d:6},{x:4,y:188,z:0,w:3.5,h:1,d:6},
+ {x:0,y:207,z:0,w:7,h:1,d:8,summit:true}
+].forEach(addPlatform);
+addCloudPlatform({x:3,y:164,z:0,w:4,h:0.5,d:5});
+addCloudPlatform({x:5,y:176,z:0,w:3,h:0.5,d:5});
+addCloudPlatform({x:-3,y:182,z:0,w:3,h:0.5,d:5});
+addCloudPlatform({x:-4,y:194,z:0,w:3,h:0.5,d:5});
+addCloudPlatform({x:3,y:200,z:0,w:2.5,h:0.5,d:5});
+placeMushroom(-4,171.5,0); placeMushroom(4,189.5,0);
+buildFlowers([{x:-3,y:211,z:0},{x:-1,y:212,z:0},{x:1,y:212,z:0},{x:3,y:211,z:0}]);
+
+/* ══ STAGE 5 — mostly clouds, 3 tiles, APPLE at top ═════════════════════ */
+addCloudPlatform({x:4,y:215,z:0,w:4,h:0.5,d:5});
+addCloudPlatform({x:-4,y:222,z:0,w:3.5,h:0.5,d:5});
+addCloudPlatform({x:3,y:229,z:0,w:3,h:0.5,d:5});
+addPlatform({x:0,y:236,z:0,w:8,h:1,d:8,summit:true});
+
+/* ── Apple (final goal — stage 5) ────────────────────────────────────── */
+const APPLE_Y = 240;
+const appleGroup = new THREE.Group();
+{
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.85,16,12),
+    new THREE.MeshLambertMaterial({ color:0xff2a2a, emissive:0x550000 }));
+  body.castShadow = true; appleGroup.add(body);
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.55,6),
+    new THREE.MeshLambertMaterial({ color:0x5c3a1e }));
+  stem.position.y = 1.05; appleGroup.add(stem);
+  const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.32,6,5),
+    new THREE.MeshLambertMaterial({ color:0x2d8a4f }));
+  leaf.position.set(0.32,1.2,0); leaf.scale.set(1.6,0.5,1); appleGroup.add(leaf);
+}
+appleGroup.position.set(0,APPLE_Y,0); scene.add(appleGroup);
+const appleGlow = new THREE.PointLight(0xff4444,2.0,12);
+appleGlow.position.set(0,APPLE_Y,0); scene.add(appleGlow);
 
 /* ── Character — GLTF model (CHOG_3D.glb) ─────────────────────────────────
    Architecture:
@@ -505,6 +587,7 @@ function physicsStep(dt){
 
   // Collide vs every AABB (few dozen, fine)
   for (const b of platforms) {
+    if (b.disabled) continue;
     const col = sphereVsAABB(playerPos, PLAYER_RADIUS, b);
     if (!col) continue;
     playerPos.x += col.nx * col.pen;
@@ -851,7 +934,7 @@ function applyAnimation(t, dt){
 
 /* ── HUD / toast ──────────────────────────────────────────────────────────── */
 const hEl = document.getElementById('h-val');
-const bEl = document.getElementById('b-val');
+// b-val element removed (replaced by stage-val)
 const toastEl = document.getElementById('toast');
 let bestHeight = 0;
 let prevMilestone = 0;
@@ -859,7 +942,8 @@ let prevMilestone = 0;
 function updateHUD(){
   const h = Math.max(0, Math.round(playerPos.y * 1.5));
   hEl.textContent = h;
-  if (h > bestHeight) { bestHeight = h; bEl.textContent = h; }
+  if (h > bestHeight) bestHeight = h;
+  document.getElementById('stage-val').textContent = currentStage + 1;
 }
 
 function showToast(msg, ms=1800){
@@ -869,50 +953,24 @@ function showToast(msg, ms=1800){
   showToast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
 }
 
-/* ── Timer (3 minutes) ────────────────────────────────────────────────────── */
-const TOTAL_TIME = 180; // seconds
-let timeLeft = TOTAL_TIME;
-const timerEl  = document.getElementById('timer-val');
-const resultOv = document.getElementById('result-overlay');
-const resH     = document.getElementById('res-height');
-const resB     = document.getElementById('res-best');
-const resRating= document.getElementById('res-rating');
+/* ── Timer (count UP — clear time) ───────────────────────────────────────── */
+let clearTime = 0;
+const timerEl = document.getElementById('timer-val');
+
+function formatTime(t){
+  const m = Math.floor(t/60);
+  const s = Math.floor(t%60);
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
 
 function updateTimer(dt){
   if (!gameRunning) return;
-  timeLeft -= dt;
-  if (timeLeft < 0) timeLeft = 0;
-
-  const m  = Math.floor(timeLeft / 60);
-  const s  = Math.floor(timeLeft % 60);
-  timerEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
-
-  timerEl.classList.toggle('warn',   timeLeft <= 60 && timeLeft > 30);
-  timerEl.classList.toggle('danger', timeLeft <= 30);
-
-  if (timeLeft <= 0) showResultScreen();
+  clearTime += dt;
+  timerEl.textContent = formatTime(clearTime);
 }
 
-function getTimedRating(h){
-  if (h >= 70) return '🍎 ALMOST GOT IT!';
-  if (h >= 50) return '🔥 INCREDIBLE CLIMB';
-  if (h >= 35) return '⚡ GREAT EFFORT';
-  if (h >= 20) return '👍 KEEP PRACTICING';
-  if (h >= 8)  return '😅 GETTING THERE…';
-  return '😭 CHOG CRIED THE WHOLE TIME';
-}
-
-function showResultScreen(){
-  gameRunning = false;
-  const h = Math.max(0, Math.round(playerPos.y * 1.5));
-  resH.textContent = h;
-  resB.textContent = bestHeight;
-  resRating.textContent = getTimedRating(bestHeight);
-  resultOv.classList.remove('hidden');
-}
-
-document.getElementById('btn-result-retry').addEventListener('click', () => {
-  resultOv.classList.add('hidden');
+document.getElementById('btn-gameover-retry').addEventListener('click', () => {
+  document.getElementById('gameover-overlay').classList.add('hidden');
   resetGame();
   gameRunning = true;
   showToast('GO! DRAG FROM CHOG TO LAUNCH');
@@ -921,48 +979,53 @@ document.getElementById('btn-result-retry').addEventListener('click', () => {
 /* ── Start / Restart ──────────────────────────────────────────────────────── */
 let gameRunning = false;
 let gameWon = false;
-let stage1Done = false;
+let gameOver = false;
+let currentStage = 0; // 0-indexed
 const bonusFlash  = document.getElementById('bonus-flash');
 const stageBanner = document.getElementById('stage-banner');
-const startOv = document.getElementById('start-overlay');
+const startOv  = document.getElementById('start-overlay');
 const summitOv = document.getElementById('summit-overlay');
+const gameoverOv = document.getElementById('gameover-overlay');
 
-function showStageBanner(text){
-  stageBanner.textContent = text;
-  stageBanner.style.opacity = '1';
-  stageBanner.style.transform = 'translate(-50%,-50%) scale(1)';
-  setTimeout(() => {
-    stageBanner.style.opacity = '0';
-    stageBanner.style.transform = 'translate(-50%,-50%) scale(1.3)';
-  }, 1400);
+function showStageBanner(txt){
+  stageBanner.textContent = txt;
+  stageBanner.style.opacity='1';
+  stageBanner.style.transform='translate(-50%,-50%) scale(1)';
+  setTimeout(()=>{ stageBanner.style.opacity='0'; stageBanner.style.transform='translate(-50%,-50%) scale(1.3)'; },1400);
 }
 
-function triggerTimeBonus(){
-  timeLeft = Math.min(timeLeft + 60, 599);
-  bonusFlash.style.opacity = '1';
-  setTimeout(() => { bonusFlash.style.opacity = '0'; }, 180);
-  spawnParticles(flowerS1.position.clone(), 0xffd700, 40);
-  spawnParticles(flowerS1.position.clone(), 0xffffff, 24);
-  shake.trigger(0.4);
-  showToast('🌸 +1:00 TIME BONUS!');
-  showStageBanner('STAGE 2');
-  flowerS1.visible = false;
-  glowS1.visible   = false;
+function advanceStage(){
+  currentStage++;
+  bonusFlash.style.opacity='1';
+  setTimeout(()=>{ bonusFlash.style.opacity='0'; },180);
+  spawnParticles(playerPos.clone(), 0xffd700, 30);
+  shake.trigger(0.3);
+  showStageBanner(`STAGE ${currentStage+1}`);
+  showToast(`🌸 STAGE ${currentStage+1}!`);
+}
+
+function triggerGameOver(){
+  gameRunning=false; gameOver=true;
+  bonusFlash.style.background='rgba(255,40,40,.72)';
+  bonusFlash.style.opacity='1';
+  setTimeout(()=>{ bonusFlash.style.opacity='0'; bonusFlash.style.background='rgba(255,240,80,.75)'; },320);
+  shake.trigger(0.9);
+  spawnParticles(playerPos.clone(), 0xff2222, 32);
+  setTimeout(()=> gameoverOv.classList.remove('hidden'), 500);
 }
 
 function resetGame(){
-  playerPos.set(0, 2, 0);
-  playerVel.set(0, 0, 0);
-  gameWon = false;
-  stage1Done = false;
-  flowerS1.visible = true;
-  glowS1.visible   = true;
-  bestHeight = 0;
-  prevMilestone = 0;
-  bEl.textContent = 0;
-  timeLeft = TOTAL_TIME;
-  timerEl.textContent = '3:00';
-  timerEl.classList.remove('warn','danger');
+  playerPos.set(0,2,0); playerVel.set(0,0,0);
+  gameWon=false; gameOver=false; currentStage=0;
+  clearTime=0; bestHeight=0; prevMilestone=0;
+  hEl.textContent=0;
+  document.getElementById('stage-val').textContent=1;
+  timerEl.textContent='0:00';
+  // Re-enable all clouds
+  for(const c of cloudObjects){ c.state='active'; c.timer=0; c.aabb.disabled=false; c.group.visible=true; c.baseMat.opacity=0.85; c.puffMat.opacity=0.9; }
+  // Re-show all flowers
+  for(const stage of stageFlowers) for(const f of stage){ f.collected=false; f.group.visible=true; }
+  appleGroup.visible=true;
   setState('idle');
 }
 
@@ -989,29 +1052,53 @@ function frame(now){
   lastT = now;
   const t = now / 1000;
 
-  if (gameRunning && !gameWon) {
+  if (gameRunning && !gameWon && !gameOver) {
     const SUB = 4;
     const dt = dtRaw / SUB;
     for (let i = 0; i < SUB; i++) physicsStep(dt);
     updateStateFromPhysics(dtRaw);
 
-    // Stage 1 flower — time bonus
-    if (!stage1Done && playerPos.distanceTo(flowerS1.position) < 2.4) {
-      stage1Done = true;
-      triggerTimeBonus();
+    // Mushroom death check
+    for (const m of mushroomObjects) {
+      if (playerPos.distanceTo(m.pos) < 1.5) { triggerGameOver(); break; }
     }
 
-    // Stage 2 flowers — game win
-    if (stage1Done && !gameWon &&
-        (playerPos.distanceTo(flowerS2a.position) < 2.4 ||
-         playerPos.distanceTo(flowerS2b.position) < 2.4)) {
-      gameWon = true;
-      gameRunning = false;
-      spawnParticles(new THREE.Vector3(0, FLOWER_S2_Y, 0), 0xffd700, 40);
-      spawnParticles(new THREE.Vector3(0, FLOWER_S2_Y, 0), 0xff88cc, 30);
+    // Flower collection for current stage
+    if (!gameOver && currentStage < stageFlowers.length) {
+      const flowers = stageFlowers[currentStage];
+      for (const f of flowers) {
+        if (!f.collected && playerPos.distanceTo(f.pos) < 2.4) {
+          f.collected = true; f.group.visible = false;
+          spawnParticles(f.pos.clone(), 0xffd700, 20);
+          spawnParticles(f.pos.clone(), 0xffffff, 10);
+          if (flowers.every(fl => fl.collected)) advanceStage();
+        }
+      }
+    }
+
+    // Apple — stage 5 win (currentStage === 4 after collecting stage4 flowers)
+    if (!gameOver && currentStage >= 4 && playerPos.distanceTo(appleGroup.position) < 2.4) {
+      gameWon = true; gameRunning = false;
+      spawnParticles(appleGroup.position.clone(), 0xff4444, 40);
+      spawnParticles(appleGroup.position.clone(), 0xffd700, 30);
       shake.trigger(0.5);
+      document.getElementById('clear-time-display').textContent = formatTime(clearTime);
       setTimeout(() => summitOv.classList.remove('hidden'), 700);
     }
+
+    // Cloud touch detection (player standing on cloud → start fade)
+    if (playerOnGround) {
+      for (const c of cloudObjects) {
+        if (c.state !== 'active') continue;
+        const a = c.aabb;
+        if (playerPos.x > a.minX && playerPos.x < a.maxX &&
+            playerPos.z > a.minZ && playerPos.z < a.maxZ &&
+            playerPos.y - PLAYER_RADIUS < a.maxY + 0.4) {
+          c.state = 'fading'; c.timer = 0.8;
+        }
+      }
+    }
+    updateClouds(dtRaw);
 
     updateTimer(dtRaw);
 
@@ -1033,17 +1120,18 @@ function frame(now){
   updateHUD();
   drawArrow();
 
-  // Flower idle animations
-  flowerS1.rotation.y = t * 0.6;
-  flowerS1.position.y = FLOWER_S1_Y + Math.sin(t*1.8) * 0.3;
-  glowS1.position.y   = flowerS1.position.y;
-  glowS1.intensity    = 1.6 + Math.sin(t*2.5) * 0.5;
-  flowerS2a.rotation.y = t * 0.7;
-  flowerS2b.rotation.y = -t * 0.7;
-  const bob2 = Math.sin(t*2) * 0.3;
-  flowerS2a.position.y = FLOWER_S2_Y + bob2;
-  flowerS2b.position.y = FLOWER_S2_Y - bob2;
-  glowS2.intensity = 2.0 + Math.sin(t*3) * 0.6;
+  // Flower + apple idle animations
+  for (const stage of stageFlowers) {
+    for (const f of stage) {
+      if (!f.group.visible) continue;
+      f.group.rotation.y = t * 0.65;
+      f.group.position.y = f.pos.y + Math.sin(t*1.8 + f.pos.x) * 0.28;
+    }
+  }
+  appleGroup.rotation.y = t * 0.8;
+  appleGroup.position.y = APPLE_Y + Math.sin(t*2) * 0.25;
+  appleGlow.position.y  = appleGroup.position.y;
+  appleGlow.intensity   = 1.8 + Math.sin(t*3) * 0.5;
 
   // Cloud drift
   clouds.forEach((c, i) => { c.position.x += 0.008 * (i%2===0 ? 1 : -1); if (c.position.x > 30) c.position.x = -30; if (c.position.x < -30) c.position.x = 30; });
