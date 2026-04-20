@@ -99,6 +99,7 @@ canvas{display:block}
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/loaders/DRACOLoader.js"></script>
+<script src="https://unpkg.com/meshoptimizer@0.20.0/meshopt_decoder.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CHOG CLIMB 3D — single-file Three.js game
@@ -575,6 +576,7 @@ document.body.appendChild(loadDiv);
 
 const loader = new THREE.GLTFLoader();
 loader.setDRACOLoader(_dracoLoader);
+loader.setMeshoptDecoder(MeshoptDecoder);
 loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
   const model = gltf.scene;
 
@@ -642,6 +644,7 @@ function loadGLBAsset(name, url) {
   return new Promise(resolve => {
     const l = new THREE.GLTFLoader();
     l.setDRACOLoader(_dracoLoader);
+    l.setMeshoptDecoder(MeshoptDecoder);
     l.load(url, gltf => {
       gltf.scene.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
       glbAssets[name] = gltf.scene;
