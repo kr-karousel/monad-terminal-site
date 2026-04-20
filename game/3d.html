@@ -52,15 +52,15 @@ canvas{display:block}
 <body>
 <div id="start-overlay" class="overlay">
   <h1>CHOG <span>to the Top</span></h1>
-  <p>Stuck in a pot. Apple at the top. Let's go.<br/><br/>
+  <p>Stuck in a pot. Spaceship at the top. Let's go.<br/><br/>
   <b>DRAG</b> from CHOG to aim — the arrow shows launch direction.<br/>
   <b>RELEASE</b> to spring launch. Longer drag = more power.<br/>
   Falling is part of the game.</p>
   <button id="btn-start" class="btn">BEGIN CLIMB</button>
 </div>
 <div id="summit-overlay" class="overlay hidden">
-  <h1>🍎 CLEAR!</h1>
-  <p>CHOG grabbed the apple at the very top!<br/>Worth every tumble.</p>
+  <h1>🚀 LAUNCHED!</h1>
+  <p>CHOG reached the spaceship and blasted off to the moon!<br/>Worth every tumble.</p>
   <div style="margin:8px 0;text-align:center">
     <div style="color:#ffe066;font-size:10px;letter-spacing:3px">CLEAR TIME</div>
     <div id="clear-time-display" style="font-size:48px;font-weight:bold;text-shadow:2px 2px 0 #333">0:00</div>
@@ -86,6 +86,16 @@ canvas{display:block}
 <div id="bonus-flash" style="position:fixed;inset:0;background:rgba(255,240,80,.75);pointer-events:none;z-index:45;opacity:0;transition:opacity .08s"></div>
 <div id="stage-banner" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:48;pointer-events:none;font-size:52px;font-weight:bold;font-family:'Courier New',monospace;color:#fff;text-shadow:2px 2px 0 #333,0 0 30px #ffe066;letter-spacing:4px;opacity:0;transition:opacity .25s,transform .25s"></div>
 <div class="toast" id="toast"></div>
+<!-- Dev mode overlay -->
+<div id="dev-hud" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:60;font-family:'Courier New',monospace">
+  <div style="position:absolute;top:0;left:0;right:0;background:rgba(20,0,0,0.82);border-bottom:2px solid #ff3333;padding:7px 16px;display:flex;gap:22px;align-items:center;flex-wrap:wrap">
+    <span style="color:#ff3333;font-weight:bold;letter-spacing:2px;font-size:13px">⚙ DEV MODE</span>
+    <span id="dev-pos" style="color:#ffcc44;font-size:12px;letter-spacing:1px">x:0 y:0 z:0</span>
+    <span style="color:#ff6666;font-size:11px;letter-spacing:1px">WASD=이동 &nbsp;QE=위아래 &nbsp;SHIFT=빠르게 &nbsp;H=AABB박스 &nbsp;`=종료</span>
+    <span id="dev-aabb-label" style="color:#44ffaa;font-size:11px;letter-spacing:1px"></span>
+  </div>
+  <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(20,0,0,0.7);border:1px solid #ff3333;padding:6px 18px;font-size:11px;color:#ff8888;letter-spacing:2px">마우스 클릭 후 드래그 = 카메라 회전</div>
+</div>
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
@@ -111,6 +121,9 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x5bbfef);
 scene.fog = new THREE.Fog(0x9dd8f5, 80, 220);
+const SKY_COL   = new THREE.Color(0x5bbfef);
+const SPACE_COL = new THREE.Color(0x020408);
+const FOG_COL   = new THREE.Color(0x9dd8f5);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 400);
 camera.position.set(0, 6, 20);
@@ -234,6 +247,7 @@ const platformDefs = [
 const cliffDefs = [];
 
 const platforms = []; // physics AABBs
+const platformMeshes = []; // { mesh, def } for GLB tile overlay
 
 // BoxGeometry face order: +x, -x, +y(top), -y(bottom), +z, -z
 const MAT_GRASS  = new THREE.MeshLambertMaterial({ color:0x5db832 });
@@ -264,6 +278,7 @@ function addPlatform(def){
     minY: def.y - def.h/2, maxY: def.y + def.h/2,
     minZ: def.z - def.d/2, maxZ: def.z + def.d/2,
   });
+  if (!def.big) platformMeshes.push({ mesh, def });
 }
 
 platformDefs.forEach(addPlatform);
@@ -314,33 +329,24 @@ function addBush(x, y, z, s=1){
 }
 [[-6,0,3],[ 6,0,2],[-8,0,-2],[8,0,-3],[-4,0,5],[4,0,4],[-2,0,-4],[2,0,-5]].forEach(([x,y,z]) => addBush(x,y,z,0.55));
 
-/* ── Daisy flower factory ──────────────────────────────────────────────────── */
-function createFlower(scale=1) {
+/* ── Stage-clear objects (replace flowers — GLB set in setupGLBVisuals) ─── */
+const stageClearObjects = []; // [{pos, group, light, collected}]
+function buildStageClear(x, y, z) {
   const g = new THREE.Group();
-  const petalMat = new THREE.MeshLambertMaterial({ color:0xffffff, side:THREE.DoubleSide });
-  const N = 10;
-  for (let i=0; i<N; i++) {
-    const a = (i/N)*Math.PI*2;
-    const p = new THREE.Mesh(new THREE.SphereGeometry(0.44*scale, 6, 4), petalMat);
-    p.scale.set(0.32, 1.0, 0.14);
-    p.position.set(Math.cos(a)*0.82*scale, Math.sin(a)*0.82*scale, 0);
-    p.rotation.z = a;
-    g.add(p);
+  // Placeholder gold star (replaced by GLB when loaded)
+  const mat = new THREE.MeshLambertMaterial({ color:0xffd700, emissive:0x886600 });
+  for (let i=0;i<5;i++){
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.9,0.15), mat);
+    arm.rotation.z = (i/5)*Math.PI*2;
+    g.add(arm);
   }
-  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.5*scale,10,8),
-    new THREE.MeshLambertMaterial({ color:0xffd700, emissive:0x443300 })));
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07*scale,0.1*scale,3.0*scale,6),
-    new THREE.MeshLambertMaterial({ color:0x2d7a44 }));
-  stem.position.y = -1.7*scale;
-  g.add(stem);
-  [-0.8,0.4].forEach((oy,i) => {
-    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.28*scale,5,4),
-      new THREE.MeshLambertMaterial({ color:0x3a9a50 }));
-    leaf.scale.set(1.6,0.5,0.5);
-    leaf.position.set((i%2===0?1:-1)*0.4*scale, oy*scale, 0);
-    g.add(leaf);
-  });
-  return g;
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.4,8,6), mat));
+  g.position.set(x, y, z);
+  scene.add(g);
+  const lt = new THREE.PointLight(0xffd700, 1.8, 14);
+  lt.position.set(x, y, z);
+  scene.add(lt);
+  stageClearObjects.push({ pos: new THREE.Vector3(x, y, z), group: g, light: lt, collected: false });
 }
 
 /* ── Poison mushroom factory (placeholder — swap with GLB) ──────────────── */
@@ -394,6 +400,61 @@ function updateClouds(dt) {
   }
 }
 
+/* ── Moving tiles (Stage 5) ─────────────────────────────────────────────── */
+const movingTiles = [];
+
+function addMovingPlatform(def, amp, spd, phase) {
+  const g = new THREE.BoxGeometry(def.w, def.h, def.d);
+  const mats = def.summit ? PLATFORM_MATS_SUMM : PLATFORM_MATS;
+  const mesh = new THREE.Mesh(g, mats);
+  mesh.position.set(def.x, def.y, def.z);
+  mesh.receiveShadow = true; mesh.castShadow = true;
+  scene.add(mesh);
+  mesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(g),
+    new THREE.LineBasicMaterial({ color:0x3a2000, transparent:true, opacity:0.5 })
+  ));
+  const aabb = {
+    minX: def.x-def.w/2, maxX: def.x+def.w/2,
+    minY: def.y-def.h/2, maxY: def.y+def.h/2,
+    minZ: def.z-def.d/2, maxZ: def.z+def.d/2,
+  };
+  platforms.push(aabb);
+  movingTiles.push({ visual:mesh, aabb, baseX:def.x, amp, spd, phase, w:def.w });
+}
+
+function addMovingCloud(def, amp, spd, phase) {
+  const baseMat = new THREE.MeshLambertMaterial({ color:0xaa66ff, transparent:true, opacity:0.85 });
+  const puffMat = new THREE.MeshLambertMaterial({ color:0xcc99ff, transparent:true, opacity:0.9 });
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(def.w,def.h,def.d), baseMat));
+  const pc = Math.round(def.w/1.2);
+  for (let i=0;i<pc;i++) {
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(0.46+Math.random()*0.28,6,5), puffMat);
+    puff.position.set((i-pc/2+0.5)*1.1, def.h*0.5+0.22, 0);
+    g.add(puff);
+  }
+  g.position.set(def.x, def.y, def.z);
+  scene.add(g);
+  const aabb = { minX:def.x-def.w/2, maxX:def.x+def.w/2,
+                 minY:def.y-def.h/2, maxY:def.y+def.h/2,
+                 minZ:def.z-def.d/2, maxZ:def.z+def.d/2,
+                 disabled:false, isCloud:true };
+  platforms.push(aabb);
+  cloudObjects.push({ group:g, aabb, state:'active', timer:0, baseMat, puffMat });
+  movingTiles.push({ visual:g, aabb, baseX:def.x, amp, spd, phase, w:def.w });
+}
+
+function updateMovingTiles(t) {
+  for (const tile of movingTiles) {
+    if (tile.aabb.disabled) continue;
+    const newX = tile.baseX + Math.sin(t * tile.spd + tile.phase) * tile.amp;
+    tile.visual.position.x = newX;
+    tile.aabb.minX = newX - tile.w/2;
+    tile.aabb.maxX = newX + tile.w/2;
+  }
+}
+
 /* ── Mushroom + flower tracking ─────────────────────────────────────────── */
 const mushroomObjects = [];
 function placeMushroom(x, y, z) {
@@ -403,20 +464,8 @@ function placeMushroom(x, y, z) {
   mushroomObjects.push({ group:g, pos:new THREE.Vector3(x,y,z) });
 }
 
-const stageFlowers = []; // [stage0:[{group,pos,collected},...], stage1:...]
-function buildFlowers(positions, scale=1.1) {
-  const arr = positions.map(({x,y,z}) => {
-    const g = createFlower(scale);
-    g.position.set(x,y,z); scene.add(g);
-    const lt = new THREE.PointLight(0xfff0aa,1.4,10);
-    lt.position.set(x,y,z); scene.add(lt);
-    return { group:g, lt, pos:new THREE.Vector3(x,y,z), collected:false };
-  });
-  stageFlowers.push(arr);
-}
-
-/* ══ STAGE 1 — 18 platforms (already built), 1 flower ═══════════════════ */
-buildFlowers([{x:0,y:56,z:0}]);
+/* ══ STAGE 1 — 18 platforms (already built), stage-clear portal ══════════ */
+buildStageClear(0, 56, 0);
 
 /* ══ STAGE 2 — 6 platforms, mushrooms, 2 flowers ════════════════════════ */
 [{x:3,y:62,z:0,w:6,h:1,d:6},{x:-5,y:70,z:0,w:4,h:1,d:6},
@@ -424,7 +473,7 @@ buildFlowers([{x:0,y:56,z:0}]);
  {x:4,y:94,z:0,w:3,h:1,d:6},{x:0,y:102,z:0,w:9,h:1,d:8,summit:true}
 ].forEach(addPlatform);
 placeMushroom(3,63.5,0); placeMushroom(-5,71.5,0); placeMushroom(-4,87.5,0);
-buildFlowers([{x:-2,y:106,z:0},{x:2,y:106,z:0}]);
+buildStageClear(0, 106, 0);
 
 /* ══ STAGE 3 — regular + clouds, mushrooms, 3 flowers ═══════════════════ */
 [{x:-3,y:112,z:0,w:5,h:1,d:6},{x:4,y:124,z:0,w:4,h:1,d:6},
@@ -435,7 +484,7 @@ addCloudPlatform({x:-3,y:130,z:0,w:3,h:0.5,d:5});
 addCloudPlatform({x:5,y:136,z:0,w:3,h:0.5,d:5});
 addCloudPlatform({x:-5,y:148,z:0,w:3,h:0.5,d:5});
 placeMushroom(-3,113.5,0); placeMushroom(4,143.5,0);
-buildFlowers([{x:-2.2,y:159,z:0},{x:0,y:160,z:0},{x:2.2,y:159,z:0}]);
+buildStageClear(0, 160, 0);
 
 /* ══ STAGE 4 — more clouds, mushrooms, 4 flowers ════════════════════════ */
 [{x:-4,y:170,z:0,w:4,h:1,d:6},{x:4,y:188,z:0,w:3.5,h:1,d:6},
@@ -447,31 +496,56 @@ addCloudPlatform({x:-3,y:182,z:0,w:3,h:0.5,d:5});
 addCloudPlatform({x:-4,y:194,z:0,w:3,h:0.5,d:5});
 addCloudPlatform({x:3,y:200,z:0,w:2.5,h:0.5,d:5});
 placeMushroom(-4,171.5,0); placeMushroom(4,189.5,0);
-buildFlowers([{x:-3,y:211,z:0},{x:-1,y:212,z:0},{x:1,y:212,z:0},{x:3,y:211,z:0}]);
+buildStageClear(0, 211, 0);
 
-/* ══ STAGE 5 — mostly clouds, 3 tiles, APPLE at top ═════════════════════ */
-addCloudPlatform({x:4,y:215,z:0,w:4,h:0.5,d:5});
-addCloudPlatform({x:-4,y:222,z:0,w:3.5,h:0.5,d:5});
-addCloudPlatform({x:3,y:229,z:0,w:3,h:0.5,d:5});
-addPlatform({x:0,y:236,z:0,w:8,h:1,d:8,summit:true});
+/* ══ STAGE 5 — 10 moving platforms + 5 moving clouds, ROCKET at top ══════ */
+addMovingPlatform({x:2,  y:215,z:0,w:4,  h:1,d:5},         3.5, 1.2, 0.0);
+addMovingPlatform({x:-2, y:224,z:0,w:3.5,h:1,d:5},         3.0, 0.9, 0.8);
+addMovingPlatform({x:3,  y:234,z:0,w:3,  h:1,d:5},         4.0, 1.5, 1.5);
+addMovingPlatform({x:-3, y:244,z:0,w:3,  h:1,d:5},         3.5, 1.0, 2.2);
+addMovingPlatform({x:2,  y:255,z:0,w:3,  h:1,d:5},         4.5, 1.8, 0.4);
+addMovingPlatform({x:-4, y:266,z:0,w:2.5,h:1,d:5},         3.5, 1.3, 1.0);
+addMovingPlatform({x:3,  y:277,z:0,w:2.5,h:1,d:5},         4.0, 1.6, 2.8);
+addMovingPlatform({x:-2, y:289,z:0,w:2.5,h:1,d:5},         4.5, 2.0, 0.2);
+addMovingPlatform({x:4,  y:302,z:0,w:2.5,h:1,d:5},         3.5, 1.1, 1.8);
+addMovingPlatform({x:0,  y:315,z:0,w:7,  h:1,d:7,summit:true}, 2.5, 0.8, 0.5);
+addMovingCloud({x:-4, y:220,z:0,w:3.5,h:0.5,d:5}, 3.0, 1.4, 1.2);
+addMovingCloud({x:4,  y:230,z:0,w:3,  h:0.5,d:5}, 3.5, 1.1, 0.6);
+addMovingCloud({x:-2, y:250,z:0,w:3,  h:0.5,d:5}, 4.0, 1.7, 2.0);
+addMovingCloud({x:4,  y:272,z:0,w:2.5,h:0.5,d:5}, 3.5, 1.3, 1.4);
+addMovingCloud({x:-3, y:286,z:0,w:2.5,h:0.5,d:5}, 4.0, 1.9, 0.9);
 
-/* ── Apple (final goal — stage 5) ────────────────────────────────────── */
-const APPLE_Y = 240;
-const appleGroup = new THREE.Group();
-{
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.85,16,12),
-    new THREE.MeshLambertMaterial({ color:0xff2a2a, emissive:0x550000 }));
-  body.castShadow = true; appleGroup.add(body);
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,0.55,6),
-    new THREE.MeshLambertMaterial({ color:0x5c3a1e }));
-  stem.position.y = 1.05; appleGroup.add(stem);
-  const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.32,6,5),
-    new THREE.MeshLambertMaterial({ color:0x2d8a4f }));
-  leaf.position.set(0.32,1.2,0); leaf.scale.set(1.6,0.5,1); appleGroup.add(leaf);
+/* ── Rocket + EMO (set by setupGLBVisuals when GLBs load) ────────────────── */
+const ROCKET_Y = 321;
+let rocketGroup = null;
+let emoGroup    = null;
+let shipLaunching  = false;
+let shipLaunchTimer = 0;
+const rocketGlow = new THREE.PointLight(0xff8833, 2.5, 20);
+rocketGlow.position.set(0, ROCKET_Y - 2.5, 0);
+scene.add(rocketGlow);
+
+/* ── Star field (visible in stage 5 space zone) ─────────────────────────── */
+const starCount = 140;
+const starPts = new Float32Array(starCount * 3);
+for (let i=0;i<starCount;i++){
+  starPts[i*3+0] = (Math.random()-0.5)*100;
+  starPts[i*3+1] = 200 + Math.random()*260;
+  starPts[i*3+2] = -10 - Math.random()*25;
 }
-appleGroup.position.set(0,APPLE_Y,0); scene.add(appleGroup);
-const appleGlow = new THREE.PointLight(0xff4444,2.0,12);
-appleGlow.position.set(0,APPLE_Y,0); scene.add(appleGlow);
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPts, 3));
+const starMat = new THREE.PointsMaterial({ color:0xffffff, size:0.55, transparent:true, opacity:0, sizeAttenuation:true });
+const stars = new THREE.Points(starGeo, starMat);
+scene.add(stars);
+
+/* ── Moon (decorative background) ───────────────────────────────────────── */
+const moonMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(9, 16, 12),
+  new THREE.MeshLambertMaterial({ color:0xeeeebb, emissive:0x888833 })
+);
+moonMesh.position.set(14, 370, -38);
+scene.add(moonMesh);
 
 /* ── Character — GLTF model (CHOG_3D.glb) ─────────────────────────────────
    Architecture:
@@ -540,6 +614,177 @@ loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
   loadDiv.textContent = 'MODEL LOAD FAILED — using fallback';
   modelLoaded = true; // continue with empty group
 });
+
+/* ── GLB Asset Preloader ──────────────────────────────────────────────────── */
+const glbAssets = {};
+const glbQueue  = [
+  ['tile1',      '/game/floating_tile_opt.glb'],
+  ['tile3',      '/game/floating_tile3_opt.glb'],
+  ['grass',      '/game/grass_opt.glb'],
+  ['lollipop',   '/game/lollipop1_opt.glb'],
+  ['candy',      '/game/candy_opt.glb'],
+  ['stone',      '/game/stone1_opt.glb'],
+  ['tree1',      '/game/tree1_opt.glb'],
+  ['tree2',      '/game/tree2_opt.glb'],
+  ['tree3',      '/game/tree3_opt.glb'],
+  ['moncock',    '/game/moncock_opt.glb'],
+  ['stageClear', '/game/stage_clear_opt.glb'],
+  ['rocket',     '/game/rocket_opt.glb'],
+  ['emo',        '/game/EMO_opt.glb'],
+];
+function loadGLBAsset(name, url) {
+  return new Promise(resolve => {
+    const l = new THREE.GLTFLoader();
+    l.load(url, gltf => {
+      gltf.scene.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+      glbAssets[name] = gltf.scene;
+      resolve();
+    }, undefined, () => resolve());
+  });
+}
+Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
+
+function glbFitClone(name, targetW, targetD) {
+  const tmpl = glbAssets[name];
+  if (!tmpl) return null;
+  const clone = tmpl.clone();
+  const box = new THREE.Box3().setFromObject(clone);
+  const sz  = box.getSize(new THREE.Vector3());
+  if (sz.x > 0.01 && sz.z > 0.01) clone.scale.set(targetW/sz.x, targetW/sz.x, targetD/sz.z);
+  return clone;
+}
+
+function glbUniformClone(name, scale) {
+  const tmpl = glbAssets[name];
+  if (!tmpl) return null;
+  const clone = tmpl.clone();
+  clone.scale.setScalar(scale);
+  return clone;
+}
+
+function placeDecor(name, scale, x, y, z, ry=0) {
+  const m = glbUniformClone(name, scale);
+  if (!m) return null;
+  m.position.set(x, y, z);
+  m.rotation.y = ry;
+  scene.add(m);
+  return m;
+}
+
+function setupGLBVisuals() {
+  const tileBox = new THREE.Box3();
+  const tileSz  = new THREE.Vector3();
+
+  /* 1 ─ Floating tile visuals: replace BoxGeometry platforms */
+  let tileIdx = 0;
+  platformMeshes.forEach(p => {
+    if (p.def.flat) return; // skip ground and summit-flag flat tiles
+    const name = tileIdx % 2 === 0 ? 'tile1' : 'tile3';
+    tileIdx++;
+    const tmpl = glbAssets[name];
+    if (!tmpl) return;
+    tileBox.setFromObject(tmpl);
+    tileBox.getSize(tileSz);
+    const clone = tmpl.clone();
+    const sx = tileSz.x > 0.01 ? p.def.w / tileSz.x : 1;
+    const sz = tileSz.z > 0.01 ? p.def.d / tileSz.z : 1;
+    clone.scale.set(sx, sx, sz);
+    clone.position.set(p.def.x, p.def.y, p.def.z);
+    scene.add(clone);
+    p.mesh.visible = false;
+  });
+
+  /* 2 ─ Moving tile visuals for stage 5 platforms */
+  let mtIdx = 0;
+  movingTiles.forEach(tile => {
+    if (tile.aabb.isCloud) return;
+    const name = mtIdx % 2 === 0 ? 'tile1' : 'tile3';
+    mtIdx++;
+    const tmpl = glbAssets[name];
+    if (!tmpl) return;
+    tileBox.setFromObject(tmpl);
+    tileBox.getSize(tileSz);
+    const clone = tmpl.clone();
+    const sx = tileSz.x > 0.01 ? tile.w / tileSz.x : 1;
+    clone.scale.set(sx, sx, 1.0);
+    tile.visual.add(clone);      // child moves with platform
+    tile.visual.visible = false; // hide BoxGeometry mesh
+  });
+
+  /* 3 ─ Grass / lollipop / candy decorations on platforms + ground */
+  const decors = [
+    // [name, scale, x, y, z, ry]
+    // Ground spread
+    ['grass',    0.9, -5, 0, 2,  0.3], ['grass',    0.8,  0, 0,-2,  0.7],
+    ['grass',    1.0,  5, 0, 3, -0.4], ['grass',    0.9, -2, 0, 4,  1.2],
+    ['grass',    0.8,  3, 0,-3, -0.8], ['grass',    0.7, -8, 0, 0,  0.5],
+    ['grass',    0.9,  8, 0, 1, -0.3], ['grass',    0.8, -4, 0,-4,  1.5],
+    ['lollipop', 0.9, -1, 0, 1,  0.0], ['lollipop', 0.9,  6, 0,-2,  1.2],
+    ['candy',    0.8,  2, 0, 4,  0.6],
+    // Stage 1 platforms
+    ['grass',    0.7, -6, 3.6, 0, 0.2], ['grass', 0.6, 5, 6.6, 0, -0.5],
+    ['grass',    0.7, -5,21.6, 0, 0.8], ['grass', 0.6,  3,24.6, 0,  1.0],
+    ['grass',    0.6, -4,27.6, 0,-0.4], ['grass', 0.7,  5,30.6, 0,  0.6],
+    ['lollipop', 0.8, -5,39.6, 0, 0.0], ['candy', 0.7,  3,42.6, 0,  0.4],
+    // Stage 2 platforms
+    ['grass',    0.7,  3, 62.6, 0, 0.3], ['grass', 0.6, -5, 70.6, 0, -0.6],
+    ['grass',    0.6,  5, 78.6, 0,  0.8], ['lollipop', 0.7, -4, 86.6, 0, 0.0],
+    // Stage 3 platforms
+    ['grass',    0.7, -3,112.6, 0, 0.4], ['candy', 0.6,  4,124.6, 0,  0.3],
+    ['grass',    0.6,  4,142.6, 0,-0.3],
+    // Stage 4 platforms
+    ['grass',    0.7, -4,170.6, 0, 0.5], ['grass', 0.6,  4,188.6, 0, -0.4],
+  ];
+  decors.forEach(([n,s,x,y,z,ry]) => placeDecor(n,s,x,y,z,ry));
+
+  /* 4 ─ Trees + stones in starting stage 1 area */
+  placeDecor('tree1', 1.8, -10, 0, -3,  0.3);
+  placeDecor('tree2', 1.6,  10, 0, -2, -0.5);
+  placeDecor('tree3', 2.0, -14, 0,  1,  0.8);
+  placeDecor('tree1', 1.4,  14, 0,  0, -0.2);
+  placeDecor('tree2', 1.5,  -7, 0,  5,  0.4);
+  placeDecor('tree3', 1.7,   7, 0,  4, -0.6);
+  placeDecor('stone', 1.2,  -3, 0,  3,  0.0);
+  placeDecor('stone', 0.9,   4, 0, -4,  1.0);
+  placeDecor('stone', 1.0,   0, 0,  5, -0.5);
+
+  /* 5 ─ Moncock NPC beside start (behind/left of character spawn) */
+  const mc = glbUniformClone('moncock', 1.3);
+  if (mc) {
+    mc.position.set(-2.5, 1.5, -1.5);
+    mc.rotation.y = 0.8;
+    scene.add(mc);
+  }
+
+  /* 6 ─ Stage-clear GLBs (replace placeholder star shapes) */
+  stageClearObjects.forEach(sc => {
+    const tmpl = glbAssets['stageClear'];
+    if (!tmpl) return;
+    const m = tmpl.clone();
+    m.scale.setScalar(1.6);
+    m.position.copy(sc.pos);
+    scene.add(m);
+    // Remove placeholder
+    scene.remove(sc.group);
+    sc.group = m;
+  });
+
+  /* 7 ─ Rocket at stage 5 summit */
+  if (glbAssets['rocket']) {
+    rocketGroup = glbAssets['rocket'].clone();
+    rocketGroup.scale.setScalar(2.2);
+    rocketGroup.position.set(0, ROCKET_Y, 0);
+    scene.add(rocketGroup);
+  }
+
+  /* 8 ─ EMO beside rocket, waiting */
+  if (glbAssets['emo']) {
+    emoGroup = glbAssets['emo'].clone();
+    emoGroup.scale.setScalar(1.4);
+    emoGroup.position.set(3.0, ROCKET_Y - 1.5, 0);
+    scene.add(emoGroup);
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PHYSICS — custom sphere vs AABB
@@ -976,6 +1221,121 @@ document.getElementById('btn-gameover-retry').addEventListener('click', () => {
   showToast('GO! DRAG FROM CHOG TO LAUNCH');
 });
 
+/* ── Dev / Admin Mode ─────────────────────────────────────────────────────── */
+// Toggle: backtick (`)   Move: WASD + QE   Fast: Shift   AABB: H
+let devMode    = false;
+let devShowAABB = false;
+const devCamPos   = new THREE.Vector3(0, 10, 20);
+let devYaw = 0, devPitch = 0;
+const devKeys     = {};
+const devAABBHelpers = [];
+const devHud      = document.getElementById('dev-hud');
+const devPosEl    = document.getElementById('dev-pos');
+const devAabbEl   = document.getElementById('dev-aabb-label');
+
+function buildAABBHelpers(){
+  clearAABBHelpers();
+  platforms.forEach(b => {
+    const w = b.maxX-b.minX, h = b.maxY-b.minY, d = b.maxZ-b.minZ;
+    const geo = new THREE.BoxGeometry(w,h,d);
+    const col = b.isCloud ? 0xcc44ff : b.disabled ? 0x444444 : 0x00ff88;
+    const ln  = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color:col, transparent:true, opacity:0.78 })
+    );
+    ln.position.set((b.minX+b.maxX)/2,(b.minY+b.maxY)/2,(b.minZ+b.maxZ)/2);
+    scene.add(ln);
+    devAABBHelpers.push(ln);
+  });
+  // Show stage-clear collision spheres
+  stageClearObjects.forEach(sc => {
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(2.6,10,7),
+      new THREE.MeshBasicMaterial({ color:0xffd700, wireframe:true, transparent:true, opacity:0.35 })
+    );
+    m.position.copy(sc.pos);
+    scene.add(m);
+    devAABBHelpers.push(m);
+  });
+  devAabbEl.textContent = `AABB ON (${platforms.length}개)`;
+}
+function clearAABBHelpers(){
+  devAABBHelpers.forEach(h => scene.remove(h));
+  devAABBHelpers.length = 0;
+  devAabbEl.textContent = '';
+}
+
+function enterDevMode(){
+  devMode = true;
+  devCamPos.copy(camera.position);
+  // Derive yaw/pitch from current camera rotation
+  const euler = new THREE.Euler().setFromQuaternion(camera.quaternion,'YXZ');
+  devYaw   = euler.y;
+  devPitch = euler.x;
+  devHud.style.display = 'block';
+}
+function exitDevMode(){
+  devMode = false;
+  devHud.style.display = 'none';
+  if(devShowAABB){ clearAABBHelpers(); devShowAABB=false; }
+  document.exitPointerLock && document.exitPointerLock();
+}
+
+document.addEventListener('keydown', e => {
+  // Backtick toggle (works at any time)
+  if (e.key === '`') { devMode ? exitDevMode() : enterDevMode(); return; }
+  if (!devMode) return;
+  devKeys[e.key.toLowerCase()] = true;
+  if (e.key.toLowerCase() === 'h'){
+    devShowAABB = !devShowAABB;
+    devShowAABB ? buildAABBHelpers() : clearAABBHelpers();
+  }
+  e.preventDefault();
+});
+document.addEventListener('keyup', e => {
+  if (!devMode) return;
+  devKeys[e.key.toLowerCase()] = false;
+});
+
+// Click canvas in devMode → request pointer lock for mouse look
+document.addEventListener('click', () => {
+  if (devMode && !document.pointerLockElement) renderer.domElement.requestPointerLock();
+});
+document.addEventListener('mousemove', e => {
+  if (!devMode || !document.pointerLockElement) return;
+  devYaw   -= e.movementX * 0.0025;
+  devPitch -= e.movementY * 0.0025;
+  devPitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, devPitch));
+});
+
+function updateDevCamera(dt){
+  const spd = devKeys['shift'] ? 80 : 16;
+  const cosP = Math.cos(devPitch);
+  const fwd   = new THREE.Vector3(-Math.sin(devYaw)*cosP, Math.sin(devPitch), -Math.cos(devYaw)*cosP);
+  const right = new THREE.Vector3(Math.cos(devYaw), 0, -Math.sin(devYaw));
+  const up    = new THREE.Vector3(0,1,0);
+  if(devKeys['w']||devKeys['arrowup'])    devCamPos.addScaledVector(fwd, spd*dt);
+  if(devKeys['s']||devKeys['arrowdown'])  devCamPos.addScaledVector(fwd,-spd*dt);
+  if(devKeys['a']||devKeys['arrowleft'])  devCamPos.addScaledVector(right,-spd*dt);
+  if(devKeys['d']||devKeys['arrowright']) devCamPos.addScaledVector(right, spd*dt);
+  if(devKeys['q'])                        devCamPos.addScaledVector(up,-spd*dt);
+  if(devKeys['e']||devKeys[' '])          devCamPos.addScaledVector(up, spd*dt);
+  camera.position.copy(devCamPos);
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = devYaw;
+  camera.rotation.x = devPitch;
+  devPosEl.textContent = `x:${devCamPos.x.toFixed(1)}  y:${devCamPos.y.toFixed(1)}  z:${devCamPos.z.toFixed(1)}`;
+  // Update moving AABB helpers each frame while shown
+  if(devShowAABB){
+    devAABBHelpers.forEach((h,i) => {
+      if(i < platforms.length){
+        const b = platforms[i];
+        h.position.set((b.minX+b.maxX)/2,(b.minY+b.maxY)/2,(b.minZ+b.maxZ)/2);
+      }
+    });
+  }
+}
+
 /* ── Start / Restart ──────────────────────────────────────────────────────── */
 let gameRunning = false;
 let gameWon = false;
@@ -1023,9 +1383,15 @@ function resetGame(){
   timerEl.textContent='0:00';
   // Re-enable all clouds
   for(const c of cloudObjects){ c.state='active'; c.timer=0; c.aabb.disabled=false; c.group.visible=true; c.baseMat.opacity=0.85; c.puffMat.opacity=0.9; }
-  // Re-show all flowers
-  for(const stage of stageFlowers) for(const f of stage){ f.collected=false; f.group.visible=true; }
-  appleGroup.visible=true;
+  // Reset stage-clear objects
+  for(const sc of stageClearObjects){ sc.collected=false; if(sc.group) sc.group.visible=true; }
+  // Reset rocket
+  if(rocketGroup){ rocketGroup.visible=true; rocketGroup.position.set(0,ROCKET_Y,0); rocketGroup.rotation.y=0; }
+  if(emoGroup){ emoGroup.visible=true; emoGroup.position.set(3.0,ROCKET_Y-1.5,0); }
+  rocketGlow.position.set(0,ROCKET_Y-2.5,0);
+  shipLaunching=false; shipLaunchTimer=0;
+  // Re-init moving tiles
+  for(const tile of movingTiles){ tile.visual.position.x=tile.baseX; tile.aabb.minX=tile.baseX-tile.w/2; tile.aabb.maxX=tile.baseX+tile.w/2; }
   setState('idle');
 }
 
@@ -1052,7 +1418,7 @@ function frame(now){
   lastT = now;
   const t = now / 1000;
 
-  if (gameRunning && !gameWon && !gameOver) {
+  if (gameRunning && !gameWon && !gameOver && !devMode) {
     const SUB = 4;
     const dt = dtRaw / SUB;
     for (let i = 0; i < SUB; i++) physicsStep(dt);
@@ -1063,27 +1429,30 @@ function frame(now){
       if (playerPos.distanceTo(m.pos) < 1.5) { triggerGameOver(); break; }
     }
 
-    // Flower collection for current stage
-    if (!gameOver && currentStage < stageFlowers.length) {
-      const flowers = stageFlowers[currentStage];
-      for (const f of flowers) {
-        if (!f.collected && playerPos.distanceTo(f.pos) < 2.4) {
-          f.collected = true; f.group.visible = false;
-          spawnParticles(f.pos.clone(), 0xffd700, 20);
-          spawnParticles(f.pos.clone(), 0xffffff, 10);
-          if (flowers.every(fl => fl.collected)) advanceStage();
-        }
+    // Stage-clear collection (one portal per stage end)
+    if (!gameOver && currentStage < stageClearObjects.length) {
+      const sc = stageClearObjects[currentStage];
+      if (!sc.collected && playerPos.distanceTo(sc.pos) < 2.6) {
+        sc.collected = true;
+        if (sc.group) sc.group.visible = false;
+        if (sc.light) sc.light.intensity = 0;
+        spawnParticles(sc.pos.clone(), 0xffd700, 30);
+        spawnParticles(sc.pos.clone(), 0xffffff, 15);
+        advanceStage();
       }
     }
 
-    // Apple — stage 5 win (currentStage === 4 after collecting stage4 flowers)
-    if (!gameOver && currentStage >= 4 && playerPos.distanceTo(appleGroup.position) < 2.4) {
-      gameWon = true; gameRunning = false;
-      spawnParticles(appleGroup.position.clone(), 0xff4444, 40);
-      spawnParticles(appleGroup.position.clone(), 0xffd700, 30);
-      shake.trigger(0.5);
+    // Rocket — stage 5 win (currentStage >= 4 after clearing stage 4)
+    const rocketPos = rocketGroup ? rocketGroup.position
+                    : new THREE.Vector3(0, ROCKET_Y, 0);
+    if (!gameOver && !shipLaunching && currentStage >= 4 &&
+        playerPos.distanceTo(rocketPos) < 2.8) {
+      shipLaunching = true;
+      gameRunning = false;
+      spawnParticles(rocketPos.clone(), 0xff8833, 40);
+      spawnParticles(rocketPos.clone(), 0xffffff, 30);
+      shake.trigger(0.3);
       document.getElementById('clear-time-display').textContent = formatTime(clearTime);
-      setTimeout(() => summitOv.classList.remove('hidden'), 700);
     }
 
     // Cloud touch detection (player standing on cloud → start fade)
@@ -1116,22 +1485,62 @@ function frame(now){
   characterGroup.position.set(playerPos.x, playerPos.y, playerPos.z);
   if (modelLoaded) applyAnimation(t, dtRaw);
   updateParticles(dtRaw);
-  updateCamera(dtRaw);
+  if (devMode) updateDevCamera(dtRaw); else updateCamera(dtRaw);
   updateHUD();
   drawArrow();
 
-  // Flower + apple idle animations
-  for (const stage of stageFlowers) {
-    for (const f of stage) {
-      if (!f.group.visible) continue;
-      f.group.rotation.y = t * 0.65;
-      f.group.position.y = f.pos.y + Math.sin(t*1.8 + f.pos.x) * 0.28;
+  // Stage-clear idle spin
+  for (const sc of stageClearObjects) {
+    if (sc.group && sc.group.visible) sc.group.rotation.y = t * 1.1;
+  }
+
+  // Moving tiles
+  updateMovingTiles(t);
+
+  // Background: sky → space as player climbs into stage 5
+  const bgBlend = Math.max(0, Math.min(1, (playerPos.y - 200) / 120));
+  scene.background.copy(SKY_COL).lerp(SPACE_COL, bgBlend);
+  scene.fog.color.copy(FOG_COL).lerp(SPACE_COL, bgBlend);
+  starMat.opacity = bgBlend > 0.05
+    ? bgBlend * Math.max(0.15, 0.65 + Math.sin(t*2.7)*0.22 + Math.sin(t*5.1+1.3)*0.12)
+    : 0;
+
+  // Rocket idle float + glow
+  if (rocketGroup && !shipLaunching) {
+    rocketGroup.rotation.y = t * 0.4;
+    rocketGroup.position.y = ROCKET_Y + Math.sin(t*1.4) * 0.35;
+    rocketGlow.position.y  = rocketGroup.position.y - 2.5;
+    rocketGlow.intensity   = 2.0 + Math.sin(t*3.0) * 0.8;
+  }
+
+  // EMO bounce beside rocket
+  if (emoGroup) {
+    const emoBase = ROCKET_Y - 1.5;
+    emoGroup.position.y = emoBase + Math.abs(Math.sin(t * 2.2)) * 0.9;
+    emoGroup.rotation.y = t * 0.3;
+  }
+
+  // Ship launch animation
+  if (shipLaunching) {
+    shipLaunchTimer += dtRaw;
+    if (rocketGroup) {
+      rocketGroup.position.y += dtRaw * (6 + shipLaunchTimer * 28);
+      rocketGlow.position.y   = rocketGroup.position.y - 2.5;
+      rocketGlow.intensity    = 3 + Math.random() * 2;
+      if (Math.random() < 0.5) {
+        spawnParticles(new THREE.Vector3(rocketGroup.position.x, rocketGroup.position.y - 2, 0), 0xff8833, 3);
+        spawnParticles(new THREE.Vector3(rocketGroup.position.x, rocketGroup.position.y - 2, 0), 0xffeeaa, 2);
+      }
+    }
+    if (emoGroup) {
+      emoGroup.position.y += dtRaw * (4 + shipLaunchTimer * 20);
+      emoGroup.rotation.z = Math.sin(t * 8) * 0.3;
+    }
+    if (shipLaunchTimer > 3.0 && !gameWon) {
+      gameWon = true;
+      setTimeout(() => summitOv.classList.remove('hidden'), 400);
     }
   }
-  appleGroup.rotation.y = t * 0.8;
-  appleGroup.position.y = APPLE_Y + Math.sin(t*2) * 0.25;
-  appleGlow.position.y  = appleGroup.position.y;
-  appleGlow.intensity   = 1.8 + Math.sin(t*3) * 0.5;
 
   // Cloud drift
   clouds.forEach((c, i) => { c.position.x += 0.008 * (i%2===0 ? 1 : -1); if (c.position.x > 30) c.position.x = -30; if (c.position.x < -30) c.position.x = 30; });
