@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>CHOG Climb 3D</title>
+<title>CHOG to the Top</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;overflow:hidden;font-family:'Courier New',monospace;color:#fff}
@@ -47,7 +47,7 @@ canvas{display:block}
 </head>
 <body>
 <div id="start-overlay" class="overlay">
-  <h1>CHOG <span>CLIMB 3D</span></h1>
+  <h1>CHOG <span>to the Top</span></h1>
   <p>Stuck in a pot. Apple at the top. Let's go.<br/><br/>
   <b>DRAG</b> from CHOG to aim — the arrow shows launch direction.<br/>
   <b>RELEASE</b> to spring launch. Longer drag = more power.<br/>
@@ -310,7 +310,7 @@ loadDiv.textContent = 'LOADING CHOG…';
 document.body.appendChild(loadDiv);
 
 const loader = new THREE.GLTFLoader();
-loader.load('/game/CHOG_3D.glb', gltf => {
+loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
   const model = gltf.scene;
 
   // ── Scale & orient ────────────────────────────────────────────────────────
@@ -318,7 +318,7 @@ loader.load('/game/CHOG_3D.glb', gltf => {
   const MODEL_SCALE = 1.0;
   model.scale.setScalar(MODEL_SCALE);
   // Meshy models often face +Z; rotate so they face the camera (-Z)
-  model.rotation.y = Math.PI;
+  model.rotation.y = 0;  // facing camera — adjust if model still looks backward
 
   model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
   characterGroup.add(model);
