@@ -404,7 +404,7 @@ parts.armR = makeArm(1);
     cannon-es here if desired — the AnimationState / sync logic does not care.)
    ═══════════════════════════════════════════════════════════════════════════ */
 const GRAVITY          = -28;
-const MAX_LAUNCH_FORCE = 26;
+const MAX_LAUNCH_FORCE = 36;
 const BOUNCE           = 0.28;
 const FRICTION_GROUND  = 0.82;
 const AIR_DRAG         = 0.992;
@@ -642,19 +642,24 @@ function onUp(){
   camDir.y = 0; camDir.normalize();
   const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0,1,0)).normalize();
 
-  // Horizontal launch in world from screen-x
-  const hx = camRight.x * nsx;
-  const hz = camRight.z * nsx;
-  // Screen-y up → vertical + slight forward thrust (so player can chain upward moves)
-  const upComponent = Math.max(0, nsy);
-  const fwdComponent = upComponent * 0.35;
+  // Screen Y: increases downward. Drag DOWN (dy>0) → nsy<0 → launch UP.
+  // upward screen launch  = nsy < 0  → world Y positive
+  // downward screen launch = nsy > 0 → world Y negative (rare intentional push-down)
+  const vertSign = -nsy;  // positive when launching upward
 
-  playerVel.x = hx * force + camDir.x * fwdComponent * force;
-  playerVel.y = upComponent * force + force * 0.25;  // always some upward kick
-  playerVel.z = hz * force + camDir.z * fwdComponent * force;
+  // Horizontal velocity (camera-relative)
+  playerVel.x = camRight.x * nsx * force;
+  playerVel.z = camRight.z * nsx * force;
 
-  // Downward drag → push down (short hops, cancel upward)
-  if (nsy < 0) playerVel.y = Math.max(-force * 0.5, nsy * force);
+  // Vertical velocity — main fix: -nsy maps screen-up drag to positive world Y
+  playerVel.y = vertSign * force + force * 0.18;  // 0.18 = small base upward kick
+
+  // Add slight forward component when launching upward (feel better on slopes)
+  if (vertSign > 0) {
+    const fwd = vertSign * 0.25;
+    playerVel.x += camDir.x * fwd * force;
+    playerVel.z += camDir.z * fwd * force;
+  }
 
   // Visual feedback
   squash.trigger('launch', 0.6 + power * 0.6);
