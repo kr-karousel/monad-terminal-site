@@ -1,58 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- CHOG to the Top — v2 -->
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>CHOG Climb 3D</title>
+<title>CHOG to the Top</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;overflow:hidden;font-family:'Courier New',monospace;color:#fff}
 canvas{display:block}
 #arrow-canvas{position:fixed;top:0;left:0;pointer-events:none;z-index:10}
-#hud{position:fixed;top:16px;left:16px;z-index:20;pointer-events:none;text-shadow:0 0 8px rgba(150,100,255,.8)}
-#hud .label{color:#9966ff;font-size:10px;letter-spacing:2px}
-#hud .val{font-size:26px;font-weight:bold;line-height:1.1}
-#hud .unit{font-size:14px;opacity:.7;margin-left:2px}
+#hud{position:fixed;top:16px;left:16px;z-index:20;pointer-events:none;
+  background:rgba(0,0,0,0.42);border-radius:10px;padding:10px 14px;
+  text-shadow:1px 1px 0 rgba(0,0,0,0.9)}
+#hud .label{color:#ffe066;font-size:10px;letter-spacing:2px}
+#hud .val{font-size:26px;font-weight:bold;line-height:1.1;color:#fff;text-shadow:1px 1px 3px #000}
+#hud .unit{font-size:14px;opacity:.8;margin-left:2px;color:#fff}
 #hud .row{margin-bottom:8px}
-#power-bar{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);width:240px;height:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:7px;overflow:hidden;opacity:0;transition:opacity .15s;pointer-events:none;z-index:20}
+#power-bar{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);width:240px;height:14px;background:rgba(0,0,0,.35);border:2px solid rgba(255,255,255,.6);border-radius:7px;overflow:hidden;opacity:0;transition:opacity .15s;pointer-events:none;z-index:20}
 #power-bar.active{opacity:1}
 #power-fill{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#eab308,#ef4444);border-radius:7px;transition:width .05s}
-#hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);font-size:11px;color:rgba(255,255,255,.55);letter-spacing:2px;pointer-events:none;z-index:20}
+#hint{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);font-size:11px;color:#fff;letter-spacing:2px;pointer-events:none;z-index:20;text-shadow:1px 1px 3px #000,0 0 8px rgba(0,0,0,.8)}
 .overlay{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(40,20,80,.92),rgba(4,2,10,.96));display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;z-index:50}
 .overlay.hidden{display:none}
 .overlay h1{font-size:52px;letter-spacing:6px;text-shadow:0 0 24px rgba(150,100,255,.9)}
 .overlay h1 span{color:#9966ff}
 .overlay p{color:#bbb;font-size:13px;text-align:center;line-height:1.8;max-width:440px;padding:0 24px}
 .overlay p b{color:#d94fa0}
-.btn{background:#9966ff;border:none;color:#fff;padding:14px 44px;font-size:15px;font-family:inherit;cursor:pointer;border-radius:4px;letter-spacing:3px;font-weight:bold;transition:transform .15s,background .2s}
-.btn:hover{background:#7744dd;transform:scale(1.05)}
-.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-80px);background:rgba(20,10,40,.95);border:1px solid #9966ff;padding:10px 26px;border-radius:8px;font-size:13px;transition:transform .3s;z-index:40;letter-spacing:2px}
+.btn{background:#4caf50;border:2px solid #2e7d32;color:#fff;padding:14px 44px;font-size:15px;font-family:inherit;cursor:pointer;border-radius:8px;letter-spacing:3px;font-weight:bold;transition:transform .15s,background .2s;text-shadow:1px 1px 2px rgba(0,0,0,.5)}
+.btn:hover{background:#388e3c;transform:scale(1.05)}
+.toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-80px);background:rgba(0,0,0,.82);border:2px solid #ffe066;color:#fff;padding:10px 26px;border-radius:8px;font-size:13px;transition:transform .3s;z-index:40;letter-spacing:2px;text-shadow:1px 1px 2px #000}
 .toast.show{transform:translateX(-50%) translateY(0)}
+/* Timer */
+#timer-wrap{position:fixed;top:16px;right:20px;z-index:20;pointer-events:none;text-align:right;
+  background:rgba(0,0,0,0.42);border-radius:10px;padding:10px 14px}
+#timer-label{color:#ffe066;font-size:10px;letter-spacing:2px}
+#timer-val{font-size:32px;font-weight:bold;line-height:1.1;color:#fff;text-shadow:1px 1px 3px #000;transition:color .3s}
+#timer-val.warn{color:#ffdd44}
+#timer-val.danger{color:#ff4444;animation:pulse .5s infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.4}}
+/* Result overlay */
+#result-overlay .result-card{background:rgba(20,10,40,.98);border:1px solid #9966ff;border-radius:16px;padding:40px 60px;text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center}
+#result-overlay h1{font-size:42px;letter-spacing:4px}
+.result-row{display:flex;gap:48px;margin:8px 0}
+.result-stat{display:flex;flex-direction:column;align-items:center;gap:4px}
+.result-stat .r-label{color:#ffe066;font-size:10px;letter-spacing:3px}
+.result-stat .r-val{font-size:36px;font-weight:bold}
+.result-stat .r-unit{font-size:13px;opacity:.6}
 </style>
 </head>
 <body>
 <div id="start-overlay" class="overlay">
-  <h1>CHOG <span>CLIMB 3D</span></h1>
-  <p>Stuck in a pot. Apple at the top. Let's go.<br/><br/>
+  <h1>CHOG <span>to the Top</span></h1>
+  <p>Stuck in a pot. Spaceship at the top. Let's go.<br/><br/>
   <b>DRAG</b> from CHOG to aim — the arrow shows launch direction.<br/>
   <b>RELEASE</b> to spring launch. Longer drag = more power.<br/>
   Falling is part of the game.</p>
   <button id="btn-start" class="btn">BEGIN CLIMB</button>
 </div>
 <div id="summit-overlay" class="overlay hidden">
-  <h1>🍎 GOT IT!</h1>
-  <p>CHOG finally grabbed the apple. Worth every tumble.</p>
+  <h1>🚀 LAUNCHED!</h1>
+  <p>CHOG reached the spaceship and blasted off to the moon!<br/>Worth every tumble.</p>
+  <div style="margin:8px 0;text-align:center">
+    <div style="color:#ffe066;font-size:10px;letter-spacing:3px">CLEAR TIME</div>
+    <div id="clear-time-display" style="font-size:48px;font-weight:bold;text-shadow:2px 2px 0 #333">0:00</div>
+  </div>
   <button id="btn-restart" class="btn">CLIMB AGAIN</button>
+</div>
+<div id="gameover-overlay" class="overlay hidden">
+  <h1 style="color:#ff4444">☠️ GAME OVER</h1>
+  <p>Touched a poisonous mushroom!<br/>CHOG did not make it.</p>
+  <button id="btn-gameover-retry" class="btn" style="background:#ef4444;border-color:#b91c1c">TRY AGAIN</button>
 </div>
 <div id="hud">
   <div class="row"><div class="label">HEIGHT</div><div class="val"><span id="h-val">0</span><span class="unit">m</span></div></div>
-  <div class="row"><div class="label">BEST</div><div class="val"><span id="b-val">0</span><span class="unit">m</span></div></div>
+  <div class="row"><div class="label">STAGE</div><div class="val"><span id="stage-val">1</span><span class="unit">/5</span></div></div>
+</div>
+<div id="timer-wrap">
+  <div id="timer-label">TIME</div>
+  <div id="timer-val">3:00</div>
 </div>
 <div id="power-bar"><div id="power-fill"></div></div>
 <div id="hint">CLICK &amp; DRAG NEAR CHOG TO LAUNCH</div>
 <canvas id="arrow-canvas"></canvas>
+<div id="bonus-flash" style="position:fixed;inset:0;background:rgba(255,240,80,.75);pointer-events:none;z-index:45;opacity:0;transition:opacity .08s"></div>
+<div id="stage-banner" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:48;pointer-events:none;font-size:52px;font-weight:bold;font-family:'Courier New',monospace;color:#fff;text-shadow:2px 2px 0 #333,0 0 30px #ffe066;letter-spacing:4px;opacity:0;transition:opacity .25s,transform .25s"></div>
 <div class="toast" id="toast"></div>
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CHOG CLIMB 3D — single-file Three.js game
@@ -74,15 +109,18 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0520);
-scene.fog = new THREE.Fog(0x0a0520, 40, 180);
+scene.background = new THREE.Color(0x5bbfef);
+scene.fog = new THREE.Fog(0x9dd8f5, 80, 220);
+const SKY_COL   = new THREE.Color(0x5bbfef);
+const SPACE_COL = new THREE.Color(0x020408);
+const FOG_COL   = new THREE.Color(0x9dd8f5);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 400);
 camera.position.set(0, 6, 20);
 
 /* ── Lighting ─────────────────────────────────────────────────────────────── */
-scene.add(new THREE.AmbientLight(0x8866aa, 0.55));
-const dirLight = new THREE.DirectionalLight(0xfff0d8, 1.15);
+scene.add(new THREE.AmbientLight(0xfff8e8, 0.85));
+const dirLight = new THREE.DirectionalLight(0xfff5c0, 1.5);
 dirLight.position.set(12, 30, 8);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(1024, 1024);
@@ -93,20 +131,68 @@ dirLight.shadow.camera.right = 40;
 dirLight.shadow.camera.top = 40;
 dirLight.shadow.camera.bottom = -40;
 scene.add(dirLight);
-const fill = new THREE.DirectionalLight(0x5577ff, 0.35);
+const fill = new THREE.DirectionalLight(0xaadeff, 0.4);
 fill.position.set(-10, 8, -10);
 scene.add(fill);
-const playerLight = new THREE.PointLight(0xaa77ff, 1.1, 18);
+const playerLight = new THREE.PointLight(0xffffff, 0.6, 18);
 scene.add(playerLight);
 
-/* ── Stars / distant mountains ────────────────────────────────────────────── */
-{
-  const g = new THREE.BufferGeometry();
-  const pts = [];
-  for (let i=0;i<900;i++) pts.push((Math.random()-0.5)*320,(Math.random()*240)-20,(Math.random()-0.5)*240-40);
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-  scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color:0xffffff, size:0.35, transparent:true, opacity:0.55 })));
+/* ── Background mountains — 3 parallax layers ─────────────────────────────── */
+function makeMountain(cx, cy, w, h, color, z){
+  const shape = new THREE.Shape();
+  shape.moveTo(-w/2, 0);
+  // Slightly irregular silhouette
+  shape.lineTo(-w*0.15, h*0.55);
+  shape.lineTo(0, h);
+  shape.lineTo(w*0.18, h*0.6);
+  shape.lineTo(w/2, 0);
+  shape.closePath();
+  const geo = new THREE.ShapeGeometry(shape);
+  const mat = new THREE.MeshLambertMaterial({ color, side:THREE.DoubleSide });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(cx, cy, z);
+  scene.add(m);
+  // Snow cap
+  const cap = new THREE.Shape();
+  cap.moveTo(-w*0.08, h*0.78);
+  cap.lineTo(0, h);
+  cap.lineTo(w*0.09, h*0.8);
+  cap.closePath();
+  const capMesh = new THREE.Mesh(
+    new THREE.ShapeGeometry(cap),
+    new THREE.MeshLambertMaterial({ color:0xeef6ff, side:THREE.DoubleSide })
+  );
+  capMesh.position.set(cx, cy, z + 0.1);
+  scene.add(capMesh);
 }
+// Layer 1 — far, blue-purple haze (z=-28)
+[[-32,-2,48,36], [-8,-2,52,44], [14,-2,44,32], [34,-2,40,28]].forEach(([x,y,w,h]) => makeMountain(x,y,w,h,0x7090c8,-28));
+// Layer 2 — mid, muted blue-green (z=-22)
+[[-24,-2,42,30], [0,-2,50,38], [22,-2,38,26], [-42,-2,36,22]].forEach(([x,y,w,h]) => makeMountain(x,y,w,h,0x4a7a5a,-22));
+// Layer 3 — near, deep teal-green (z=-16)
+[[-18,-2,34,22], [8,-2,38,28], [28,-2,30,18], [-36,-2,28,16]].forEach(([x,y,w,h]) => makeMountain(x,y,w,h,0x2d6b44,-16));
+
+/* ── Clouds ───────────────────────────────────────────────────────────────── */
+const clouds = [];
+function addCloud(x, y, z){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshLambertMaterial({ color:0xffffff, transparent:true, opacity:0.92 });
+  [[0,0,3,1.4,3], [-2.2,0,2,1,2.5], [2.2,0,2,1,2.5], [0,0.8,2.5,1.2,2]].forEach(([ox,oy,rx,ry,rz]) => {
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(1, 7, 5), mat);
+    puff.scale.set(rx, ry, rz);
+    puff.position.set(ox, oy, 0);
+    g.add(puff);
+  });
+  g.position.set(x, y, z);
+  scene.add(g);
+  clouds.push(g);
+}
+addCloud(-18, 22, -12);
+addCloud(14,  30, -14);
+addCloud(-8,  40, -13);
+addCloud(20,  18, -10);
+addCloud(-22, 50, -15);
+addCloud(8,   55, -12);
 
 window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -119,284 +205,576 @@ window.addEventListener('resize', () => {
 /* ── Level definitions ────────────────────────────────────────────────────── */
 // Each platform is an AABB (axis-aligned bounding box) used for both
 // rendering (BoxGeometry) and collision (sphereVsAABB).
+// Z is kept near 0 — game is effectively 2.5D (X/Y movement, Z decorative only)
 const platformDefs = [
   // Ground
-  { x:0,  y:-1,  z:0,  w:26, h:2,  d:22, c:0x3d2b5a, flat:true },
-  // Climbing chain (vertical path)
-  { x:-4, y:2.5, z:1,  w:7,  h:1,  d:5,  c:0x4a3360 },
-  { x:4,  y:5,   z:-1, w:5,  h:1,  d:4,  c:0x3d2b5a },
-  { x:-5, y:8,   z:2,  w:4,  h:1,  d:3,  c:0x4a3360 },
-  { x:3,  y:11,  z:3,  w:4,  h:1,  d:3,  c:0x3d2b5a },
-  { x:-3, y:14,  z:-1, w:5,  h:1,  d:4,  c:0x4a3360 },
-  { x:5,  y:17,  z:1,  w:4,  h:1,  d:3,  c:0x3d2b5a },
-  { x:-6, y:20,  z:2,  w:4,  h:1,  d:3,  c:0x4a3360 },
-  { x:2,  y:23,  z:-2, w:3.5,h:1,  d:3,  c:0x5a3d78 },
-  { x:-2, y:26,  z:2,  w:3,  h:1,  d:3,  c:0x3d2b5a },
-  { x:5,  y:29,  z:0,  w:4,  h:1,  d:3,  c:0x4a3360 },
-  { x:-4, y:32,  z:-2, w:4,  h:1,  d:3,  c:0x5a3d78 },
-  { x:2,  y:35,  z:2,  w:3.5,h:1,  d:3,  c:0x3d2b5a },
-  { x:-3, y:38,  z:0,  w:4,  h:1,  d:3,  c:0x4a3360 },
-  { x:4,  y:41,  z:-1, w:3.5,h:1,  d:3,  c:0x5a3d78 },
-  { x:-2, y:44,  z:2,  w:4,  h:1,  d:3,  c:0x3d2b5a },
-  { x:2,  y:47,  z:0,  w:3.5,h:1,  d:3,  c:0x4a3360 },
+  { x:0,   y:-1,  z:0, w:28, h:2,  d:8, flat:true },
+  // Sector 1 — easy
+  { x:-5,  y:3,   z:0, w:8,  h:1,  d:6 },
+  { x:5,   y:6,   z:0, w:7,  h:1,  d:6 },
+  // Sector 2
+  { x:-6,  y:9,   z:0, w:6,  h:1,  d:6 },
+  { x:4,   y:12,  z:0, w:5,  h:1,  d:6 },
+  { x:-4,  y:15,  z:0, w:5,  h:1,  d:6 },
+  // Sector 3 — narrower
+  { x:5,   y:18,  z:0, w:4,  h:1,  d:6 },
+  { x:-5,  y:21,  z:0, w:4,  h:1,  d:6 },
+  { x:3,   y:24,  z:0, w:4,  h:1,  d:6 },
+  // Sector 4 — tricky gaps
+  { x:-4,  y:27,  z:0, w:3.5,h:1,  d:6 },
+  { x:5,   y:30,  z:0, w:3.5,h:1,  d:6 },
+  { x:-3,  y:33,  z:0, w:3.5,h:1,  d:6 },
+  // Sector 5 — hard
+  { x:4,   y:36,  z:0, w:3,  h:1,  d:6 },
+  { x:-5,  y:39,  z:0, w:3,  h:1,  d:6 },
+  { x:3,   y:42,  z:0, w:3,  h:1,  d:6 },
+  { x:-2,  y:45,  z:0, w:3,  h:1,  d:6 },
+  { x:3,   y:48,  z:0, w:3,  h:1,  d:6 },
   // Summit
-  { x:0,  y:50,  z:0,  w:8,  h:1,  d:6,  c:0x6b4a90, flat:true },
+  { x:0,   y:51,  z:0, w:9,  h:1,  d:8, flat:true, summit:true },
 ];
 
-// Big background cliff walls so the world feels enclosed.
-const cliffDefs = [
-  { x:0,   y:25, z:-14, w:60, h:80, d:4, c:0x1a0f28 },
-  { x:-20, y:25, z:0,   w:4,  h:80, d:32, c:0x180c24 },
-  { x:20,  y:25, z:0,   w:4,  h:80, d:32, c:0x180c24 },
-];
+const cliffDefs = [];
 
 const platforms = []; // physics AABBs
+const platformMeshes = []; // { mesh, def } for GLB tile overlay
+
+// BoxGeometry face order: +x, -x, +y(top), -y(bottom), +z, -z
+const MAT_GRASS  = new THREE.MeshLambertMaterial({ color:0x5db832 });
+const MAT_WOOD   = new THREE.MeshLambertMaterial({ color:0x9b5a2a });
+const MAT_WOOD_D = new THREE.MeshLambertMaterial({ color:0x7a4020 });
+const MAT_SUMMIT = new THREE.MeshLambertMaterial({ color:0xffd700 }); // golden summit top
+const PLATFORM_MATS      = [MAT_WOOD, MAT_WOOD, MAT_GRASS,  MAT_WOOD_D, MAT_WOOD, MAT_WOOD];
+const PLATFORM_MATS_SUMM = [MAT_WOOD, MAT_WOOD, MAT_SUMMIT, MAT_WOOD_D, MAT_WOOD, MAT_WOOD];
 
 function addPlatform(def){
   const g = new THREE.BoxGeometry(def.w, def.h, def.d);
-  const m = new THREE.MeshLambertMaterial({ color:def.c });
-  const mesh = new THREE.Mesh(g, m);
+  const mats = def.big ? [MAT_WOOD_D,MAT_WOOD_D,MAT_WOOD_D,MAT_WOOD_D,MAT_WOOD_D,MAT_WOOD_D]
+             : def.summit ? PLATFORM_MATS_SUMM
+             : PLATFORM_MATS;
+  const mesh = new THREE.Mesh(g, mats);
   mesh.position.set(def.x, def.y, def.z);
   mesh.receiveShadow = true;
   mesh.castShadow = !def.big;
   scene.add(mesh);
-  // Edge highlight
+  // Dark edge outline for cartoon pop
   const edges = new THREE.LineSegments(
     new THREE.EdgesGeometry(g),
-    new THREE.LineBasicMaterial({ color:0x8866cc, transparent:true, opacity:0.35 })
+    new THREE.LineBasicMaterial({ color:0x3a2000, transparent:true, opacity:0.5 })
   );
   mesh.add(edges);
-  // Moss / grass on top (flat platforms only)
-  if (def.flat || def.w <= 8) {
-    const moss = new THREE.Mesh(
-      new THREE.BoxGeometry(def.w*0.96, 0.12, def.d*0.96),
-      new THREE.MeshLambertMaterial({ color:0x3a8a4a })
-    );
-    moss.position.set(def.x, def.y + def.h/2 + 0.05, def.z);
-    scene.add(moss);
-  }
   platforms.push({
     minX: def.x - def.w/2, maxX: def.x + def.w/2,
     minY: def.y - def.h/2, maxY: def.y + def.h/2,
     minZ: def.z - def.d/2, maxZ: def.z + def.d/2,
   });
+  if (!def.big) platformMeshes.push({ mesh, def });
 }
 
 platformDefs.forEach(addPlatform);
 cliffDefs.forEach(d => { d.big = true; addPlatform(d); });
 
-/* ── Decorative trees ─────────────────────────────────────────────────────── */
+/* ── Decorative trees (MapleStory style) ──────────────────────────────────── */
 function addTree(x, y, z, s=1){
   const g = new THREE.Group();
   const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.2*s, 0.3*s, 2*s, 6),
-    new THREE.MeshLambertMaterial({ color:0x5c3a1e })
+    new THREE.CylinderGeometry(0.22*s, 0.32*s, 2.2*s, 7),
+    new THREE.MeshLambertMaterial({ color:0x8b4513 })
   );
-  trunk.position.y = s;
+  trunk.position.y = 1.1*s;
   g.add(trunk);
-  for (let i=0;i<3;i++){
-    const cone = new THREE.Mesh(
-      new THREE.ConeGeometry((1.3-i*0.22)*s, 1.5*s, 7),
-      new THREE.MeshLambertMaterial({ color: i===2?0x4aa868:0x2d6a4f })
+  const leafColors = [0x4caf50, 0x388e3c, 0x66bb6a];
+  [[0, 3.2, 1.8], [-0.5, 2.5, 1.3], [0.5, 2.5, 1.3]].forEach(([ox,oy,r],i) => {
+    const leaf = new THREE.Mesh(
+      new THREE.SphereGeometry(r*s, 8, 6),
+      new THREE.MeshLambertMaterial({ color: leafColors[i] })
     );
-    cone.position.y = (2 + i*1.1) * s;
-    g.add(cone);
-  }
+    leaf.position.set(ox*s, oy*s, 0);
+    g.add(leaf);
+  });
   g.position.set(x, y, z);
   scene.add(g);
 }
-addTree(-11, 0, -3, 1.3);
-addTree(11, 0, -4, 1.1);
-addTree(-10, 0, 5, 1.0);
-addTree(10, 0, 4, 1.2);
-addTree(-13, 0, 0, 0.9);
-addTree(13, 0, 2, 0.8);
+// Dense forest around the ground platform
+const treePositions = [
+  [-11,0,-3,1.3],[ -9,0, 4,1.0],[-13,0, 1,1.1],[-15,0,-2,0.9],[-7,0, 6,0.8],
+  [ 11,0,-4,1.2],[  9,0, 5,1.0],[ 13,0, 0,1.1],[ 15,0,-3,0.9],[  7,0, 4,0.8],
+  [-17,0, 2,0.8],[ 17,0, 3,0.7],[-19,0,-1,1.0],[ 19,0,-2,0.9],
+];
+treePositions.forEach(([x,y,z,s]) => addTree(x,y,z,s));
 
-/* ── Apple (goal) ─────────────────────────────────────────────────────────── */
-const APPLE_Y = 54;
-const appleGroup = new THREE.Group();
-{
-  const body = new THREE.Mesh(
-    new THREE.SphereGeometry(0.85, 20, 16),
-    new THREE.MeshLambertMaterial({ color:0xff2a2a, emissive:0x550000 })
-  );
-  body.castShadow = true;
-  appleGroup.add(body);
-  const stem = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.07, 0.07, 0.55, 6),
-    new THREE.MeshLambertMaterial({ color:0x5c3a1e })
-  );
-  stem.position.y = 1.05;
-  appleGroup.add(stem);
-  const leaf = new THREE.Mesh(
-    new THREE.SphereGeometry(0.32, 8, 8),
-    new THREE.MeshLambertMaterial({ color:0x2d8a4f })
-  );
-  leaf.position.set(0.32, 1.2, 0);
-  leaf.scale.set(1.6, 0.5, 1);
-  appleGroup.add(leaf);
+// Bushes (low rounded shrubs)
+function addBush(x, y, z, s=1){
+  const g = new THREE.Group();
+  [[0,0,1.4],[-0.9,0,1.0],[0.9,0,1.0],[0,0.6,1.1]].forEach(([ox,oy,r]) => {
+    const b = new THREE.Mesh(
+      new THREE.SphereGeometry(r*s, 7, 5),
+      new THREE.MeshLambertMaterial({ color: Math.random()>0.5 ? 0x388e3c : 0x4caf50 })
+    );
+    b.position.set(ox*s, oy*s, 0);
+    g.add(b);
+  });
+  g.position.set(x, y, z);
+  scene.add(g);
 }
-appleGroup.position.set(0, APPLE_Y, 0);
-scene.add(appleGroup);
-const appleGlow = new THREE.PointLight(0xff4444, 2.2, 10);
-appleGlow.position.set(0, APPLE_Y, 0);
-scene.add(appleGlow);
+[[-6,0,3],[ 6,0,2],[-8,0,-2],[8,0,-3],[-4,0,5],[4,0,4],[-2,0,-4],[2,0,-5]].forEach(([x,y,z]) => addBush(x,y,z,0.55));
 
-/* ── Character (CHOG in a pot) ─────────────────────────────────────────────
-   NOTE: Replace this whole block with a GLTFLoader model when available.
-   Architecture: characterGroup is the visual root. It follows the physics
-   body (playerPos) every frame. It must NEVER influence physics.
+/* ── Stage-clear objects (replace flowers — GLB set in setupGLBVisuals) ─── */
+const stageClearObjects = []; // [{pos, group, light, collected}]
+function buildStageClear(x, y, z) {
+  const g = new THREE.Group();
+  // Placeholder gold star (replaced by GLB when loaded)
+  const mat = new THREE.MeshLambertMaterial({ color:0xffd700, emissive:0x886600 });
+  for (let i=0;i<5;i++){
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.9,0.15), mat);
+    arm.rotation.z = (i/5)*Math.PI*2;
+    g.add(arm);
+  }
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.4,8,6), mat));
+  g.position.set(x, y, z);
+  scene.add(g);
+  const lt = new THREE.PointLight(0xffd700, 1.8, 14);
+  lt.position.set(x, y, z);
+  scene.add(lt);
+  stageClearObjects.push({ pos: new THREE.Vector3(x, y, z), group: g, light: lt, collected: false });
+}
+
+/* ── Poison mushroom factory (placeholder — swap with GLB) ──────────────── */
+function createMushroom(scale=0.75) {
+  const g = new THREE.Group();
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.7*scale,10,7),
+    new THREE.MeshLambertMaterial({ color:0xcc2200, emissive:0x440000 }));
+  cap.scale.y = 0.65; cap.position.y = 0.8*scale; g.add(cap);
+  [[0,0.28,0.62],[0.38,0.08,0.52],[-0.32,0.18,0.56],[0.08,0.34,0.6]].forEach(([ox,oy,r]) => {
+    const spot = new THREE.Mesh(new THREE.SphereGeometry(0.13*scale,5,4),
+      new THREE.MeshLambertMaterial({ color:0xffffff }));
+    spot.position.set(ox*scale,(0.6+oy)*scale,r*scale); g.add(spot);
+  });
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.22*scale,0.28*scale,0.9*scale,8),
+    new THREE.MeshLambertMaterial({ color:0xf0e6c0 }));
+  stem.position.y = 0.25*scale; g.add(stem);
+  return g;
+}
+
+/* ── Purple disappearing cloud ───────────────────────────────────────────── */
+const cloudObjects = [];
+function addCloudPlatform(def) {
+  const baseMat = new THREE.MeshLambertMaterial({ color:0xaa66ff, transparent:true, opacity:0.85 });
+  const puffMat = new THREE.MeshLambertMaterial({ color:0xcc99ff, transparent:true, opacity:0.9 });
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(def.w,def.h,def.d), baseMat));
+  const pc = Math.round(def.w/1.2);
+  for (let i=0;i<pc;i++) {
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(0.46+Math.random()*0.28,6,5), puffMat);
+    puff.position.set((i-pc/2+0.5)*1.1, def.h*0.5+0.22, 0);
+    g.add(puff);
+  }
+  g.position.set(def.x, def.y, def.z);
+  scene.add(g);
+  const aabb = { minX:def.x-def.w/2, maxX:def.x+def.w/2,
+                 minY:def.y-def.h/2, maxY:def.y+def.h/2,
+                 minZ:def.z-def.d/2, maxZ:def.z+def.d/2,
+                 disabled:false, isCloud:true };
+  platforms.push(aabb);
+  cloudObjects.push({ group:g, aabb, state:'active', timer:0, baseMat, puffMat });
+}
+
+function updateClouds(dt) {
+  for (const c of cloudObjects) {
+    if (c.state !== 'fading') continue;
+    c.timer -= dt;
+    const a = Math.max(0, c.timer / 0.8);
+    c.baseMat.opacity = a * 0.85;
+    c.puffMat.opacity = a * 0.9;
+    if (c.timer <= 0) { c.state='gone'; c.aabb.disabled=true; c.group.visible=false; }
+  }
+}
+
+/* ── Moving tiles (Stage 5) ─────────────────────────────────────────────── */
+const movingTiles = [];
+
+function addMovingPlatform(def, amp, spd, phase) {
+  const g = new THREE.BoxGeometry(def.w, def.h, def.d);
+  const mats = def.summit ? PLATFORM_MATS_SUMM : PLATFORM_MATS;
+  const mesh = new THREE.Mesh(g, mats);
+  mesh.position.set(def.x, def.y, def.z);
+  mesh.receiveShadow = true; mesh.castShadow = true;
+  scene.add(mesh);
+  mesh.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(g),
+    new THREE.LineBasicMaterial({ color:0x3a2000, transparent:true, opacity:0.5 })
+  ));
+  const aabb = {
+    minX: def.x-def.w/2, maxX: def.x+def.w/2,
+    minY: def.y-def.h/2, maxY: def.y+def.h/2,
+    minZ: def.z-def.d/2, maxZ: def.z+def.d/2,
+  };
+  platforms.push(aabb);
+  movingTiles.push({ visual:mesh, aabb, baseX:def.x, amp, spd, phase, w:def.w });
+}
+
+function addMovingCloud(def, amp, spd, phase) {
+  const baseMat = new THREE.MeshLambertMaterial({ color:0xaa66ff, transparent:true, opacity:0.85 });
+  const puffMat = new THREE.MeshLambertMaterial({ color:0xcc99ff, transparent:true, opacity:0.9 });
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(def.w,def.h,def.d), baseMat));
+  const pc = Math.round(def.w/1.2);
+  for (let i=0;i<pc;i++) {
+    const puff = new THREE.Mesh(new THREE.SphereGeometry(0.46+Math.random()*0.28,6,5), puffMat);
+    puff.position.set((i-pc/2+0.5)*1.1, def.h*0.5+0.22, 0);
+    g.add(puff);
+  }
+  g.position.set(def.x, def.y, def.z);
+  scene.add(g);
+  const aabb = { minX:def.x-def.w/2, maxX:def.x+def.w/2,
+                 minY:def.y-def.h/2, maxY:def.y+def.h/2,
+                 minZ:def.z-def.d/2, maxZ:def.z+def.d/2,
+                 disabled:false, isCloud:true };
+  platforms.push(aabb);
+  cloudObjects.push({ group:g, aabb, state:'active', timer:0, baseMat, puffMat });
+  movingTiles.push({ visual:g, aabb, baseX:def.x, amp, spd, phase, w:def.w });
+}
+
+function updateMovingTiles(t) {
+  for (const tile of movingTiles) {
+    if (tile.aabb.disabled) continue;
+    const newX = tile.baseX + Math.sin(t * tile.spd + tile.phase) * tile.amp;
+    tile.visual.position.x = newX;
+    tile.aabb.minX = newX - tile.w/2;
+    tile.aabb.maxX = newX + tile.w/2;
+  }
+}
+
+/* ── Mushroom + flower tracking ─────────────────────────────────────────── */
+const mushroomObjects = [];
+function placeMushroom(x, y, z) {
+  const g = createMushroom();
+  g.position.set(x, y, z);
+  scene.add(g);
+  mushroomObjects.push({ group:g, pos:new THREE.Vector3(x,y,z) });
+}
+
+/* ══ STAGE 1 — 18 platforms (already built), stage-clear portal ══════════ */
+buildStageClear(0, 56, 0);
+
+/* ══ STAGE 2 — 6 platforms, mushrooms, 2 flowers ════════════════════════ */
+[{x:3,y:62,z:0,w:6,h:1,d:6},{x:-5,y:70,z:0,w:4,h:1,d:6},
+ {x:5,y:78,z:0,w:3.5,h:1,d:6},{x:-4,y:86,z:0,w:3,h:1,d:6},
+ {x:4,y:94,z:0,w:3,h:1,d:6},{x:0,y:102,z:0,w:9,h:1,d:8,summit:true}
+].forEach(addPlatform);
+placeMushroom(3,63.5,0); placeMushroom(-5,71.5,0); placeMushroom(-4,87.5,0);
+buildStageClear(0, 106, 0);
+
+/* ══ STAGE 3 — regular + clouds, mushrooms, 3 flowers ═══════════════════ */
+[{x:-3,y:112,z:0,w:5,h:1,d:6},{x:4,y:124,z:0,w:4,h:1,d:6},
+ {x:4,y:142,z:0,w:3.5,h:1,d:6},{x:0,y:155,z:0,w:7,h:1,d:8,summit:true}
+].forEach(addPlatform);
+addCloudPlatform({x:4,y:118,z:0,w:3.5,h:0.5,d:5});
+addCloudPlatform({x:-3,y:130,z:0,w:3,h:0.5,d:5});
+addCloudPlatform({x:5,y:136,z:0,w:3,h:0.5,d:5});
+addCloudPlatform({x:-5,y:148,z:0,w:3,h:0.5,d:5});
+placeMushroom(-3,113.5,0); placeMushroom(4,143.5,0);
+buildStageClear(0, 160, 0);
+
+/* ══ STAGE 4 — more clouds, mushrooms, 4 flowers ════════════════════════ */
+[{x:-4,y:170,z:0,w:4,h:1,d:6},{x:4,y:188,z:0,w:3.5,h:1,d:6},
+ {x:0,y:207,z:0,w:7,h:1,d:8,summit:true}
+].forEach(addPlatform);
+addCloudPlatform({x:3,y:164,z:0,w:4,h:0.5,d:5});
+addCloudPlatform({x:5,y:176,z:0,w:3,h:0.5,d:5});
+addCloudPlatform({x:-3,y:182,z:0,w:3,h:0.5,d:5});
+addCloudPlatform({x:-4,y:194,z:0,w:3,h:0.5,d:5});
+addCloudPlatform({x:3,y:200,z:0,w:2.5,h:0.5,d:5});
+placeMushroom(-4,171.5,0); placeMushroom(4,189.5,0);
+buildStageClear(0, 211, 0);
+
+/* ══ STAGE 5 — 10 moving platforms + 5 moving clouds, ROCKET at top ══════ */
+addMovingPlatform({x:2,  y:215,z:0,w:4,  h:1,d:5},         3.5, 1.2, 0.0);
+addMovingPlatform({x:-2, y:224,z:0,w:3.5,h:1,d:5},         3.0, 0.9, 0.8);
+addMovingPlatform({x:3,  y:234,z:0,w:3,  h:1,d:5},         4.0, 1.5, 1.5);
+addMovingPlatform({x:-3, y:244,z:0,w:3,  h:1,d:5},         3.5, 1.0, 2.2);
+addMovingPlatform({x:2,  y:255,z:0,w:3,  h:1,d:5},         4.5, 1.8, 0.4);
+addMovingPlatform({x:-4, y:266,z:0,w:2.5,h:1,d:5},         3.5, 1.3, 1.0);
+addMovingPlatform({x:3,  y:277,z:0,w:2.5,h:1,d:5},         4.0, 1.6, 2.8);
+addMovingPlatform({x:-2, y:289,z:0,w:2.5,h:1,d:5},         4.5, 2.0, 0.2);
+addMovingPlatform({x:4,  y:302,z:0,w:2.5,h:1,d:5},         3.5, 1.1, 1.8);
+addMovingPlatform({x:0,  y:315,z:0,w:7,  h:1,d:7,summit:true}, 2.5, 0.8, 0.5);
+addMovingCloud({x:-4, y:220,z:0,w:3.5,h:0.5,d:5}, 3.0, 1.4, 1.2);
+addMovingCloud({x:4,  y:230,z:0,w:3,  h:0.5,d:5}, 3.5, 1.1, 0.6);
+addMovingCloud({x:-2, y:250,z:0,w:3,  h:0.5,d:5}, 4.0, 1.7, 2.0);
+addMovingCloud({x:4,  y:272,z:0,w:2.5,h:0.5,d:5}, 3.5, 1.3, 1.4);
+addMovingCloud({x:-3, y:286,z:0,w:2.5,h:0.5,d:5}, 4.0, 1.9, 0.9);
+
+/* ── Rocket + EMO (set by setupGLBVisuals when GLBs load) ────────────────── */
+const ROCKET_Y = 321;
+let rocketGroup = null;
+let emoGroup    = null;
+let shipLaunching  = false;
+let shipLaunchTimer = 0;
+const rocketGlow = new THREE.PointLight(0xff8833, 2.5, 20);
+rocketGlow.position.set(0, ROCKET_Y - 2.5, 0);
+scene.add(rocketGlow);
+
+/* ── Star field (visible in stage 5 space zone) ─────────────────────────── */
+const starCount = 140;
+const starPts = new Float32Array(starCount * 3);
+for (let i=0;i<starCount;i++){
+  starPts[i*3+0] = (Math.random()-0.5)*100;
+  starPts[i*3+1] = 200 + Math.random()*260;
+  starPts[i*3+2] = -10 - Math.random()*25;
+}
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPts, 3));
+const starMat = new THREE.PointsMaterial({ color:0xffffff, size:0.55, transparent:true, opacity:0, sizeAttenuation:true });
+const stars = new THREE.Points(starGeo, starMat);
+scene.add(stars);
+
+/* ── Moon (decorative background) ───────────────────────────────────────── */
+const moonMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(9, 16, 12),
+  new THREE.MeshLambertMaterial({ color:0xeeeebb, emissive:0x888833 })
+);
+moonMesh.position.set(14, 370, -38);
+scene.add(moonMesh);
+
+/* ── Character — GLTF model (CHOG_3D.glb) ─────────────────────────────────
+   Architecture:
+   • characterGroup = visual root, synced to physics body (playerPos) every frame
+   • model is added INSIDE characterGroup — NEVER influences physics
+   • AnimationMixer drives clips if the GLB has them; squash/stretch applied
+     to characterGroup.scale (visual only)
    ────────────────────────────────────────────────────────────────────────── */
 const characterGroup = new THREE.Group();
 scene.add(characterGroup);
 
-// Body parts stored for animation manipulation
-const parts = {};
+// Filled once the GLB is loaded
+let mixer   = null;   // THREE.AnimationMixer
+let actions = {};     // { idle, charge, jump, fall, land }
+let modelLoaded = false;
 
-// Pot (black cauldron)
-{
-  const pot = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.92, 0.72, 1.2, 18),
-    new THREE.MeshLambertMaterial({ color:0x1a1420 })
-  );
-  pot.position.y = -0.3;
-  pot.castShadow = true;
-  characterGroup.add(pot);
-  // Rim
-  const rim = new THREE.Mesh(
-    new THREE.TorusGeometry(0.94, 0.11, 8, 22),
-    new THREE.MeshLambertMaterial({ color:0x2e2040 })
-  );
-  rim.position.y = 0.26;
-  rim.rotation.x = Math.PI/2;
-  characterGroup.add(rim);
-  parts.pot = pot;
-}
+// Show a tiny spinner while loading
+const loadDiv = document.createElement('div');
+loadDiv.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:99;pointer-events:none;font-size:13px;letter-spacing:3px;color:#9966ff;';
+loadDiv.textContent = 'LOADING CHOG…';
+document.body.appendChild(loadDiv);
 
-// Torso (purple, visible above pot rim)
-{
-  const torso = new THREE.Mesh(
-    new THREE.SphereGeometry(0.62, 16, 14),
-    new THREE.MeshLambertMaterial({ color:0x4a22a8 })
-  );
-  torso.position.y = 0.55;
-  torso.scale.set(1, 0.85, 1);
-  torso.castShadow = true;
-  characterGroup.add(torso);
-  parts.torso = torso;
-}
+const loader = new THREE.GLTFLoader();
+loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
+  const model = gltf.scene;
 
-// Head (cream)
-const headGroup = new THREE.Group();
-headGroup.position.y = 1.3;
-characterGroup.add(headGroup);
-parts.head = headGroup;
-{
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.58, 18, 16),
-    new THREE.MeshLambertMaterial({ color:0xf5ecd8 })
-  );
-  head.castShadow = true;
-  headGroup.add(head);
-}
+  // ── Scale & orient ────────────────────────────────────────────────────────
+  // Adjust MODEL_SCALE if CHOG appears too big or small in-game
+  const MODEL_SCALE = 1.0;
+  model.scale.setScalar(MODEL_SCALE);
+  // Meshy models often face +Z; rotate so they face the camera (-Z)
+  model.rotation.y = 0;  // facing camera — adjust if model still looks backward
 
-// Hair spikes (purple cones)
-{
-  const hairMat = new THREE.MeshLambertMaterial({ color:0x3510a0 });
-  const back = new THREE.MeshLambertMaterial({ color:0x260a70 });
-  const spec = [
-    [-0.45, 0.35, -0.1, -0.4],
-    [-0.25, 0.55,  0.0, -0.15],
-    [ 0.0,  0.62,  0.0,  0.0],
-    [ 0.25, 0.55,  0.0,  0.15],
-    [ 0.45, 0.35,  -0.1, 0.4],
-    // Back spikes
-    [-0.3,  0.3, -0.3, -0.25],
-    [ 0.3,  0.3, -0.3,  0.25],
-  ];
-  spec.forEach((s, i) => {
-    const spike = new THREE.Mesh(
-      new THREE.ConeGeometry(0.18, 0.6, 6),
-      i < 5 ? hairMat : back
-    );
-    spike.position.set(s[0], s[1], s[3]);
-    spike.rotation.z = -s[0] * 0.9;
-    spike.rotation.x = s[2] * 1.2;
-    headGroup.add(spike);
+  model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+  characterGroup.add(model);
+
+  // ── Animation mixer ───────────────────────────────────────────────────────
+  if (gltf.animations && gltf.animations.length > 0) {
+    mixer = new THREE.AnimationMixer(model);
+
+    // Map clip names → action dict (case-insensitive, with fallbacks)
+    const clipMap = {};
+    gltf.animations.forEach(clip => { clipMap[clip.name.toLowerCase()] = clip; });
+    const getClip = (...keys) => {
+      for (const k of keys) if (clipMap[k]) return mixer.clipAction(clipMap[k]);
+      // Fallback: first available clip
+      if (gltf.animations.length) return mixer.clipAction(gltf.animations[0]);
+      return null;
+    };
+    actions.idle   = getClip('idle');
+    actions.charge = getClip('charge', 'crouch', 'idle');
+    actions.jump   = getClip('jump', 'launch');
+    actions.fall   = getClip('fall', 'jump');
+    actions.land   = getClip('land', 'idle');
+
+    // Non-looping states
+    ['jump','land'].forEach(k => { if (actions[k]) { actions[k].setLoop(THREE.LoopOnce); actions[k].clampWhenFinished = true; } });
+
+    if (actions.idle) actions.idle.play();
+  }
+
+  modelLoaded = true;
+  loadDiv.remove();
+}, undefined, err => {
+  console.error('GLB load error:', err);
+  loadDiv.textContent = 'MODEL LOAD FAILED — using fallback';
+  modelLoaded = true; // continue with empty group
+});
+
+/* ── GLB Asset Preloader ──────────────────────────────────────────────────── */
+const glbAssets = {};
+const glbQueue  = [
+  ['tile1',      '/game/floating_tile_opt.glb'],
+  ['tile3',      '/game/floating_tile3_opt.glb'],
+  ['grass',      '/game/grass_opt.glb'],
+  ['lollipop',   '/game/lollipop1_opt.glb'],
+  ['candy',      '/game/candy_opt.glb'],
+  ['stone',      '/game/stone1_opt.glb'],
+  ['tree1',      '/game/tree1_opt.glb'],
+  ['tree2',      '/game/tree2_opt.glb'],
+  ['tree3',      '/game/tree3_opt.glb'],
+  ['moncock',    '/game/moncock_opt.glb'],
+  ['stageClear', '/game/stage_clear_opt.glb'],
+  ['rocket',     '/game/rocket_opt.glb'],
+  ['emo',        '/game/EMO_opt.glb'],
+];
+function loadGLBAsset(name, url) {
+  return new Promise(resolve => {
+    const l = new THREE.GLTFLoader();
+    l.load(url, gltf => {
+      gltf.scene.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+      glbAssets[name] = gltf.scene;
+      resolve();
+    }, undefined, () => resolve());
   });
 }
+Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
 
-// Eyes (big expressive)
-parts.eyes = [];
-[-0.22, 0.22].forEach(ex => {
-  const white = new THREE.Mesh(
-    new THREE.SphereGeometry(0.14, 10, 10),
-    new THREE.MeshBasicMaterial({ color:0xffffff })
-  );
-  white.position.set(ex, 0.02, 0.48);
-  white.scale.set(0.85, 1, 0.7);
-  headGroup.add(white);
-  const iris = new THREE.Mesh(
-    new THREE.SphereGeometry(0.09, 10, 10),
-    new THREE.MeshBasicMaterial({ color:0x1a0a2e })
-  );
-  iris.position.set(ex, 0, 0.56);
-  headGroup.add(iris);
-  const shine = new THREE.Mesh(
-    new THREE.SphereGeometry(0.03, 6, 6),
-    new THREE.MeshBasicMaterial({ color:0xffffff })
-  );
-  shine.position.set(ex+0.04, 0.04, 0.6);
-  headGroup.add(shine);
-  parts.eyes.push({ white, iris, shine });
-});
-
-// Cheeks (pink)
-[-0.32, 0.32].forEach(cx => {
-  const cheek = new THREE.Mesh(
-    new THREE.SphereGeometry(0.1, 8, 8),
-    new THREE.MeshBasicMaterial({ color:0xff6e8c, transparent:true, opacity:0.65 })
-  );
-  cheek.position.set(cx, -0.12, 0.45);
-  cheek.scale.set(1.6, 0.9, 0.4);
-  headGroup.add(cheek);
-});
-
-// Mouth (open, excited)
-{
-  const mouth = new THREE.Mesh(
-    new THREE.SphereGeometry(0.11, 10, 10),
-    new THREE.MeshBasicMaterial({ color:0x5a1020 })
-  );
-  mouth.position.set(0, -0.22, 0.5);
-  mouth.scale.set(1, 0.6, 0.5);
-  headGroup.add(mouth);
-  parts.mouth = mouth;
+function glbFitClone(name, targetW, targetD) {
+  const tmpl = glbAssets[name];
+  if (!tmpl) return null;
+  const clone = tmpl.clone();
+  const box = new THREE.Box3().setFromObject(clone);
+  const sz  = box.getSize(new THREE.Vector3());
+  if (sz.x > 0.01 && sz.z > 0.01) clone.scale.set(targetW/sz.x, targetW/sz.x, targetD/sz.z);
+  return clone;
 }
 
-// Arms (pink gloves + purple sleeves) — left & right, pinned to torso
-function makeArm(side){
-  const arm = new THREE.Group();
-  const sleeve = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.11, 0.13, 0.55, 8),
-    new THREE.MeshLambertMaterial({ color:0x4a22a8 })
-  );
-  sleeve.position.y = -0.25;
-  arm.add(sleeve);
-  const glove = new THREE.Mesh(
-    new THREE.SphereGeometry(0.24, 12, 10),
-    new THREE.MeshLambertMaterial({ color:0xd94fa0 })
-  );
-  glove.position.y = -0.55;
-  glove.castShadow = true;
-  arm.add(glove);
-  arm.position.set(side * 0.55, 0.6, 0);
-  arm.rotation.z = side * 0.5;
-  characterGroup.add(arm);
-  return arm;
+function glbUniformClone(name, scale) {
+  const tmpl = glbAssets[name];
+  if (!tmpl) return null;
+  const clone = tmpl.clone();
+  clone.scale.setScalar(scale);
+  return clone;
 }
-parts.armL = makeArm(-1);
-parts.armR = makeArm(1);
+
+function placeDecor(name, scale, x, y, z, ry=0) {
+  const m = glbUniformClone(name, scale);
+  if (!m) return null;
+  m.position.set(x, y, z);
+  m.rotation.y = ry;
+  scene.add(m);
+  return m;
+}
+
+function setupGLBVisuals() {
+  const tileBox = new THREE.Box3();
+  const tileSz  = new THREE.Vector3();
+
+  /* 1 ─ Floating tile visuals: replace BoxGeometry platforms */
+  let tileIdx = 0;
+  platformMeshes.forEach(p => {
+    if (p.def.flat) return; // skip ground and summit-flag flat tiles
+    const name = tileIdx % 2 === 0 ? 'tile1' : 'tile3';
+    tileIdx++;
+    const tmpl = glbAssets[name];
+    if (!tmpl) return;
+    tileBox.setFromObject(tmpl);
+    tileBox.getSize(tileSz);
+    const clone = tmpl.clone();
+    const sx = tileSz.x > 0.01 ? p.def.w / tileSz.x : 1;
+    const sz = tileSz.z > 0.01 ? p.def.d / tileSz.z : 1;
+    clone.scale.set(sx, sx, sz);
+    clone.position.set(p.def.x, p.def.y, p.def.z);
+    scene.add(clone);
+    p.mesh.visible = false;
+  });
+
+  /* 2 ─ Moving tile visuals for stage 5 platforms */
+  let mtIdx = 0;
+  movingTiles.forEach(tile => {
+    if (tile.aabb.isCloud) return;
+    const name = mtIdx % 2 === 0 ? 'tile1' : 'tile3';
+    mtIdx++;
+    const tmpl = glbAssets[name];
+    if (!tmpl) return;
+    tileBox.setFromObject(tmpl);
+    tileBox.getSize(tileSz);
+    const clone = tmpl.clone();
+    const sx = tileSz.x > 0.01 ? tile.w / tileSz.x : 1;
+    clone.scale.set(sx, sx, 1.0);
+    tile.visual.add(clone);      // child moves with platform
+    tile.visual.visible = false; // hide BoxGeometry mesh
+  });
+
+  /* 3 ─ Grass / lollipop / candy decorations on platforms + ground */
+  const decors = [
+    // [name, scale, x, y, z, ry]
+    // Ground spread
+    ['grass',    0.9, -5, 0, 2,  0.3], ['grass',    0.8,  0, 0,-2,  0.7],
+    ['grass',    1.0,  5, 0, 3, -0.4], ['grass',    0.9, -2, 0, 4,  1.2],
+    ['grass',    0.8,  3, 0,-3, -0.8], ['grass',    0.7, -8, 0, 0,  0.5],
+    ['grass',    0.9,  8, 0, 1, -0.3], ['grass',    0.8, -4, 0,-4,  1.5],
+    ['lollipop', 0.9, -1, 0, 1,  0.0], ['lollipop', 0.9,  6, 0,-2,  1.2],
+    ['candy',    0.8,  2, 0, 4,  0.6],
+    // Stage 1 platforms
+    ['grass',    0.7, -6, 3.6, 0, 0.2], ['grass', 0.6, 5, 6.6, 0, -0.5],
+    ['grass',    0.7, -5,21.6, 0, 0.8], ['grass', 0.6,  3,24.6, 0,  1.0],
+    ['grass',    0.6, -4,27.6, 0,-0.4], ['grass', 0.7,  5,30.6, 0,  0.6],
+    ['lollipop', 0.8, -5,39.6, 0, 0.0], ['candy', 0.7,  3,42.6, 0,  0.4],
+    // Stage 2 platforms
+    ['grass',    0.7,  3, 62.6, 0, 0.3], ['grass', 0.6, -5, 70.6, 0, -0.6],
+    ['grass',    0.6,  5, 78.6, 0,  0.8], ['lollipop', 0.7, -4, 86.6, 0, 0.0],
+    // Stage 3 platforms
+    ['grass',    0.7, -3,112.6, 0, 0.4], ['candy', 0.6,  4,124.6, 0,  0.3],
+    ['grass',    0.6,  4,142.6, 0,-0.3],
+    // Stage 4 platforms
+    ['grass',    0.7, -4,170.6, 0, 0.5], ['grass', 0.6,  4,188.6, 0, -0.4],
+  ];
+  decors.forEach(([n,s,x,y,z,ry]) => placeDecor(n,s,x,y,z,ry));
+
+  /* 4 ─ Trees + stones in starting stage 1 area */
+  placeDecor('tree1', 1.8, -10, 0, -3,  0.3);
+  placeDecor('tree2', 1.6,  10, 0, -2, -0.5);
+  placeDecor('tree3', 2.0, -14, 0,  1,  0.8);
+  placeDecor('tree1', 1.4,  14, 0,  0, -0.2);
+  placeDecor('tree2', 1.5,  -7, 0,  5,  0.4);
+  placeDecor('tree3', 1.7,   7, 0,  4, -0.6);
+  placeDecor('stone', 1.2,  -3, 0,  3,  0.0);
+  placeDecor('stone', 0.9,   4, 0, -4,  1.0);
+  placeDecor('stone', 1.0,   0, 0,  5, -0.5);
+
+  /* 5 ─ Moncock NPC beside start (behind/left of character spawn) */
+  const mc = glbUniformClone('moncock', 1.3);
+  if (mc) {
+    mc.position.set(-2.5, 1.5, -1.5);
+    mc.rotation.y = 0.8;
+    scene.add(mc);
+  }
+
+  /* 6 ─ Stage-clear GLBs (replace placeholder star shapes) */
+  stageClearObjects.forEach(sc => {
+    const tmpl = glbAssets['stageClear'];
+    if (!tmpl) return;
+    const m = tmpl.clone();
+    m.scale.setScalar(1.6);
+    m.position.copy(sc.pos);
+    scene.add(m);
+    // Remove placeholder
+    scene.remove(sc.group);
+    sc.group = m;
+  });
+
+  /* 7 ─ Rocket at stage 5 summit */
+  if (glbAssets['rocket']) {
+    rocketGroup = glbAssets['rocket'].clone();
+    rocketGroup.scale.setScalar(2.2);
+    rocketGroup.position.set(0, ROCKET_Y, 0);
+    scene.add(rocketGroup);
+  }
+
+  /* 8 ─ EMO beside rocket, waiting */
+  if (glbAssets['emo']) {
+    emoGroup = glbAssets['emo'].clone();
+    emoGroup.scale.setScalar(1.4);
+    emoGroup.position.set(3.0, ROCKET_Y - 1.5, 0);
+    scene.add(emoGroup);
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PHYSICS — custom sphere vs AABB
@@ -404,7 +782,7 @@ parts.armR = makeArm(1);
     cannon-es here if desired — the AnimationState / sync logic does not care.)
    ═══════════════════════════════════════════════════════════════════════════ */
 const GRAVITY          = -28;
-const MAX_LAUNCH_FORCE = 26;
+const MAX_LAUNCH_FORCE = 36;
 const BOUNCE           = 0.28;
 const FRICTION_GROUND  = 0.82;
 const AIR_DRAG         = 0.992;
@@ -432,7 +810,7 @@ function physicsStep(dt){
   // Integrate
   playerVel.y += GRAVITY * dt;
   playerVel.x *= AIR_DRAG;
-  playerVel.z *= AIR_DRAG;
+  playerVel.z *= 0.75;  // strong Z damping — game plays as 2.5D side view
   const sp = playerVel.length();
   if (sp > MAX_SPEED) playerVel.multiplyScalar(MAX_SPEED / sp);
   playerPos.x += playerVel.x * dt;
@@ -444,6 +822,7 @@ function physicsStep(dt){
 
   // Collide vs every AABB (few dozen, fine)
   for (const b of platforms) {
+    if (b.disabled) continue;
     const col = sphereVsAABB(playerPos, PLAYER_RADIUS, b);
     if (!col) continue;
     playerPos.x += col.nx * col.pen;
@@ -596,11 +975,11 @@ function evtXY(e){
 
 function onDown(e){
   if (!gameRunning) return;
+  if (!playerOnGround) return;  // can only launch from ground
   const p = evtXY(e);
   const s = playerScreen();
   const dx = p.x - s.x, dy = p.y - s.y;
-  // Require click reasonably close to character OR anywhere if airborne (for forgiveness)
-  if (Math.hypot(dx, dy) > 160 && playerOnGround) return;
+  if (Math.hypot(dx, dy) > 160) return;
   input.dragging = true;
   input.startX = p.x; input.startY = p.y;
   input.curX = p.x; input.curY = p.y;
@@ -642,19 +1021,18 @@ function onUp(){
   camDir.y = 0; camDir.normalize();
   const camRight = new THREE.Vector3().crossVectors(camDir, new THREE.Vector3(0,1,0)).normalize();
 
-  // Horizontal launch in world from screen-x
-  const hx = camRight.x * nsx;
-  const hz = camRight.z * nsx;
-  // Screen-y up → vertical + slight forward thrust (so player can chain upward moves)
-  const upComponent = Math.max(0, nsy);
-  const fwdComponent = upComponent * 0.35;
+  // Screen Y: increases downward. Drag DOWN (dy>0) → nsy<0 → launch UP.
+  // upward screen launch  = nsy < 0  → world Y positive
+  // downward screen launch = nsy > 0 → world Y negative (rare intentional push-down)
+  const vertSign = -nsy;  // positive when launching upward
 
-  playerVel.x = hx * force + camDir.x * fwdComponent * force;
-  playerVel.y = upComponent * force + force * 0.25;  // always some upward kick
-  playerVel.z = hz * force + camDir.z * fwdComponent * force;
+  // Lock to X/Y plane — drag left/right = world X, drag up = world Y
+  // Z velocity intentionally not set (stays near 0 from damping)
+  playerVel.x = nsx * force;
+  playerVel.z = 0;  // no Z on launch — 2.5D feel
 
-  // Downward drag → push down (short hops, cancel upward)
-  if (nsy < 0) playerVel.y = Math.max(-force * 0.5, nsy * force);
+  // Vertical: -nsy maps screen-up drag to positive world Y
+  playerVel.y = vertSign * force + force * 0.18;
 
   // Visual feedback
   squash.trigger('launch', 0.6 + power * 0.6);
@@ -723,17 +1101,21 @@ function drawArrow(){
   arrowCtx.fill();
 }
 
-/* ── Camera follow (lerp, with speed-based zoom-out) ──────────────────────── */
-const CAM_OFFSET = new THREE.Vector3(0, 5, 16);
+/* ── Camera follow — fixed Z offset, tracks X/Y only (2.5D side view) ─────── */
+const CAM_OFFSET = new THREE.Vector3(0, 5, 18);
 const camLookAt = new THREE.Vector3();
 function updateCamera(dt){
-  const speed = playerVel.length();
-  const zoom = 1 + Math.max(0, playerVel.y) * 0.035;
-  const target = playerPos.clone().add(new THREE.Vector3(CAM_OFFSET.x, CAM_OFFSET.y, CAM_OFFSET.z * zoom));
+  const zoom = 1 + Math.max(0, playerVel.y) * 0.03;
+  // Camera stays at fixed Z relative to world (not relative to player Z)
+  const target = new THREE.Vector3(
+    playerPos.x,
+    playerPos.y + CAM_OFFSET.y,
+    CAM_OFFSET.z * zoom   // fixed world Z — camera never drifts behind player
+  );
   const sh = shake.offset(dt);
   target.add(sh);
   camera.position.lerp(target, 0.09);
-  camLookAt.lerp(playerPos.clone().add(new THREE.Vector3(0, 1.5, 0)), 0.12);
+  camLookAt.lerp(new THREE.Vector3(playerPos.x, playerPos.y + 1.5, 0), 0.12);
   camera.lookAt(camLookAt);
 
   playerLight.position.set(playerPos.x, playerPos.y + 2, playerPos.z);
@@ -743,82 +1125,51 @@ function updateCamera(dt){
 }
 
 /* ── Character animation (procedural, driven by state machine) ─────────── */
+// Cross-fade GLTF animation clips
+function playAction(name, fadeSec=0.2){
+  const next = actions[name];
+  if (!next || next === mixer._currentAction) return;
+  if (mixer._currentAction) mixer._currentAction.fadeOut(fadeSec);
+  next.reset().fadeIn(fadeSec).play();
+  mixer._currentAction = next;
+}
+
 function applyAnimation(t, dt){
-  // Default base pose
-  let baseScale = squash.update(dt);
+  // ── Update AnimationMixer (GLTF clips) ──────────────────────────────────
+  if (mixer) {
+    mixer.update(dt);
+    playAction(animState);
+  }
+
+  // ── Squash & stretch applied to characterGroup (visual only) ────────────
+  const baseScale = squash.update(dt);
   characterGroup.scale.copy(baseScale);
 
-  // Head/body face direction of horizontal velocity (subtle yaw)
-  const horizDir = new THREE.Vector2(playerVel.x, playerVel.z);
-  if (horizDir.lengthSq() > 0.5) {
-    const targetYaw = Math.atan2(horizDir.x, horizDir.y);
-    // Lerp yaw
-    const cur = characterGroup.rotation.y;
-    let diff = targetYaw - cur;
-    while (diff > Math.PI) diff -= Math.PI*2;
-    while (diff < -Math.PI) diff += Math.PI*2;
-    characterGroup.rotation.y = cur + diff * 0.12;
-  }
-
-  // Per-state overrides
-  if (animState === 'idle') {
-    const bob = Math.sin(t*2.2) * 0.04;
-    parts.head.position.y = 1.3 + bob;
-    parts.armL.rotation.z =  0.5 + Math.sin(t*2) * 0.12;
-    parts.armR.rotation.z = -0.5 - Math.sin(t*2) * 0.12;
-    parts.armL.rotation.x = 0;
-    parts.armR.rotation.x = 0;
-    parts.mouth.scale.set(1, 0.5, 0.5);
-  }
-  else if (animState === 'charge') {
-    // Squat + arms back
+  // Charge: compress whole model with drag power
+  if (animState === 'charge') {
     const c = input.power;
-    characterGroup.scale.multiply(new THREE.Vector3(1 + c*0.18, 1 - c*0.18, 1 + c*0.18));
-    parts.armL.rotation.z =  0.9 + c*0.6;
-    parts.armR.rotation.z = -0.9 - c*0.6;
-    parts.armL.rotation.x = -0.5;
-    parts.armR.rotation.x = -0.5;
-    parts.head.position.y = 1.3 - c * 0.1;
-    parts.mouth.scale.set(1 + c*0.5, 0.8 + c, 0.6);
-  }
-  else if (animState === 'jump') {
-    // Stretch up, arms up
-    parts.armL.rotation.z =  1.4;
-    parts.armR.rotation.z = -1.4;
-    parts.armL.rotation.x = 0.2;
-    parts.armR.rotation.x = 0.2;
-    parts.head.position.y = 1.35;
-    parts.mouth.scale.set(1.3, 1.2, 0.6);
-  }
-  else if (animState === 'fall') {
-    // Flail arms
-    const f = Math.sin(t*14) * 0.5;
-    parts.armL.rotation.z =  1.1 + f;
-    parts.armR.rotation.z = -1.1 - f;
-    parts.armL.rotation.x = 0.4 + f * 0.3;
-    parts.armR.rotation.x = 0.4 - f * 0.3;
-    parts.head.position.y = 1.3;
-    parts.mouth.scale.set(1.4, 1.3, 0.7);
-    // Lean
-    characterGroup.rotation.z = Math.max(-0.35, Math.min(0.35, -playerVel.x * 0.02));
-  }
-  else if (animState === 'land') {
-    parts.armL.rotation.z =  0.3;
-    parts.armR.rotation.z = -0.3;
-    parts.armL.rotation.x = -0.2;
-    parts.armR.rotation.x = -0.2;
-    parts.mouth.scale.set(1.1, 0.6, 0.5);
+    characterGroup.scale.multiply(new THREE.Vector3(1 + c*0.15, 1 - c*0.15, 1 + c*0.15));
   }
 
-  // Smooth out body roll when on ground
+  // ── Lean in direction of horizontal velocity ─────────────────────────────
+  if (animState === 'fall' || animState === 'jump') {
+    characterGroup.rotation.z = Math.max(-0.3, Math.min(0.3, -playerVel.x * 0.018));
+  }
   if (playerOnGround) {
     characterGroup.rotation.z *= 0.8;
+  }
+
+  // ── Idle bob (whole group, works even without GLTF idle clip) ───────────
+  if (animState === 'idle') {
+    characterGroup.position.y = playerPos.y + Math.sin(t * 2.2) * 0.04;
+  } else {
+    characterGroup.position.y = playerPos.y;
   }
 }
 
 /* ── HUD / toast ──────────────────────────────────────────────────────────── */
 const hEl = document.getElementById('h-val');
-const bEl = document.getElementById('b-val');
+// b-val element removed (replaced by stage-val)
 const toastEl = document.getElementById('toast');
 let bestHeight = 0;
 let prevMilestone = 0;
@@ -826,7 +1177,8 @@ let prevMilestone = 0;
 function updateHUD(){
   const h = Math.max(0, Math.round(playerPos.y * 1.5));
   hEl.textContent = h;
-  if (h > bestHeight) { bestHeight = h; bEl.textContent = h; }
+  if (h > bestHeight) bestHeight = h;
+  document.getElementById('stage-val').textContent = currentStage + 1;
 }
 
 function showToast(msg, ms=1800){
@@ -836,19 +1188,85 @@ function showToast(msg, ms=1800){
   showToast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
 }
 
+/* ── Timer (count UP — clear time) ───────────────────────────────────────── */
+let clearTime = 0;
+const timerEl = document.getElementById('timer-val');
+
+function formatTime(t){
+  const m = Math.floor(t/60);
+  const s = Math.floor(t%60);
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function updateTimer(dt){
+  if (!gameRunning) return;
+  clearTime += dt;
+  timerEl.textContent = formatTime(clearTime);
+}
+
+document.getElementById('btn-gameover-retry').addEventListener('click', () => {
+  document.getElementById('gameover-overlay').classList.add('hidden');
+  resetGame();
+  gameRunning = true;
+  showToast('GO! DRAG FROM CHOG TO LAUNCH');
+});
+
 /* ── Start / Restart ──────────────────────────────────────────────────────── */
 let gameRunning = false;
-let appleGot = false;
-const startOv = document.getElementById('start-overlay');
+let gameWon = false;
+let gameOver = false;
+let currentStage = 0; // 0-indexed
+const bonusFlash  = document.getElementById('bonus-flash');
+const stageBanner = document.getElementById('stage-banner');
+const startOv  = document.getElementById('start-overlay');
 const summitOv = document.getElementById('summit-overlay');
+const gameoverOv = document.getElementById('gameover-overlay');
+
+function showStageBanner(txt){
+  stageBanner.textContent = txt;
+  stageBanner.style.opacity='1';
+  stageBanner.style.transform='translate(-50%,-50%) scale(1)';
+  setTimeout(()=>{ stageBanner.style.opacity='0'; stageBanner.style.transform='translate(-50%,-50%) scale(1.3)'; },1400);
+}
+
+function advanceStage(){
+  currentStage++;
+  bonusFlash.style.opacity='1';
+  setTimeout(()=>{ bonusFlash.style.opacity='0'; },180);
+  spawnParticles(playerPos.clone(), 0xffd700, 30);
+  shake.trigger(0.3);
+  showStageBanner(`STAGE ${currentStage+1}`);
+  showToast(`🌸 STAGE ${currentStage+1}!`);
+}
+
+function triggerGameOver(){
+  gameRunning=false; gameOver=true;
+  bonusFlash.style.background='rgba(255,40,40,.72)';
+  bonusFlash.style.opacity='1';
+  setTimeout(()=>{ bonusFlash.style.opacity='0'; bonusFlash.style.background='rgba(255,240,80,.75)'; },320);
+  shake.trigger(0.9);
+  spawnParticles(playerPos.clone(), 0xff2222, 32);
+  setTimeout(()=> gameoverOv.classList.remove('hidden'), 500);
+}
 
 function resetGame(){
-  playerPos.set(0, 2, 0);
-  playerVel.set(0, 0, 0);
-  appleGot = false;
-  bestHeight = 0;
-  prevMilestone = 0;
-  bEl.textContent = 0;
+  playerPos.set(0,2,0); playerVel.set(0,0,0);
+  gameWon=false; gameOver=false; currentStage=0;
+  clearTime=0; bestHeight=0; prevMilestone=0;
+  hEl.textContent=0;
+  document.getElementById('stage-val').textContent=1;
+  timerEl.textContent='0:00';
+  // Re-enable all clouds
+  for(const c of cloudObjects){ c.state='active'; c.timer=0; c.aabb.disabled=false; c.group.visible=true; c.baseMat.opacity=0.85; c.puffMat.opacity=0.9; }
+  // Reset stage-clear objects
+  for(const sc of stageClearObjects){ sc.collected=false; if(sc.group) sc.group.visible=true; }
+  // Reset rocket
+  if(rocketGroup){ rocketGroup.visible=true; rocketGroup.position.set(0,ROCKET_Y,0); rocketGroup.rotation.y=0; }
+  if(emoGroup){ emoGroup.visible=true; emoGroup.position.set(3.0,ROCKET_Y-1.5,0); }
+  rocketGlow.position.set(0,ROCKET_Y-2.5,0);
+  shipLaunching=false; shipLaunchTimer=0;
+  // Re-init moving tiles
+  for(const tile of movingTiles){ tile.visual.position.x=tile.baseX; tile.aabb.minX=tile.baseX-tile.w/2; tile.aabb.maxX=tile.baseX+tile.w/2; }
   setState('idle');
 }
 
@@ -862,6 +1280,7 @@ document.getElementById('btn-restart').addEventListener('click', () => {
   summitOv.classList.add('hidden');
   resetGame();
   gameRunning = true;
+  showToast('GO! DRAG FROM CHOG TO LAUNCH');
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -874,20 +1293,58 @@ function frame(now){
   lastT = now;
   const t = now / 1000;
 
-  if (gameRunning && !appleGot) {
+  if (gameRunning && !gameWon && !gameOver) {
     const SUB = 4;
     const dt = dtRaw / SUB;
     for (let i = 0; i < SUB; i++) physicsStep(dt);
     updateStateFromPhysics(dtRaw);
 
-    // Check apple collection
-    if (playerPos.distanceTo(appleGroup.position) < 2.2) {
-      appleGot = true;
-      gameRunning = false;
-      spawnParticles(appleGroup.position.clone(), 0xffd700, 36);
-      shake.trigger(0.5);
-      setTimeout(() => summitOv.classList.remove('hidden'), 700);
+    // Mushroom death check
+    for (const m of mushroomObjects) {
+      if (playerPos.distanceTo(m.pos) < 1.5) { triggerGameOver(); break; }
     }
+
+    // Stage-clear collection (one portal per stage end)
+    if (!gameOver && currentStage < stageClearObjects.length) {
+      const sc = stageClearObjects[currentStage];
+      if (!sc.collected && playerPos.distanceTo(sc.pos) < 2.6) {
+        sc.collected = true;
+        if (sc.group) sc.group.visible = false;
+        if (sc.light) sc.light.intensity = 0;
+        spawnParticles(sc.pos.clone(), 0xffd700, 30);
+        spawnParticles(sc.pos.clone(), 0xffffff, 15);
+        advanceStage();
+      }
+    }
+
+    // Rocket — stage 5 win (currentStage >= 4 after clearing stage 4)
+    const rocketPos = rocketGroup ? rocketGroup.position
+                    : new THREE.Vector3(0, ROCKET_Y, 0);
+    if (!gameOver && !shipLaunching && currentStage >= 4 &&
+        playerPos.distanceTo(rocketPos) < 2.8) {
+      shipLaunching = true;
+      gameRunning = false;
+      spawnParticles(rocketPos.clone(), 0xff8833, 40);
+      spawnParticles(rocketPos.clone(), 0xffffff, 30);
+      shake.trigger(0.3);
+      document.getElementById('clear-time-display').textContent = formatTime(clearTime);
+    }
+
+    // Cloud touch detection (player standing on cloud → start fade)
+    if (playerOnGround) {
+      for (const c of cloudObjects) {
+        if (c.state !== 'active') continue;
+        const a = c.aabb;
+        if (playerPos.x > a.minX && playerPos.x < a.maxX &&
+            playerPos.z > a.minZ && playerPos.z < a.maxZ &&
+            playerPos.y - PLAYER_RADIUS < a.maxY + 0.4) {
+          c.state = 'fading'; c.timer = 0.8;
+        }
+      }
+    }
+    updateClouds(dtRaw);
+
+    updateTimer(dtRaw);
 
     // Height milestone toasts
     const h = Math.round(playerPos.y * 1.5);
@@ -899,18 +1356,69 @@ function frame(now){
   }
 
   // Sync visual transform to physics body (EVERY FRAME, strict)
-  characterGroup.position.copy(playerPos);
-  applyAnimation(t, dtRaw);
+  // Note: applyAnimation may override .y for idle bob — that's intentional
+  characterGroup.position.set(playerPos.x, playerPos.y, playerPos.z);
+  if (modelLoaded) applyAnimation(t, dtRaw);
   updateParticles(dtRaw);
   updateCamera(dtRaw);
   updateHUD();
   drawArrow();
 
-  // Apple idle animation
-  appleGroup.rotation.y = t * 0.8;
-  appleGroup.position.y = APPLE_Y + Math.sin(t*2) * 0.25;
-  appleGlow.position.y  = appleGroup.position.y;
-  appleGlow.intensity   = 1.8 + Math.sin(t*3) * 0.5;
+  // Stage-clear idle spin
+  for (const sc of stageClearObjects) {
+    if (sc.group && sc.group.visible) sc.group.rotation.y = t * 1.1;
+  }
+
+  // Moving tiles
+  updateMovingTiles(t);
+
+  // Background: sky → space as player climbs into stage 5
+  const bgBlend = Math.max(0, Math.min(1, (playerPos.y - 200) / 120));
+  scene.background.copy(SKY_COL).lerp(SPACE_COL, bgBlend);
+  scene.fog.color.copy(FOG_COL).lerp(SPACE_COL, bgBlend);
+  starMat.opacity = bgBlend > 0.05
+    ? bgBlend * Math.max(0.15, 0.65 + Math.sin(t*2.7)*0.22 + Math.sin(t*5.1+1.3)*0.12)
+    : 0;
+
+  // Rocket idle float + glow
+  if (rocketGroup && !shipLaunching) {
+    rocketGroup.rotation.y = t * 0.4;
+    rocketGroup.position.y = ROCKET_Y + Math.sin(t*1.4) * 0.35;
+    rocketGlow.position.y  = rocketGroup.position.y - 2.5;
+    rocketGlow.intensity   = 2.0 + Math.sin(t*3.0) * 0.8;
+  }
+
+  // EMO bounce beside rocket
+  if (emoGroup) {
+    const emoBase = ROCKET_Y - 1.5;
+    emoGroup.position.y = emoBase + Math.abs(Math.sin(t * 2.2)) * 0.9;
+    emoGroup.rotation.y = t * 0.3;
+  }
+
+  // Ship launch animation
+  if (shipLaunching) {
+    shipLaunchTimer += dtRaw;
+    if (rocketGroup) {
+      rocketGroup.position.y += dtRaw * (6 + shipLaunchTimer * 28);
+      rocketGlow.position.y   = rocketGroup.position.y - 2.5;
+      rocketGlow.intensity    = 3 + Math.random() * 2;
+      if (Math.random() < 0.5) {
+        spawnParticles(new THREE.Vector3(rocketGroup.position.x, rocketGroup.position.y - 2, 0), 0xff8833, 3);
+        spawnParticles(new THREE.Vector3(rocketGroup.position.x, rocketGroup.position.y - 2, 0), 0xffeeaa, 2);
+      }
+    }
+    if (emoGroup) {
+      emoGroup.position.y += dtRaw * (4 + shipLaunchTimer * 20);
+      emoGroup.rotation.z = Math.sin(t * 8) * 0.3;
+    }
+    if (shipLaunchTimer > 3.0 && !gameWon) {
+      gameWon = true;
+      setTimeout(() => summitOv.classList.remove('hidden'), 400);
+    }
+  }
+
+  // Cloud drift
+  clouds.forEach((c, i) => { c.position.x += 0.008 * (i%2===0 ? 1 : -1); if (c.position.x > 30) c.position.x = -30; if (c.position.x < -30) c.position.x = 30; });
 
   renderer.render(scene, camera);
 }
