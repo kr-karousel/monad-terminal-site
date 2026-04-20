@@ -213,14 +213,14 @@ function addPlatform(def){
     new THREE.LineBasicMaterial({ color:0x8866cc, transparent:true, opacity:0.35 })
   );
   mesh.add(edges);
-  // Moss / grass on top (flat platforms only)
-  if (def.flat || def.w <= 8) {
-    const moss = new THREE.Mesh(
-      new THREE.BoxGeometry(def.w*0.96, 0.12, def.d*0.96),
-      new THREE.MeshLambertMaterial({ color:0x3a8a4a })
+  // Crystal top edge (subtle purple rim, no green grass)
+  {
+    const rim = new THREE.Mesh(
+      new THREE.BoxGeometry(def.w*0.96, 0.08, def.d*0.96),
+      new THREE.MeshLambertMaterial({ color:0x9966ff, emissive:0x331155, transparent:true, opacity:0.55 })
     );
-    moss.position.set(def.x, def.y + def.h/2 + 0.05, def.z);
-    scene.add(moss);
+    rim.position.set(def.x, def.y + def.h/2 + 0.03, def.z);
+    scene.add(rim);
   }
   platforms.push({
     minX: def.x - def.w/2, maxX: def.x + def.w/2,
@@ -232,32 +232,27 @@ function addPlatform(def){
 platformDefs.forEach(addPlatform);
 cliffDefs.forEach(d => { d.big = true; addPlatform(d); });
 
-/* ── Decorative trees ─────────────────────────────────────────────────────── */
-function addTree(x, y, z, s=1){
+/* ── Decorative crystal pillars (space theme, no green/brown trees) ──────── */
+function addCrystal(x, y, z, s=1){
   const g = new THREE.Group();
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.2*s, 0.3*s, 2*s, 6),
-    new THREE.MeshLambertMaterial({ color:0x5c3a1e })
-  );
-  trunk.position.y = s;
-  g.add(trunk);
+  const colors = [0x6633cc, 0x9944dd, 0x4422aa];
   for (let i=0;i<3;i++){
-    const cone = new THREE.Mesh(
-      new THREE.ConeGeometry((1.3-i*0.22)*s, 1.5*s, 7),
-      new THREE.MeshLambertMaterial({ color: i===2?0x4aa868:0x2d6a4f })
+    const pillar = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.15*s*(1-i*0.2), 0.25*s*(1-i*0.1), (1.5+i*0.8)*s, 5),
+      new THREE.MeshLambertMaterial({ color:colors[i], emissive:0x220044, transparent:true, opacity:0.85 })
     );
-    cone.position.y = (2 + i*1.1) * s;
-    g.add(cone);
+    pillar.position.set((i-1)*0.4*s, (1.5+i*0.8)*s*0.5, 0);
+    g.add(pillar);
   }
   g.position.set(x, y, z);
   scene.add(g);
 }
-addTree(-11, 0, -3, 1.3);
-addTree(11, 0, -4, 1.1);
-addTree(-10, 0, 5, 1.0);
-addTree(10, 0, 4, 1.2);
-addTree(-13, 0, 0, 0.9);
-addTree(13, 0, 2, 0.8);
+addCrystal(-11, 0, -3, 1.3);
+addCrystal(11, 0, -4, 1.1);
+addCrystal(-10, 0, 5, 1.0);
+addCrystal(10, 0, 4, 1.2);
+addCrystal(-13, 0, 0, 0.9);
+addCrystal(13, 0, 2, 0.8);
 
 /* ── Apple (goal) ─────────────────────────────────────────────────────────── */
 const APPLE_Y = 55;
