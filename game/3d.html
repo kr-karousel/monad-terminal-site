@@ -119,28 +119,33 @@ window.addEventListener('resize', () => {
 /* ── Level definitions ────────────────────────────────────────────────────── */
 // Each platform is an AABB (axis-aligned bounding box) used for both
 // rendering (BoxGeometry) and collision (sphereVsAABB).
+// Z is kept near 0 — game is effectively 2.5D (X/Y movement, Z decorative only)
 const platformDefs = [
   // Ground
-  { x:0,  y:-1,  z:0,  w:26, h:2,  d:22, c:0x3d2b5a, flat:true },
-  // Climbing chain (vertical path)
-  { x:-4, y:2.5, z:1,  w:7,  h:1,  d:5,  c:0x4a3360 },
-  { x:4,  y:5,   z:-1, w:5,  h:1,  d:4,  c:0x3d2b5a },
-  { x:-5, y:8,   z:2,  w:4,  h:1,  d:3,  c:0x4a3360 },
-  { x:3,  y:11,  z:3,  w:4,  h:1,  d:3,  c:0x3d2b5a },
-  { x:-3, y:14,  z:-1, w:5,  h:1,  d:4,  c:0x4a3360 },
-  { x:5,  y:17,  z:1,  w:4,  h:1,  d:3,  c:0x3d2b5a },
-  { x:-6, y:20,  z:2,  w:4,  h:1,  d:3,  c:0x4a3360 },
-  { x:2,  y:23,  z:-2, w:3.5,h:1,  d:3,  c:0x5a3d78 },
-  { x:-2, y:26,  z:2,  w:3,  h:1,  d:3,  c:0x3d2b5a },
-  { x:5,  y:29,  z:0,  w:4,  h:1,  d:3,  c:0x4a3360 },
-  { x:-4, y:32,  z:-2, w:4,  h:1,  d:3,  c:0x5a3d78 },
-  { x:2,  y:35,  z:2,  w:3.5,h:1,  d:3,  c:0x3d2b5a },
-  { x:-3, y:38,  z:0,  w:4,  h:1,  d:3,  c:0x4a3360 },
-  { x:4,  y:41,  z:-1, w:3.5,h:1,  d:3,  c:0x5a3d78 },
-  { x:-2, y:44,  z:2,  w:4,  h:1,  d:3,  c:0x3d2b5a },
-  { x:2,  y:47,  z:0,  w:3.5,h:1,  d:3,  c:0x4a3360 },
+  { x:0,   y:-1,  z:0, w:28, h:2,  d:8, c:0x3d2b5a, flat:true },
+  // Sector 1 — easy
+  { x:-5,  y:3,   z:0, w:8,  h:1,  d:6, c:0x4a3360 },
+  { x:5,   y:6,   z:0, w:7,  h:1,  d:6, c:0x3d2b5a },
+  // Sector 2
+  { x:-6,  y:9,   z:0, w:6,  h:1,  d:6, c:0x4a3360 },
+  { x:4,   y:12,  z:0, w:5,  h:1,  d:6, c:0x3d2b5a },
+  { x:-4,  y:15,  z:0, w:5,  h:1,  d:6, c:0x5a3d78 },
+  // Sector 3 — narrower
+  { x:5,   y:18,  z:0, w:4,  h:1,  d:6, c:0x4a3360 },
+  { x:-5,  y:21,  z:0, w:4,  h:1,  d:6, c:0x3d2b5a },
+  { x:3,   y:24,  z:0, w:4,  h:1,  d:6, c:0x5a3d78 },
+  // Sector 4 — tricky gaps
+  { x:-4,  y:27,  z:0, w:3.5,h:1,  d:6, c:0x4a3360 },
+  { x:5,   y:30,  z:0, w:3.5,h:1,  d:6, c:0x3d2b5a },
+  { x:-3,  y:33,  z:0, w:3.5,h:1,  d:6, c:0x5a3d78 },
+  // Sector 5 — hard
+  { x:4,   y:36,  z:0, w:3,  h:1,  d:6, c:0x4a3360 },
+  { x:-5,  y:39,  z:0, w:3,  h:1,  d:6, c:0x3d2b5a },
+  { x:3,   y:42,  z:0, w:3,  h:1,  d:6, c:0x5a3d78 },
+  { x:-2,  y:45,  z:0, w:3,  h:1,  d:6, c:0x4a3360 },
+  { x:3,   y:48,  z:0, w:3,  h:1,  d:6, c:0x3d2b5a },
   // Summit
-  { x:0,  y:50,  z:0,  w:8,  h:1,  d:6,  c:0x6b4a90, flat:true },
+  { x:0,   y:51,  z:0, w:9,  h:1,  d:8, c:0x6b4a90, flat:true },
 ];
 
 // Big background cliff walls so the world feels enclosed.
@@ -213,7 +218,7 @@ addTree(-13, 0, 0, 0.9);
 addTree(13, 0, 2, 0.8);
 
 /* ── Apple (goal) ─────────────────────────────────────────────────────────── */
-const APPLE_Y = 54;
+const APPLE_Y = 55;
 const appleGroup = new THREE.Group();
 {
   const body = new THREE.Mesh(
@@ -432,7 +437,7 @@ function physicsStep(dt){
   // Integrate
   playerVel.y += GRAVITY * dt;
   playerVel.x *= AIR_DRAG;
-  playerVel.z *= AIR_DRAG;
+  playerVel.z *= 0.75;  // strong Z damping — game plays as 2.5D side view
   const sp = playerVel.length();
   if (sp > MAX_SPEED) playerVel.multiplyScalar(MAX_SPEED / sp);
   playerPos.x += playerVel.x * dt;
@@ -647,19 +652,13 @@ function onUp(){
   // downward screen launch = nsy > 0 → world Y negative (rare intentional push-down)
   const vertSign = -nsy;  // positive when launching upward
 
-  // Horizontal velocity (camera-relative)
-  playerVel.x = camRight.x * nsx * force;
-  playerVel.z = camRight.z * nsx * force;
+  // Lock to X/Y plane — drag left/right = world X, drag up = world Y
+  // Z velocity intentionally not set (stays near 0 from damping)
+  playerVel.x = nsx * force;
+  playerVel.z = 0;  // no Z on launch — 2.5D feel
 
-  // Vertical velocity — main fix: -nsy maps screen-up drag to positive world Y
-  playerVel.y = vertSign * force + force * 0.18;  // 0.18 = small base upward kick
-
-  // Add slight forward component when launching upward (feel better on slopes)
-  if (vertSign > 0) {
-    const fwd = vertSign * 0.25;
-    playerVel.x += camDir.x * fwd * force;
-    playerVel.z += camDir.z * fwd * force;
-  }
+  // Vertical: -nsy maps screen-up drag to positive world Y
+  playerVel.y = vertSign * force + force * 0.18;
 
   // Visual feedback
   squash.trigger('launch', 0.6 + power * 0.6);
@@ -728,17 +727,21 @@ function drawArrow(){
   arrowCtx.fill();
 }
 
-/* ── Camera follow (lerp, with speed-based zoom-out) ──────────────────────── */
-const CAM_OFFSET = new THREE.Vector3(0, 5, 16);
+/* ── Camera follow — fixed Z offset, tracks X/Y only (2.5D side view) ─────── */
+const CAM_OFFSET = new THREE.Vector3(0, 5, 18);
 const camLookAt = new THREE.Vector3();
 function updateCamera(dt){
-  const speed = playerVel.length();
-  const zoom = 1 + Math.max(0, playerVel.y) * 0.035;
-  const target = playerPos.clone().add(new THREE.Vector3(CAM_OFFSET.x, CAM_OFFSET.y, CAM_OFFSET.z * zoom));
+  const zoom = 1 + Math.max(0, playerVel.y) * 0.03;
+  // Camera stays at fixed Z relative to world (not relative to player Z)
+  const target = new THREE.Vector3(
+    playerPos.x,
+    playerPos.y + CAM_OFFSET.y,
+    CAM_OFFSET.z * zoom   // fixed world Z — camera never drifts behind player
+  );
   const sh = shake.offset(dt);
   target.add(sh);
   camera.position.lerp(target, 0.09);
-  camLookAt.lerp(playerPos.clone().add(new THREE.Vector3(0, 1.5, 0)), 0.12);
+  camLookAt.lerp(new THREE.Vector3(playerPos.x, playerPos.y + 1.5, 0), 0.12);
   camera.lookAt(camLookAt);
 
   playerLight.position.set(playerPos.x, playerPos.y + 2, playerPos.z);
