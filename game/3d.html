@@ -148,6 +148,10 @@ scene.add(fill);
 const playerLight = new THREE.PointLight(0xffffff, 0.6, 18);
 scene.add(playerLight);
 
+// Draco decoder — must be declared before any GLTFLoader.setDRACOLoader() call
+const _dracoLoader = new THREE.DRACOLoader();
+_dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+
 /* ── Background mountains — 3 parallax layers ─────────────────────────────── */
 function makeMountain(cx, cy, w, h, color, z){
   const shape = new THREE.Shape();
@@ -634,10 +638,6 @@ const glbQueue  = [
   ['rocket',     '/game/rocket_opt.glb'],
   ['emo',        '/game/EMO_opt.glb'],
 ];
-// Shared Draco decoder (handles Meshy _opt.glb Draco compression)
-const _dracoLoader = new THREE.DRACOLoader();
-_dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-
 function loadGLBAsset(name, url) {
   return new Promise(resolve => {
     const l = new THREE.GLTFLoader();
