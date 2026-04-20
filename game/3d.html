@@ -86,6 +86,16 @@ canvas{display:block}
 <div id="bonus-flash" style="position:fixed;inset:0;background:rgba(255,240,80,.75);pointer-events:none;z-index:45;opacity:0;transition:opacity .08s"></div>
 <div id="stage-banner" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:48;pointer-events:none;font-size:52px;font-weight:bold;font-family:'Courier New',monospace;color:#fff;text-shadow:2px 2px 0 #333,0 0 30px #ffe066;letter-spacing:4px;opacity:0;transition:opacity .25s,transform .25s"></div>
 <div class="toast" id="toast"></div>
+<!-- Dev mode overlay -->
+<div id="dev-hud" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:60;font-family:'Courier New',monospace">
+  <div style="position:absolute;top:0;left:0;right:0;background:rgba(20,0,0,0.82);border-bottom:2px solid #ff3333;padding:7px 16px;display:flex;gap:22px;align-items:center;flex-wrap:wrap">
+    <span style="color:#ff3333;font-weight:bold;letter-spacing:2px;font-size:13px">⚙ DEV MODE</span>
+    <span id="dev-pos" style="color:#ffcc44;font-size:12px;letter-spacing:1px">x:0 y:0 z:0</span>
+    <span style="color:#ff6666;font-size:11px;letter-spacing:1px">WASD=이동 &nbsp;QE=위아래 &nbsp;SHIFT=빠르게 &nbsp;H=AABB박스 &nbsp;`=종료</span>
+    <span id="dev-aabb-label" style="color:#44ffaa;font-size:11px;letter-spacing:1px"></span>
+  </div>
+  <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(20,0,0,0.7);border:1px solid #ff3333;padding:6px 18px;font-size:11px;color:#ff8888;letter-spacing:2px">마우스 클릭 후 드래그 = 카메라 회전</div>
+</div>
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
@@ -1211,6 +1221,121 @@ document.getElementById('btn-gameover-retry').addEventListener('click', () => {
   showToast('GO! DRAG FROM CHOG TO LAUNCH');
 });
 
+/* ── Dev / Admin Mode ─────────────────────────────────────────────────────── */
+// Toggle: backtick (`)   Move: WASD + QE   Fast: Shift   AABB: H
+let devMode    = false;
+let devShowAABB = false;
+const devCamPos   = new THREE.Vector3(0, 10, 20);
+let devYaw = 0, devPitch = 0;
+const devKeys     = {};
+const devAABBHelpers = [];
+const devHud      = document.getElementById('dev-hud');
+const devPosEl    = document.getElementById('dev-pos');
+const devAabbEl   = document.getElementById('dev-aabb-label');
+
+function buildAABBHelpers(){
+  clearAABBHelpers();
+  platforms.forEach(b => {
+    const w = b.maxX-b.minX, h = b.maxY-b.minY, d = b.maxZ-b.minZ;
+    const geo = new THREE.BoxGeometry(w,h,d);
+    const col = b.isCloud ? 0xcc44ff : b.disabled ? 0x444444 : 0x00ff88;
+    const ln  = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color:col, transparent:true, opacity:0.78 })
+    );
+    ln.position.set((b.minX+b.maxX)/2,(b.minY+b.maxY)/2,(b.minZ+b.maxZ)/2);
+    scene.add(ln);
+    devAABBHelpers.push(ln);
+  });
+  // Show stage-clear collision spheres
+  stageClearObjects.forEach(sc => {
+    const m = new THREE.Mesh(
+      new THREE.SphereGeometry(2.6,10,7),
+      new THREE.MeshBasicMaterial({ color:0xffd700, wireframe:true, transparent:true, opacity:0.35 })
+    );
+    m.position.copy(sc.pos);
+    scene.add(m);
+    devAABBHelpers.push(m);
+  });
+  devAabbEl.textContent = `AABB ON (${platforms.length}개)`;
+}
+function clearAABBHelpers(){
+  devAABBHelpers.forEach(h => scene.remove(h));
+  devAABBHelpers.length = 0;
+  devAabbEl.textContent = '';
+}
+
+function enterDevMode(){
+  devMode = true;
+  devCamPos.copy(camera.position);
+  // Derive yaw/pitch from current camera rotation
+  const euler = new THREE.Euler().setFromQuaternion(camera.quaternion,'YXZ');
+  devYaw   = euler.y;
+  devPitch = euler.x;
+  devHud.style.display = 'block';
+}
+function exitDevMode(){
+  devMode = false;
+  devHud.style.display = 'none';
+  if(devShowAABB){ clearAABBHelpers(); devShowAABB=false; }
+  document.exitPointerLock && document.exitPointerLock();
+}
+
+document.addEventListener('keydown', e => {
+  // Backtick toggle (works at any time)
+  if (e.key === '`') { devMode ? exitDevMode() : enterDevMode(); return; }
+  if (!devMode) return;
+  devKeys[e.key.toLowerCase()] = true;
+  if (e.key.toLowerCase() === 'h'){
+    devShowAABB = !devShowAABB;
+    devShowAABB ? buildAABBHelpers() : clearAABBHelpers();
+  }
+  e.preventDefault();
+});
+document.addEventListener('keyup', e => {
+  if (!devMode) return;
+  devKeys[e.key.toLowerCase()] = false;
+});
+
+// Click canvas in devMode → request pointer lock for mouse look
+document.addEventListener('click', () => {
+  if (devMode && !document.pointerLockElement) renderer.domElement.requestPointerLock();
+});
+document.addEventListener('mousemove', e => {
+  if (!devMode || !document.pointerLockElement) return;
+  devYaw   -= e.movementX * 0.0025;
+  devPitch -= e.movementY * 0.0025;
+  devPitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, devPitch));
+});
+
+function updateDevCamera(dt){
+  const spd = devKeys['shift'] ? 80 : 16;
+  const cosP = Math.cos(devPitch);
+  const fwd   = new THREE.Vector3(-Math.sin(devYaw)*cosP, Math.sin(devPitch), -Math.cos(devYaw)*cosP);
+  const right = new THREE.Vector3(Math.cos(devYaw), 0, -Math.sin(devYaw));
+  const up    = new THREE.Vector3(0,1,0);
+  if(devKeys['w']||devKeys['arrowup'])    devCamPos.addScaledVector(fwd, spd*dt);
+  if(devKeys['s']||devKeys['arrowdown'])  devCamPos.addScaledVector(fwd,-spd*dt);
+  if(devKeys['a']||devKeys['arrowleft'])  devCamPos.addScaledVector(right,-spd*dt);
+  if(devKeys['d']||devKeys['arrowright']) devCamPos.addScaledVector(right, spd*dt);
+  if(devKeys['q'])                        devCamPos.addScaledVector(up,-spd*dt);
+  if(devKeys['e']||devKeys[' '])          devCamPos.addScaledVector(up, spd*dt);
+  camera.position.copy(devCamPos);
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = devYaw;
+  camera.rotation.x = devPitch;
+  devPosEl.textContent = `x:${devCamPos.x.toFixed(1)}  y:${devCamPos.y.toFixed(1)}  z:${devCamPos.z.toFixed(1)}`;
+  // Update moving AABB helpers each frame while shown
+  if(devShowAABB){
+    devAABBHelpers.forEach((h,i) => {
+      if(i < platforms.length){
+        const b = platforms[i];
+        h.position.set((b.minX+b.maxX)/2,(b.minY+b.maxY)/2,(b.minZ+b.maxZ)/2);
+      }
+    });
+  }
+}
+
 /* ── Start / Restart ──────────────────────────────────────────────────────── */
 let gameRunning = false;
 let gameWon = false;
@@ -1293,7 +1418,7 @@ function frame(now){
   lastT = now;
   const t = now / 1000;
 
-  if (gameRunning && !gameWon && !gameOver) {
+  if (gameRunning && !gameWon && !gameOver && !devMode) {
     const SUB = 4;
     const dt = dtRaw / SUB;
     for (let i = 0; i < SUB; i++) physicsStep(dt);
@@ -1360,7 +1485,7 @@ function frame(now){
   characterGroup.position.set(playerPos.x, playerPos.y, playerPos.z);
   if (modelLoaded) applyAnimation(t, dtRaw);
   updateParticles(dtRaw);
-  updateCamera(dtRaw);
+  if (devMode) updateDevCamera(dtRaw); else updateCamera(dtRaw);
   updateHUD();
   drawArrow();
 
