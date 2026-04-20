@@ -596,11 +596,11 @@ function evtXY(e){
 
 function onDown(e){
   if (!gameRunning) return;
+  if (!playerOnGround) return;  // can only launch from ground
   const p = evtXY(e);
   const s = playerScreen();
   const dx = p.x - s.x, dy = p.y - s.y;
-  // Require click reasonably close to character OR anywhere if airborne (for forgiveness)
-  if (Math.hypot(dx, dy) > 160 && playerOnGround) return;
+  if (Math.hypot(dx, dy) > 160) return;
   input.dragging = true;
   input.startX = p.x; input.startY = p.y;
   input.curX = p.x; input.curY = p.y;
