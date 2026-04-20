@@ -93,6 +93,7 @@ canvas{display:block}
 <canvas id="arrow-canvas"></canvas>
 <div class="toast" id="toast"></div>
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CHOG CLIMB 3D — single-file Three.js game
@@ -287,161 +288,73 @@ const appleGlow = new THREE.PointLight(0xff4444, 2.2, 10);
 appleGlow.position.set(0, APPLE_Y, 0);
 scene.add(appleGlow);
 
-/* ── Character (CHOG in a pot) ─────────────────────────────────────────────
-   NOTE: Replace this whole block with a GLTFLoader model when available.
-   Architecture: characterGroup is the visual root. It follows the physics
-   body (playerPos) every frame. It must NEVER influence physics.
+/* ── Character — GLTF model (CHOG_3D.glb) ─────────────────────────────────
+   Architecture:
+   • characterGroup = visual root, synced to physics body (playerPos) every frame
+   • model is added INSIDE characterGroup — NEVER influences physics
+   • AnimationMixer drives clips if the GLB has them; squash/stretch applied
+     to characterGroup.scale (visual only)
    ────────────────────────────────────────────────────────────────────────── */
 const characterGroup = new THREE.Group();
 scene.add(characterGroup);
 
-// Body parts stored for animation manipulation
-const parts = {};
+// Filled once the GLB is loaded
+let mixer   = null;   // THREE.AnimationMixer
+let actions = {};     // { idle, charge, jump, fall, land }
+let modelLoaded = false;
 
-// Pot (black cauldron)
-{
-  const pot = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.92, 0.72, 1.2, 18),
-    new THREE.MeshLambertMaterial({ color:0x1a1420 })
-  );
-  pot.position.y = -0.3;
-  pot.castShadow = true;
-  characterGroup.add(pot);
-  // Rim
-  const rim = new THREE.Mesh(
-    new THREE.TorusGeometry(0.94, 0.11, 8, 22),
-    new THREE.MeshLambertMaterial({ color:0x2e2040 })
-  );
-  rim.position.y = 0.26;
-  rim.rotation.x = Math.PI/2;
-  characterGroup.add(rim);
-  parts.pot = pot;
-}
+// Show a tiny spinner while loading
+const loadDiv = document.createElement('div');
+loadDiv.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:99;pointer-events:none;font-size:13px;letter-spacing:3px;color:#9966ff;';
+loadDiv.textContent = 'LOADING CHOG…';
+document.body.appendChild(loadDiv);
 
-// Torso (purple, visible above pot rim)
-{
-  const torso = new THREE.Mesh(
-    new THREE.SphereGeometry(0.62, 16, 14),
-    new THREE.MeshLambertMaterial({ color:0x4a22a8 })
-  );
-  torso.position.y = 0.55;
-  torso.scale.set(1, 0.85, 1);
-  torso.castShadow = true;
-  characterGroup.add(torso);
-  parts.torso = torso;
-}
+const loader = new THREE.GLTFLoader();
+loader.load('/game/CHOG_3D.glb', gltf => {
+  const model = gltf.scene;
 
-// Head (cream)
-const headGroup = new THREE.Group();
-headGroup.position.y = 1.3;
-characterGroup.add(headGroup);
-parts.head = headGroup;
-{
-  const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.58, 18, 16),
-    new THREE.MeshLambertMaterial({ color:0xf5ecd8 })
-  );
-  head.castShadow = true;
-  headGroup.add(head);
-}
+  // ── Scale & orient ────────────────────────────────────────────────────────
+  // Adjust MODEL_SCALE if CHOG appears too big or small in-game
+  const MODEL_SCALE = 1.0;
+  model.scale.setScalar(MODEL_SCALE);
+  // Meshy models often face +Z; rotate so they face the camera (-Z)
+  model.rotation.y = Math.PI;
 
-// Hair spikes (purple cones)
-{
-  const hairMat = new THREE.MeshLambertMaterial({ color:0x3510a0 });
-  const back = new THREE.MeshLambertMaterial({ color:0x260a70 });
-  const spec = [
-    [-0.45, 0.35, -0.1, -0.4],
-    [-0.25, 0.55,  0.0, -0.15],
-    [ 0.0,  0.62,  0.0,  0.0],
-    [ 0.25, 0.55,  0.0,  0.15],
-    [ 0.45, 0.35,  -0.1, 0.4],
-    // Back spikes
-    [-0.3,  0.3, -0.3, -0.25],
-    [ 0.3,  0.3, -0.3,  0.25],
-  ];
-  spec.forEach((s, i) => {
-    const spike = new THREE.Mesh(
-      new THREE.ConeGeometry(0.18, 0.6, 6),
-      i < 5 ? hairMat : back
-    );
-    spike.position.set(s[0], s[1], s[3]);
-    spike.rotation.z = -s[0] * 0.9;
-    spike.rotation.x = s[2] * 1.2;
-    headGroup.add(spike);
-  });
-}
+  model.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+  characterGroup.add(model);
 
-// Eyes (big expressive)
-parts.eyes = [];
-[-0.22, 0.22].forEach(ex => {
-  const white = new THREE.Mesh(
-    new THREE.SphereGeometry(0.14, 10, 10),
-    new THREE.MeshBasicMaterial({ color:0xffffff })
-  );
-  white.position.set(ex, 0.02, 0.48);
-  white.scale.set(0.85, 1, 0.7);
-  headGroup.add(white);
-  const iris = new THREE.Mesh(
-    new THREE.SphereGeometry(0.09, 10, 10),
-    new THREE.MeshBasicMaterial({ color:0x1a0a2e })
-  );
-  iris.position.set(ex, 0, 0.56);
-  headGroup.add(iris);
-  const shine = new THREE.Mesh(
-    new THREE.SphereGeometry(0.03, 6, 6),
-    new THREE.MeshBasicMaterial({ color:0xffffff })
-  );
-  shine.position.set(ex+0.04, 0.04, 0.6);
-  headGroup.add(shine);
-  parts.eyes.push({ white, iris, shine });
+  // ── Animation mixer ───────────────────────────────────────────────────────
+  if (gltf.animations && gltf.animations.length > 0) {
+    mixer = new THREE.AnimationMixer(model);
+
+    // Map clip names → action dict (case-insensitive, with fallbacks)
+    const clipMap = {};
+    gltf.animations.forEach(clip => { clipMap[clip.name.toLowerCase()] = clip; });
+    const getClip = (...keys) => {
+      for (const k of keys) if (clipMap[k]) return mixer.clipAction(clipMap[k]);
+      // Fallback: first available clip
+      if (gltf.animations.length) return mixer.clipAction(gltf.animations[0]);
+      return null;
+    };
+    actions.idle   = getClip('idle');
+    actions.charge = getClip('charge', 'crouch', 'idle');
+    actions.jump   = getClip('jump', 'launch');
+    actions.fall   = getClip('fall', 'jump');
+    actions.land   = getClip('land', 'idle');
+
+    // Non-looping states
+    ['jump','land'].forEach(k => { if (actions[k]) { actions[k].setLoop(THREE.LoopOnce); actions[k].clampWhenFinished = true; } });
+
+    if (actions.idle) actions.idle.play();
+  }
+
+  modelLoaded = true;
+  loadDiv.remove();
+}, undefined, err => {
+  console.error('GLB load error:', err);
+  loadDiv.textContent = 'MODEL LOAD FAILED — using fallback';
+  modelLoaded = true; // continue with empty group
 });
-
-// Cheeks (pink)
-[-0.32, 0.32].forEach(cx => {
-  const cheek = new THREE.Mesh(
-    new THREE.SphereGeometry(0.1, 8, 8),
-    new THREE.MeshBasicMaterial({ color:0xff6e8c, transparent:true, opacity:0.65 })
-  );
-  cheek.position.set(cx, -0.12, 0.45);
-  cheek.scale.set(1.6, 0.9, 0.4);
-  headGroup.add(cheek);
-});
-
-// Mouth (open, excited)
-{
-  const mouth = new THREE.Mesh(
-    new THREE.SphereGeometry(0.11, 10, 10),
-    new THREE.MeshBasicMaterial({ color:0x5a1020 })
-  );
-  mouth.position.set(0, -0.22, 0.5);
-  mouth.scale.set(1, 0.6, 0.5);
-  headGroup.add(mouth);
-  parts.mouth = mouth;
-}
-
-// Arms (pink gloves + purple sleeves) — left & right, pinned to torso
-function makeArm(side){
-  const arm = new THREE.Group();
-  const sleeve = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.11, 0.13, 0.55, 8),
-    new THREE.MeshLambertMaterial({ color:0x4a22a8 })
-  );
-  sleeve.position.y = -0.25;
-  arm.add(sleeve);
-  const glove = new THREE.Mesh(
-    new THREE.SphereGeometry(0.24, 12, 10),
-    new THREE.MeshLambertMaterial({ color:0xd94fa0 })
-  );
-  glove.position.y = -0.55;
-  glove.castShadow = true;
-  arm.add(glove);
-  arm.position.set(side * 0.55, 0.6, 0);
-  arm.rotation.z = side * 0.5;
-  characterGroup.add(arm);
-  return arm;
-}
-parts.armL = makeArm(-1);
-parts.armR = makeArm(1);
 
 /* ═══════════════════════════════════════════════════════════════════════════
    PHYSICS — custom sphere vs AABB
@@ -791,76 +704,45 @@ function updateCamera(dt){
 }
 
 /* ── Character animation (procedural, driven by state machine) ─────────── */
+// Cross-fade GLTF animation clips
+function playAction(name, fadeSec=0.2){
+  const next = actions[name];
+  if (!next || next === mixer._currentAction) return;
+  if (mixer._currentAction) mixer._currentAction.fadeOut(fadeSec);
+  next.reset().fadeIn(fadeSec).play();
+  mixer._currentAction = next;
+}
+
 function applyAnimation(t, dt){
-  // Default base pose
-  let baseScale = squash.update(dt);
+  // ── Update AnimationMixer (GLTF clips) ──────────────────────────────────
+  if (mixer) {
+    mixer.update(dt);
+    playAction(animState);
+  }
+
+  // ── Squash & stretch applied to characterGroup (visual only) ────────────
+  const baseScale = squash.update(dt);
   characterGroup.scale.copy(baseScale);
 
-  // Head/body face direction of horizontal velocity (subtle yaw)
-  const horizDir = new THREE.Vector2(playerVel.x, playerVel.z);
-  if (horizDir.lengthSq() > 0.5) {
-    const targetYaw = Math.atan2(horizDir.x, horizDir.y);
-    // Lerp yaw
-    const cur = characterGroup.rotation.y;
-    let diff = targetYaw - cur;
-    while (diff > Math.PI) diff -= Math.PI*2;
-    while (diff < -Math.PI) diff += Math.PI*2;
-    characterGroup.rotation.y = cur + diff * 0.12;
-  }
-
-  // Per-state overrides
-  if (animState === 'idle') {
-    const bob = Math.sin(t*2.2) * 0.04;
-    parts.head.position.y = 1.3 + bob;
-    parts.armL.rotation.z =  0.5 + Math.sin(t*2) * 0.12;
-    parts.armR.rotation.z = -0.5 - Math.sin(t*2) * 0.12;
-    parts.armL.rotation.x = 0;
-    parts.armR.rotation.x = 0;
-    parts.mouth.scale.set(1, 0.5, 0.5);
-  }
-  else if (animState === 'charge') {
-    // Squat + arms back
+  // Charge: compress whole model with drag power
+  if (animState === 'charge') {
     const c = input.power;
-    characterGroup.scale.multiply(new THREE.Vector3(1 + c*0.18, 1 - c*0.18, 1 + c*0.18));
-    parts.armL.rotation.z =  0.9 + c*0.6;
-    parts.armR.rotation.z = -0.9 - c*0.6;
-    parts.armL.rotation.x = -0.5;
-    parts.armR.rotation.x = -0.5;
-    parts.head.position.y = 1.3 - c * 0.1;
-    parts.mouth.scale.set(1 + c*0.5, 0.8 + c, 0.6);
-  }
-  else if (animState === 'jump') {
-    // Stretch up, arms up
-    parts.armL.rotation.z =  1.4;
-    parts.armR.rotation.z = -1.4;
-    parts.armL.rotation.x = 0.2;
-    parts.armR.rotation.x = 0.2;
-    parts.head.position.y = 1.35;
-    parts.mouth.scale.set(1.3, 1.2, 0.6);
-  }
-  else if (animState === 'fall') {
-    // Flail arms
-    const f = Math.sin(t*14) * 0.5;
-    parts.armL.rotation.z =  1.1 + f;
-    parts.armR.rotation.z = -1.1 - f;
-    parts.armL.rotation.x = 0.4 + f * 0.3;
-    parts.armR.rotation.x = 0.4 - f * 0.3;
-    parts.head.position.y = 1.3;
-    parts.mouth.scale.set(1.4, 1.3, 0.7);
-    // Lean
-    characterGroup.rotation.z = Math.max(-0.35, Math.min(0.35, -playerVel.x * 0.02));
-  }
-  else if (animState === 'land') {
-    parts.armL.rotation.z =  0.3;
-    parts.armR.rotation.z = -0.3;
-    parts.armL.rotation.x = -0.2;
-    parts.armR.rotation.x = -0.2;
-    parts.mouth.scale.set(1.1, 0.6, 0.5);
+    characterGroup.scale.multiply(new THREE.Vector3(1 + c*0.15, 1 - c*0.15, 1 + c*0.15));
   }
 
-  // Smooth out body roll when on ground
+  // ── Lean in direction of horizontal velocity ─────────────────────────────
+  if (animState === 'fall' || animState === 'jump') {
+    characterGroup.rotation.z = Math.max(-0.3, Math.min(0.3, -playerVel.x * 0.018));
+  }
   if (playerOnGround) {
     characterGroup.rotation.z *= 0.8;
+  }
+
+  // ── Idle bob (whole group, works even without GLTF idle clip) ───────────
+  if (animState === 'idle') {
+    characterGroup.position.y = playerPos.y + Math.sin(t * 2.2) * 0.04;
+  } else {
+    characterGroup.position.y = playerPos.y;
   }
 }
 
@@ -1001,8 +883,9 @@ function frame(now){
   }
 
   // Sync visual transform to physics body (EVERY FRAME, strict)
-  characterGroup.position.copy(playerPos);
-  applyAnimation(t, dtRaw);
+  // Note: applyAnimation may override .y for idle bob — that's intentional
+  characterGroup.position.set(playerPos.x, playerPos.y, playerPos.z);
+  if (modelLoaded) applyAnimation(t, dtRaw);
   updateParticles(dtRaw);
   updateCamera(dtRaw);
   updateHUD();
