@@ -59,8 +59,8 @@ canvas{display:block}
   <button id="btn-start" class="btn">BEGIN CLIMB</button>
 </div>
 <div id="summit-overlay" class="overlay hidden">
-  <h1>🍎 GOT IT!</h1>
-  <p>CHOG finally grabbed the apple. Worth every tumble.</p>
+  <h1>🌸 SUMMIT!</h1>
+  <p>CHOG reached the top and grabbed both flowers!<br/>Worth every tumble.</p>
   <button id="btn-restart" class="btn">CLIMB AGAIN</button>
 </div>
 <!-- Result overlay shown when 3-min timer runs out -->
@@ -95,6 +95,8 @@ canvas{display:block}
 <div id="power-bar"><div id="power-fill"></div></div>
 <div id="hint">CLICK &amp; DRAG NEAR CHOG TO LAUNCH</div>
 <canvas id="arrow-canvas"></canvas>
+<div id="bonus-flash" style="position:fixed;inset:0;background:rgba(255,240,80,.75);pointer-events:none;z-index:45;opacity:0;transition:opacity .08s"></div>
+<div id="stage-banner" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:48;pointer-events:none;font-size:52px;font-weight:bold;font-family:'Courier New',monospace;color:#fff;text-shadow:2px 2px 0 #333,0 0 30px #ffe066;letter-spacing:4px;opacity:0;transition:opacity .25s,transform .25s"></div>
 <div class="toast" id="toast"></div>
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -324,35 +326,70 @@ function addBush(x, y, z, s=1){
 }
 [[-6,0,3],[ 6,0,2],[-8,0,-2],[8,0,-3],[-4,0,5],[4,0,4],[-2,0,-4],[2,0,-5]].forEach(([x,y,z]) => addBush(x,y,z,0.55));
 
-/* ── Apple (goal) ─────────────────────────────────────────────────────────── */
-const APPLE_Y = 55;
-const appleGroup = new THREE.Group();
-{
-  const body = new THREE.Mesh(
-    new THREE.SphereGeometry(0.85, 20, 16),
-    new THREE.MeshLambertMaterial({ color:0xff2a2a, emissive:0x550000 })
-  );
-  body.castShadow = true;
-  appleGroup.add(body);
+/* ── Daisy flower factory ──────────────────────────────────────────────────── */
+function createFlower(scale=1) {
+  const g = new THREE.Group();
+  const petalMat = new THREE.MeshLambertMaterial({ color:0xffffff, side:THREE.DoubleSide });
+  const N = 10;
+  for (let i=0; i<N; i++) {
+    const a = (i/N) * Math.PI * 2;
+    const p = new THREE.Mesh(new THREE.SphereGeometry(0.44*scale, 6, 4), petalMat);
+    p.scale.set(0.32, 1.0, 0.14);
+    p.position.set(Math.cos(a)*0.82*scale, Math.sin(a)*0.82*scale, 0);
+    p.rotation.z = a;
+    g.add(p);
+  }
+  g.add(new THREE.Mesh(
+    new THREE.SphereGeometry(0.5*scale, 10, 8),
+    new THREE.MeshLambertMaterial({ color:0xffd700, emissive:0x443300 })
+  ));
   const stem = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.07, 0.07, 0.55, 6),
-    new THREE.MeshLambertMaterial({ color:0x5c3a1e })
+    new THREE.CylinderGeometry(0.07*scale, 0.1*scale, 3.0*scale, 6),
+    new THREE.MeshLambertMaterial({ color:0x2d7a44 })
   );
-  stem.position.y = 1.05;
-  appleGroup.add(stem);
-  const leaf = new THREE.Mesh(
-    new THREE.SphereGeometry(0.32, 8, 8),
-    new THREE.MeshLambertMaterial({ color:0x2d8a4f })
-  );
-  leaf.position.set(0.32, 1.2, 0);
-  leaf.scale.set(1.6, 0.5, 1);
-  appleGroup.add(leaf);
+  stem.position.y = -1.7*scale;
+  g.add(stem);
+  // Small leaves on stem
+  [-0.8, 0.4].forEach((oy, i) => {
+    const leaf = new THREE.Mesh(
+      new THREE.SphereGeometry(0.28*scale, 5, 4),
+      new THREE.MeshLambertMaterial({ color:0x3a9a50 })
+    );
+    leaf.scale.set(1.6, 0.5, 0.5);
+    leaf.position.set((i%2===0?1:-1)*0.4*scale, oy*scale, 0);
+    g.add(leaf);
+  });
+  return g;
 }
-appleGroup.position.set(0, APPLE_Y, 0);
-scene.add(appleGroup);
-const appleGlow = new THREE.PointLight(0xff4444, 2.2, 10);
-appleGlow.position.set(0, APPLE_Y, 0);
-scene.add(appleGlow);
+
+/* ── Stage 1 flower (bonus — +60s) at top of stage 1 ─────────────────────── */
+const FLOWER_S1_Y = 56;
+const flowerS1 = createFlower(1.1);
+flowerS1.position.set(0, FLOWER_S1_Y, 0);
+scene.add(flowerS1);
+const glowS1 = new THREE.PointLight(0xfff0aa, 2.0, 12);
+glowS1.position.set(0, FLOWER_S1_Y, 0);
+scene.add(glowS1);
+
+/* ── Stage 2 platforms — 1/3 count, wider gaps ────────────────────────────── */
+const stage2Defs = [
+  { x: 3,  y:62,  z:0, w:6,   h:1, d:6 },
+  { x:-5,  y:70,  z:0, w:4,   h:1, d:6 },
+  { x: 5,  y:78,  z:0, w:3.5, h:1, d:6 },
+  { x:-4,  y:86,  z:0, w:3,   h:1, d:6 },
+  { x: 4,  y:94,  z:0, w:3,   h:1, d:6 },
+  { x: 0,  y:102, z:0, w:9,   h:1, d:8, summit:true },
+];
+stage2Defs.forEach(addPlatform);
+
+/* ── Stage 2 flowers — 2 at summit (game win) ─────────────────────────────── */
+const FLOWER_S2_Y = 106;
+const flowerS2a = createFlower(1.2);  flowerS2a.position.set(-1.8, FLOWER_S2_Y, 0);
+const flowerS2b = createFlower(1.2);  flowerS2b.position.set( 1.8, FLOWER_S2_Y, 0);
+scene.add(flowerS2a); scene.add(flowerS2b);
+const glowS2 = new THREE.PointLight(0xff88cc, 2.5, 14);
+glowS2.position.set(0, FLOWER_S2_Y, 0);
+scene.add(glowS2);
 
 /* ── Character — GLTF model (CHOG_3D.glb) ─────────────────────────────────
    Architecture:
@@ -883,14 +920,43 @@ document.getElementById('btn-result-retry').addEventListener('click', () => {
 
 /* ── Start / Restart ──────────────────────────────────────────────────────── */
 let gameRunning = false;
-let appleGot = false;
+let gameWon = false;
+let stage1Done = false;
+const bonusFlash  = document.getElementById('bonus-flash');
+const stageBanner = document.getElementById('stage-banner');
 const startOv = document.getElementById('start-overlay');
 const summitOv = document.getElementById('summit-overlay');
+
+function showStageBanner(text){
+  stageBanner.textContent = text;
+  stageBanner.style.opacity = '1';
+  stageBanner.style.transform = 'translate(-50%,-50%) scale(1)';
+  setTimeout(() => {
+    stageBanner.style.opacity = '0';
+    stageBanner.style.transform = 'translate(-50%,-50%) scale(1.3)';
+  }, 1400);
+}
+
+function triggerTimeBonus(){
+  timeLeft = Math.min(timeLeft + 60, 599);
+  bonusFlash.style.opacity = '1';
+  setTimeout(() => { bonusFlash.style.opacity = '0'; }, 180);
+  spawnParticles(flowerS1.position.clone(), 0xffd700, 40);
+  spawnParticles(flowerS1.position.clone(), 0xffffff, 24);
+  shake.trigger(0.4);
+  showToast('🌸 +1:00 TIME BONUS!');
+  showStageBanner('STAGE 2');
+  flowerS1.visible = false;
+  glowS1.visible   = false;
+}
 
 function resetGame(){
   playerPos.set(0, 2, 0);
   playerVel.set(0, 0, 0);
-  appleGot = false;
+  gameWon = false;
+  stage1Done = false;
+  flowerS1.visible = true;
+  glowS1.visible   = true;
   bestHeight = 0;
   prevMilestone = 0;
   bEl.textContent = 0;
@@ -910,6 +976,7 @@ document.getElementById('btn-restart').addEventListener('click', () => {
   summitOv.classList.add('hidden');
   resetGame();
   gameRunning = true;
+  showToast('GO! DRAG FROM CHOG TO LAUNCH');
 });
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -922,17 +989,26 @@ function frame(now){
   lastT = now;
   const t = now / 1000;
 
-  if (gameRunning && !appleGot) {
+  if (gameRunning && !gameWon) {
     const SUB = 4;
     const dt = dtRaw / SUB;
     for (let i = 0; i < SUB; i++) physicsStep(dt);
     updateStateFromPhysics(dtRaw);
 
-    // Check apple collection
-    if (playerPos.distanceTo(appleGroup.position) < 2.2) {
-      appleGot = true;
+    // Stage 1 flower — time bonus
+    if (!stage1Done && playerPos.distanceTo(flowerS1.position) < 2.4) {
+      stage1Done = true;
+      triggerTimeBonus();
+    }
+
+    // Stage 2 flowers — game win
+    if (stage1Done && !gameWon &&
+        (playerPos.distanceTo(flowerS2a.position) < 2.4 ||
+         playerPos.distanceTo(flowerS2b.position) < 2.4)) {
+      gameWon = true;
       gameRunning = false;
-      spawnParticles(appleGroup.position.clone(), 0xffd700, 36);
+      spawnParticles(new THREE.Vector3(0, FLOWER_S2_Y, 0), 0xffd700, 40);
+      spawnParticles(new THREE.Vector3(0, FLOWER_S2_Y, 0), 0xff88cc, 30);
       shake.trigger(0.5);
       setTimeout(() => summitOv.classList.remove('hidden'), 700);
     }
@@ -957,11 +1033,17 @@ function frame(now){
   updateHUD();
   drawArrow();
 
-  // Apple idle animation
-  appleGroup.rotation.y = t * 0.8;
-  appleGroup.position.y = APPLE_Y + Math.sin(t*2) * 0.25;
-  appleGlow.position.y  = appleGroup.position.y;
-  appleGlow.intensity   = 1.8 + Math.sin(t*3) * 0.5;
+  // Flower idle animations
+  flowerS1.rotation.y = t * 0.6;
+  flowerS1.position.y = FLOWER_S1_Y + Math.sin(t*1.8) * 0.3;
+  glowS1.position.y   = flowerS1.position.y;
+  glowS1.intensity    = 1.6 + Math.sin(t*2.5) * 0.5;
+  flowerS2a.rotation.y = t * 0.7;
+  flowerS2b.rotation.y = -t * 0.7;
+  const bob2 = Math.sin(t*2) * 0.3;
+  flowerS2a.position.y = FLOWER_S2_Y + bob2;
+  flowerS2b.position.y = FLOWER_S2_Y - bob2;
+  glowS2.intensity = 2.0 + Math.sin(t*3) * 0.6;
 
   // Cloud drift
   clouds.forEach((c, i) => { c.position.x += 0.008 * (i%2===0 ? 1 : -1); if (c.position.x > 30) c.position.x = -30; if (c.position.x < -30) c.position.x = 30; });
