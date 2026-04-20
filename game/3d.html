@@ -28,6 +28,21 @@ canvas{display:block}
 .btn:hover{background:#7744dd;transform:scale(1.05)}
 .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-80px);background:rgba(20,10,40,.95);border:1px solid #9966ff;padding:10px 26px;border-radius:8px;font-size:13px;transition:transform .3s;z-index:40;letter-spacing:2px}
 .toast.show{transform:translateX(-50%) translateY(0)}
+/* Timer */
+#timer-wrap{position:fixed;top:16px;right:20px;z-index:20;pointer-events:none;text-align:right;text-shadow:0 0 8px rgba(150,100,255,.8)}
+#timer-label{color:#9966ff;font-size:10px;letter-spacing:2px}
+#timer-val{font-size:32px;font-weight:bold;line-height:1.1;transition:color .3s}
+#timer-val.warn{color:#eab308}
+#timer-val.danger{color:#ef4444;animation:pulse .5s infinite alternate}
+@keyframes pulse{from{opacity:1}to{opacity:.4}}
+/* Result overlay */
+#result-overlay .result-card{background:rgba(20,10,40,.98);border:1px solid #9966ff;border-radius:16px;padding:40px 60px;text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center}
+#result-overlay h1{font-size:42px;letter-spacing:4px}
+.result-row{display:flex;gap:48px;margin:8px 0}
+.result-stat{display:flex;flex-direction:column;align-items:center;gap:4px}
+.result-stat .r-label{color:#9966ff;font-size:10px;letter-spacing:3px}
+.result-stat .r-val{font-size:36px;font-weight:bold}
+.result-stat .r-unit{font-size:13px;opacity:.6}
 </style>
 </head>
 <body>
@@ -44,9 +59,34 @@ canvas{display:block}
   <p>CHOG finally grabbed the apple. Worth every tumble.</p>
   <button id="btn-restart" class="btn">CLIMB AGAIN</button>
 </div>
+<!-- Result overlay shown when 3-min timer runs out -->
+<div id="result-overlay" class="overlay hidden">
+  <div class="result-card">
+    <h1>⏰ TIME'S UP!</h1>
+    <p style="color:#bbb;font-size:13px;margin-top:-8px">CHOG ran out of time…</p>
+    <div class="result-row">
+      <div class="result-stat">
+        <span class="r-label">MAX HEIGHT</span>
+        <span class="r-val"><span id="res-height">0</span></span>
+        <span class="r-unit">meters</span>
+      </div>
+      <div class="result-stat">
+        <span class="r-label">BEST HEIGHT</span>
+        <span class="r-val"><span id="res-best">0</span></span>
+        <span class="r-unit">meters</span>
+      </div>
+    </div>
+    <div id="res-rating" style="font-size:18px;letter-spacing:2px;color:#d94fa0;margin:4px 0"></div>
+    <button id="btn-result-retry" class="btn" style="margin-top:8px">TRY AGAIN</button>
+  </div>
+</div>
 <div id="hud">
   <div class="row"><div class="label">HEIGHT</div><div class="val"><span id="h-val">0</span><span class="unit">m</span></div></div>
   <div class="row"><div class="label">BEST</div><div class="val"><span id="b-val">0</span><span class="unit">m</span></div></div>
+</div>
+<div id="timer-wrap">
+  <div id="timer-label">TIME</div>
+  <div id="timer-val">3:00</div>
 </div>
 <div id="power-bar"><div id="power-fill"></div></div>
 <div id="hint">CLICK &amp; DRAG NEAR CHOG TO LAUNCH</div>
@@ -844,6 +884,55 @@ function showToast(msg, ms=1800){
   showToast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
 }
 
+/* ── Timer (3 minutes) ────────────────────────────────────────────────────── */
+const TOTAL_TIME = 180; // seconds
+let timeLeft = TOTAL_TIME;
+const timerEl  = document.getElementById('timer-val');
+const resultOv = document.getElementById('result-overlay');
+const resH     = document.getElementById('res-height');
+const resB     = document.getElementById('res-best');
+const resRating= document.getElementById('res-rating');
+
+function updateTimer(dt){
+  if (!gameRunning) return;
+  timeLeft -= dt;
+  if (timeLeft < 0) timeLeft = 0;
+
+  const m  = Math.floor(timeLeft / 60);
+  const s  = Math.floor(timeLeft % 60);
+  timerEl.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+
+  timerEl.classList.toggle('warn',   timeLeft <= 60 && timeLeft > 30);
+  timerEl.classList.toggle('danger', timeLeft <= 30);
+
+  if (timeLeft <= 0) showResultScreen();
+}
+
+function getTimedRating(h){
+  if (h >= 70) return '🍎 ALMOST GOT IT!';
+  if (h >= 50) return '🔥 INCREDIBLE CLIMB';
+  if (h >= 35) return '⚡ GREAT EFFORT';
+  if (h >= 20) return '👍 KEEP PRACTICING';
+  if (h >= 8)  return '😅 GETTING THERE…';
+  return '😭 CHOG CRIED THE WHOLE TIME';
+}
+
+function showResultScreen(){
+  gameRunning = false;
+  const h = Math.max(0, Math.round(playerPos.y * 1.5));
+  resH.textContent = h;
+  resB.textContent = bestHeight;
+  resRating.textContent = getTimedRating(bestHeight);
+  resultOv.classList.remove('hidden');
+}
+
+document.getElementById('btn-result-retry').addEventListener('click', () => {
+  resultOv.classList.add('hidden');
+  resetGame();
+  gameRunning = true;
+  showToast('GO! DRAG FROM CHOG TO LAUNCH');
+});
+
 /* ── Start / Restart ──────────────────────────────────────────────────────── */
 let gameRunning = false;
 let appleGot = false;
@@ -857,6 +946,9 @@ function resetGame(){
   bestHeight = 0;
   prevMilestone = 0;
   bEl.textContent = 0;
+  timeLeft = TOTAL_TIME;
+  timerEl.textContent = '3:00';
+  timerEl.classList.remove('warn','danger');
   setState('idle');
 }
 
@@ -896,6 +988,8 @@ function frame(now){
       shake.trigger(0.5);
       setTimeout(() => summitOv.classList.remove('hidden'), 700);
     }
+
+    updateTimer(dtRaw);
 
     // Height milestone toasts
     const h = Math.round(playerPos.y * 1.5);
