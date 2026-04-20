@@ -4,8 +4,10 @@
     { "source": "/chog", "destination": "/chog/", "permanent": false },
     { "source": "/emo",  "destination": "/emo/",  "permanent": false },
     { "source": "/bob",  "destination": "/bob/",  "permanent": false },
-    { "source": "/game",       "destination": "/", "permanent": false },
-    { "source": "/game/:path*", "destination": "/", "permanent": false }
+    { "source": "/game",              "destination": "/", "permanent": false },
+    { "source": "/game/",             "destination": "/", "permanent": false },
+    { "source": "/game/index.html",   "destination": "/", "permanent": false },
+    { "source": "/game/user.html",    "destination": "/", "permanent": false }
   ],
   "crons": [
     { "path": "/api/cron-check-alerts", "schedule": "0 0 * * *" }
