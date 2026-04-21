@@ -91,8 +91,9 @@ canvas{display:block}
   <div style="position:absolute;top:0;left:0;right:0;background:rgba(20,0,0,0.82);border-bottom:2px solid #ff3333;padding:7px 16px;display:flex;gap:22px;align-items:center;flex-wrap:wrap">
     <span style="color:#ff3333;font-weight:bold;letter-spacing:2px;font-size:13px">⚙ DEV MODE</span>
     <span id="dev-pos" style="color:#ffcc44;font-size:12px;letter-spacing:1px">x:0 y:0 z:0</span>
-    <span style="color:#ff6666;font-size:11px;letter-spacing:1px">WASD=이동 &nbsp;QE=위아래 &nbsp;SHIFT=빠르게 &nbsp;H=AABB박스 &nbsp;`=종료</span>
+    <span style="color:#ff6666;font-size:11px;letter-spacing:1px">WASD=이동 QE=위아래 SHIFT=빠름 H=AABB G=오브젝트편집 `=종료</span>
     <span id="dev-aabb-label" style="color:#44ffaa;font-size:11px;letter-spacing:1px"></span>
+    <span id="dev-edit-label" style="color:#ff44ff;font-size:11px;letter-spacing:1px"></span>
   </div>
   <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(20,0,0,0.7);border:1px solid #ff3333;padding:6px 18px;font-size:11px;color:#ff8888;letter-spacing:2px">마우스 클릭 후 드래그 = 카메라 회전</div>
 </div>
@@ -314,14 +315,16 @@ function addTree(x, y, z, s=1){
   });
   g.position.set(x, y, z);
   scene.add(g);
+  return g;
 }
-// Dense forest around the ground platform
+// Procedural trees (hidden when GLBs load successfully)
+const proceduralTrees = [];
 const treePositions = [
   [-11,0,-3,1.3],[ -9,0, 4,1.0],[-13,0, 1,1.1],[-15,0,-2,0.9],[-7,0, 6,0.8],
   [ 11,0,-4,1.2],[  9,0, 5,1.0],[ 13,0, 0,1.1],[ 15,0,-3,0.9],[  7,0, 4,0.8],
   [-17,0, 2,0.8],[ 17,0, 3,0.7],[-19,0,-1,1.0],[ 19,0,-2,0.9],
 ];
-treePositions.forEach(([x,y,z,s]) => addTree(x,y,z,s));
+treePositions.forEach(([x,y,z,s]) => proceduralTrees.push(addTree(x,y,z,s)));
 
 // Bushes (low rounded shrubs)
 function addBush(x, y, z, s=1){
@@ -336,8 +339,10 @@ function addBush(x, y, z, s=1){
   });
   g.position.set(x, y, z);
   scene.add(g);
+  return g;
 }
-[[-6,0,3],[ 6,0,2],[-8,0,-2],[8,0,-3],[-4,0,5],[4,0,4],[-2,0,-4],[2,0,-5]].forEach(([x,y,z]) => addBush(x,y,z,0.55));
+const proceduralBushes = [];
+[[-6,0,3],[ 6,0,2],[-8,0,-2],[8,0,-3],[-4,0,5],[4,0,4],[-2,0,-4],[2,0,-5]].forEach(([x,y,z]) => proceduralBushes.push(addBush(x,y,z,0.55)));
 
 /* ── Stage-clear objects (replace flowers — GLB set in setupGLBVisuals) ─── */
 const stageClearObjects = []; // [{pos, group, light, collected}]
@@ -459,6 +464,7 @@ function updateMovingTiles(t) {
     if (tile.aabb.disabled) continue;
     const newX = tile.baseX + Math.sin(t * tile.spd + tile.phase) * tile.amp;
     tile.visual.position.x = newX;
+    if (tile.glbVisual) tile.glbVisual.position.x = newX;
     tile.aabb.minX = newX - tile.w/2;
     tile.aabb.maxX = newX + tile.w/2;
   }
@@ -656,6 +662,9 @@ function loadGLBAsset(name, url) {
 }
 Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
 
+/* Objects available for in-dev-mode positioning */
+const devEditObjects = []; // { label, obj }
+
 function glbFitClone(name, targetW, targetD) {
   const tmpl = glbAssets[name];
   if (!tmpl) return null;
@@ -706,7 +715,7 @@ function setupGLBVisuals() {
     p.mesh.visible = false;
   });
 
-  /* 2 ─ Moving tile visuals for stage 5 platforms */
+  /* 2 ─ Moving tile visuals for stage 5 platforms (added directly to scene, NOT as child) */
   let mtIdx = 0;
   movingTiles.forEach(tile => {
     if (tile.aabb.isCloud) return;
@@ -719,8 +728,10 @@ function setupGLBVisuals() {
     const clone = tmpl.clone();
     const sx = tileSz.x > 0.01 ? tile.w / tileSz.x : 1;
     clone.scale.set(sx, sx, 1.0);
-    tile.visual.add(clone);      // child moves with platform
-    tile.visual.visible = false; // hide BoxGeometry mesh
+    clone.position.copy(tile.visual.position); // start at same spot
+    scene.add(clone);
+    tile.glbVisual = clone;      // track for position sync in updateMovingTiles
+    tile.visual.visible = false; // hide BoxGeometry (clone is now separate in scene)
   });
 
   /* 3 ─ Grass / lollipop / candy decorations on platforms + ground */
@@ -749,23 +760,40 @@ function setupGLBVisuals() {
   ];
   decors.forEach(([n,s,x,y,z,ry]) => placeDecor(n,s,x,y,z,ry));
 
-  /* 4 ─ Trees + stones in starting stage 1 area */
-  placeDecor('tree1', 1.8, -10, 0, -3,  0.3);
-  placeDecor('tree2', 1.6,  10, 0, -2, -0.5);
-  placeDecor('tree3', 2.0, -14, 0,  1,  0.8);
-  placeDecor('tree1', 1.4,  14, 0,  0, -0.2);
-  placeDecor('tree2', 1.5,  -7, 0,  5,  0.4);
-  placeDecor('tree3', 1.7,   7, 0,  4, -0.6);
-  placeDecor('stone', 1.2,  -3, 0,  3,  0.0);
-  placeDecor('stone', 0.9,   4, 0, -4,  1.0);
-  placeDecor('stone', 1.0,   0, 0,  5, -0.5);
+  /* 4 ─ Trees + stones in starting stage 1 area (hide procedural fallbacks first) */
+  const glbTreesOk = glbAssets['tree1'] && glbAssets['tree2'] && glbAssets['tree3'];
+  if (glbTreesOk) {
+    proceduralTrees.forEach(t => scene.remove(t));
+    proceduralBushes.forEach(b => scene.remove(b));
+  }
+  const _td = [
+    // [name, scale, x, y, z, ry]  — spread around platform edges, varied z-depth
+    ['tree1', 2.0, -10, 0, -3.5,  0.3],
+    ['tree2', 1.8,  10, 0, -3.0, -0.5],
+    ['tree3', 2.2, -14, 0,  0.5,  0.8],
+    ['tree1', 1.6,  14, 0,  1.0, -0.2],
+    ['tree2', 1.7,  -7, 0,  4.5,  0.4],
+    ['tree3', 1.9,   7, 0,  4.0, -0.6],
+    ['tree1', 1.5, -18, 0,  0.0,  1.1],
+    ['tree2', 1.4,  18, 0, -1.0, -0.8],
+    ['tree3', 1.6, -12, 0,  5.0,  0.0],
+    ['tree1', 1.3,  12, 0,  5.0,  0.6],
+  ];
+  _td.forEach(([n, s, x, y, z, ry]) => {
+    const obj = placeDecor(n, s, x, y, z, ry);
+    if (obj) devEditObjects.push({ label: `${n}@(${x},${z})`, obj });
+  });
+  placeDecor('stone', 1.2,  -4, 0,  3.5,  0.0);
+  placeDecor('stone', 0.9,   5, 0, -3.5,  1.0);
+  placeDecor('stone', 1.0,   0, 0,  5.5, -0.5);
 
-  /* 5 ─ Moncock NPC beside start (behind/left of character spawn) */
+  /* 5 ─ Moncock NPC — behind and left, on the ground, facing right toward player */
   const mc = glbUniformClone('moncock', 1.3);
   if (mc) {
-    mc.position.set(-2.5, 1.5, -1.5);
-    mc.rotation.y = 0.8;
+    mc.position.set(-4, 0, 1.5);
+    mc.rotation.y = -0.4; // faces roughly toward player at (0,0,0)
     scene.add(mc);
+    devEditObjects.push({ label: 'moncock', obj: mc });
   }
 
   /* 6 ─ Stage-clear GLBs (replace placeholder star shapes) */
@@ -1234,13 +1262,60 @@ document.getElementById('btn-gameover-retry').addEventListener('click', () => {
 });
 
 /* ── Dev / Admin Mode ─────────────────────────────────────────────────────── */
-// Toggle: backtick (`)   Move: WASD + QE   Fast: Shift   AABB: H
+// Toggle: backtick (`)   Move: WASD + QE   Fast: Shift   AABB: H   Edit: G
 let devMode    = false;
 let devShowAABB = false;
 const devCamPos   = new THREE.Vector3(0, 10, 20);
 let devYaw = 0, devPitch = 0;
 const devKeys     = {};
 const devAABBHelpers = [];
+
+/* Object editor (press G in dev mode) */
+let devEditActive  = false;
+let devEditIdx     = -1;
+let devSelHelper   = null;
+const devEditLabelEl = document.getElementById('dev-edit-label');
+const _editStep    = 0.25;
+
+function devSelectObj(idx) {
+  if (devSelHelper) { scene.remove(devSelHelper); devSelHelper = null; }
+  devEditIdx = idx;
+  if (idx < 0 || idx >= devEditObjects.length) { devEditLabelEl.textContent=''; return; }
+  const { label, obj } = devEditObjects[idx];
+  devSelHelper = new THREE.BoxHelper(obj, 0xff44ff);
+  scene.add(devSelHelper);
+  const p = obj.position;
+  devEditLabelEl.textContent =
+    `[G편집|TAB=다음|화살표=이동|PgUp/Dn=Y|P=출력] ${idx+1}/${devEditObjects.length} «${label}» (${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)})`;
+}
+
+function devMoveSelected(dx, dy, dz) {
+  if (devEditIdx < 0) return;
+  const obj = devEditObjects[devEditIdx].obj;
+  obj.position.x += dx; obj.position.y += dy; obj.position.z += dz;
+  if (devSelHelper) devSelHelper.update();
+  devSelectObj(devEditIdx);
+}
+
+function devPrintAllPositions() {
+  console.log('=== DEV OBJECT POSITIONS ===');
+  devEditObjects.forEach(({ label, obj }) => {
+    const p = obj.position;
+    console.log(`${label}:  x=${p.x.toFixed(3)}, y=${p.y.toFixed(3)}, z=${p.z.toFixed(3)}`);
+  });
+  console.log('============================');
+  showToast('📋 좌표 콘솔 출력됨 (F12 열어보기)');
+}
+
+function enterDevEdit() {
+  devEditActive = true;
+  document.exitPointerLock && document.exitPointerLock();
+  devSelectObj(devEditObjects.length > 0 ? 0 : -1);
+}
+function exitDevEdit() {
+  devEditActive = false;
+  devSelectObj(-1);
+}
 const devHud      = document.getElementById('dev-hud');
 const devPosEl    = document.getElementById('dev-pos');
 const devAabbEl   = document.getElementById('dev-aabb-label');
@@ -1288,6 +1363,7 @@ function enterDevMode(){
 }
 function exitDevMode(){
   devMode = false;
+  if (devEditActive) exitDevEdit();
   devHud.style.display = 'none';
   if(devShowAABB){ clearAABBHelpers(); devShowAABB=false; }
   document.exitPointerLock && document.exitPointerLock();
@@ -1297,8 +1373,30 @@ document.addEventListener('keydown', e => {
   // Backtick toggle (works at any time)
   if (e.key === '`') { devMode ? exitDevMode() : enterDevMode(); return; }
   if (!devMode) return;
-  devKeys[e.key.toLowerCase()] = true;
-  if (e.key.toLowerCase() === 'h'){
+
+  const k = e.key.toLowerCase();
+
+  // G — toggle object edit sub-mode
+  if (k === 'g') { devEditActive ? exitDevEdit() : enterDevEdit(); e.preventDefault(); return; }
+
+  // Object edit mode gets arrow keys / pgup/pgdn / tab / p
+  if (devEditActive) {
+    const step = devKeys['shift'] ? 0.05 : _editStep;
+    if (e.key === 'ArrowLeft')   { devMoveSelected(-step,0,0); e.preventDefault(); return; }
+    if (e.key === 'ArrowRight')  { devMoveSelected( step,0,0); e.preventDefault(); return; }
+    if (e.key === 'ArrowUp')     { devMoveSelected(0,0,-step); e.preventDefault(); return; }
+    if (e.key === 'ArrowDown')   { devMoveSelected(0,0, step); e.preventDefault(); return; }
+    if (e.key === 'PageUp')      { devMoveSelected(0, step,0); e.preventDefault(); return; }
+    if (e.key === 'PageDown')    { devMoveSelected(0,-step,0); e.preventDefault(); return; }
+    if (e.key === 'Tab') {
+      const next = (devEditIdx + 1) % devEditObjects.length;
+      devSelectObj(next); e.preventDefault(); return;
+    }
+    if (k === 'p') { devPrintAllPositions(); e.preventDefault(); return; }
+  }
+
+  devKeys[k] = true;
+  if (k === 'h') {
     devShowAABB = !devShowAABB;
     devShowAABB ? buildAABBHelpers() : clearAABBHelpers();
   }
@@ -1309,9 +1407,10 @@ document.addEventListener('keyup', e => {
   devKeys[e.key.toLowerCase()] = false;
 });
 
-// Click canvas in devMode → request pointer lock for mouse look
+// Click canvas in devMode → request pointer lock (only when NOT in edit mode)
 document.addEventListener('click', () => {
-  if (devMode && !document.pointerLockElement) renderer.domElement.requestPointerLock();
+  if (devMode && !devEditActive && !document.pointerLockElement)
+    renderer.domElement.requestPointerLock();
 });
 document.addEventListener('mousemove', e => {
   if (!devMode || !document.pointerLockElement) return;
@@ -1403,7 +1502,7 @@ function resetGame(){
   if (rocketGlow) rocketGlow.position.set(0,ROCKET_Y-2.5,0);
   shipLaunching=false; shipLaunchTimer=0;
   // Re-init moving tiles
-  for(const tile of movingTiles){ tile.visual.position.x=tile.baseX; tile.aabb.minX=tile.baseX-tile.w/2; tile.aabb.maxX=tile.baseX+tile.w/2; }
+  for(const tile of movingTiles){ tile.visual.position.x=tile.baseX; if(tile.glbVisual)tile.glbVisual.position.x=tile.baseX; tile.aabb.minX=tile.baseX-tile.w/2; tile.aabb.maxX=tile.baseX+tile.w/2; }
   setState('idle');
 }
 
