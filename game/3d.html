@@ -111,12 +111,15 @@ canvas{display:block}
 (function(){
 'use strict';
 
+/* ── Quality tier (mobile = low, desktop = high) ─────────────────────────── */
+const HQ = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && window.innerWidth >= 768;
+
 /* ── Renderer / Scene ─────────────────────────────────────────────────────── */
-const renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ antialias: HQ });
+renderer.setPixelRatio(HQ ? Math.min(window.devicePixelRatio, 2) : 1);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = HQ;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 document.body.appendChild(renderer.domElement);
 
@@ -135,19 +138,20 @@ scene.add(new THREE.AmbientLight(0xfff8e8, 0.85));
 const dirLight = new THREE.DirectionalLight(0xfff5c0, 1.5);
 dirLight.position.set(12, 30, 8);
 dirLight.castShadow = true;
-dirLight.shadow.mapSize.set(1024, 1024);
+dirLight.shadow.mapSize.set(HQ ? 1024 : 512, HQ ? 1024 : 512);
 dirLight.shadow.camera.near = 0.1;
-dirLight.shadow.camera.far = 160;
-dirLight.shadow.camera.left = -40;
-dirLight.shadow.camera.right = 40;
-dirLight.shadow.camera.top = 40;
-dirLight.shadow.camera.bottom = -40;
+dirLight.shadow.camera.far = 120;
+const _SR = HQ ? 22 : 16;
+dirLight.shadow.camera.left   = -_SR;
+dirLight.shadow.camera.right  =  _SR;
+dirLight.shadow.camera.top    =  _SR;
+dirLight.shadow.camera.bottom = -_SR;
 scene.add(dirLight);
 const fill = new THREE.DirectionalLight(0xaadeff, 0.4);
 fill.position.set(-10, 8, -10);
 scene.add(fill);
 const playerLight = new THREE.PointLight(0xffffff, 0.6, 18);
-scene.add(playerLight);
+if (HQ) scene.add(playerLight);
 
 // Draco decoder — must be declared before any GLTFLoader.setDRACOLoader() call
 const _dracoLoader = new THREE.DRACOLoader();
@@ -349,9 +353,8 @@ function buildStageClear(x, y, z) {
   g.add(new THREE.Mesh(new THREE.SphereGeometry(0.4,8,6), mat));
   g.position.set(x, y, z);
   scene.add(g);
-  const lt = new THREE.PointLight(0xffd700, 1.8, 14);
-  lt.position.set(x, y, z);
-  scene.add(lt);
+  const lt = HQ ? new THREE.PointLight(0xffd700, 1.8, 14) : null;
+  if (lt) { lt.position.set(x, y, z); scene.add(lt); }
   stageClearObjects.push({ pos: new THREE.Vector3(x, y, z), group: g, light: lt, collected: false });
 }
 
@@ -527,9 +530,8 @@ let rocketGroup = null;
 let emoGroup    = null;
 let shipLaunching  = false;
 let shipLaunchTimer = 0;
-const rocketGlow = new THREE.PointLight(0xff8833, 2.5, 20);
-rocketGlow.position.set(0, ROCKET_Y - 2.5, 0);
-scene.add(rocketGlow);
+const rocketGlow = HQ ? new THREE.PointLight(0xff8833, 2.5, 20) : null;
+if (rocketGlow) { rocketGlow.position.set(0, ROCKET_Y - 2.5, 0); scene.add(rocketGlow); }
 
 /* ── Star field (visible in stage 5 space zone) ─────────────────────────── */
 const starCount = 140;
@@ -1138,7 +1140,7 @@ function updateCamera(dt){
   camLookAt.lerp(new THREE.Vector3(playerPos.x, playerPos.y + 1.5, 0), 0.12);
   camera.lookAt(camLookAt);
 
-  playerLight.position.set(playerPos.x, playerPos.y + 2, playerPos.z);
+  if (HQ) playerLight.position.set(playerPos.x, playerPos.y + 2, playerPos.z);
   dirLight.position.set(playerPos.x + 12, playerPos.y + 30, playerPos.z + 8);
   dirLight.target.position.copy(playerPos);
   dirLight.target.updateMatrixWorld();
@@ -1398,7 +1400,7 @@ function resetGame(){
   // Reset rocket
   if(rocketGroup){ rocketGroup.visible=true; rocketGroup.position.set(0,ROCKET_Y,0); rocketGroup.rotation.y=0; }
   if(emoGroup){ emoGroup.visible=true; emoGroup.position.set(3.0,ROCKET_Y-1.5,0); }
-  rocketGlow.position.set(0,ROCKET_Y-2.5,0);
+  if (rocketGlow) rocketGlow.position.set(0,ROCKET_Y-2.5,0);
   shipLaunching=false; shipLaunchTimer=0;
   // Re-init moving tiles
   for(const tile of movingTiles){ tile.visual.position.x=tile.baseX; tile.aabb.minX=tile.baseX-tile.w/2; tile.aabb.maxX=tile.baseX+tile.w/2; }
@@ -1519,8 +1521,7 @@ function frame(now){
   if (rocketGroup && !shipLaunching) {
     rocketGroup.rotation.y = t * 0.4;
     rocketGroup.position.y = ROCKET_Y + Math.sin(t*1.4) * 0.35;
-    rocketGlow.position.y  = rocketGroup.position.y - 2.5;
-    rocketGlow.intensity   = 2.0 + Math.sin(t*3.0) * 0.8;
+    if (rocketGlow) { rocketGlow.position.y = rocketGroup.position.y - 2.5; rocketGlow.intensity = 2.0 + Math.sin(t*3.0) * 0.8; }
   }
 
   // EMO bounce beside rocket
@@ -1535,8 +1536,7 @@ function frame(now){
     shipLaunchTimer += dtRaw;
     if (rocketGroup) {
       rocketGroup.position.y += dtRaw * (6 + shipLaunchTimer * 28);
-      rocketGlow.position.y   = rocketGroup.position.y - 2.5;
-      rocketGlow.intensity    = 3 + Math.random() * 2;
+      if (rocketGlow) { rocketGlow.position.y = rocketGroup.position.y - 2.5; rocketGlow.intensity = 3 + Math.random() * 2; }
       if (Math.random() < 0.5) {
         spawnParticles(new THREE.Vector3(rocketGroup.position.x, rocketGroup.position.y - 2, 0), 0xff8833, 3);
         spawnParticles(new THREE.Vector3(rocketGroup.position.x, rocketGroup.position.y - 2, 0), 0xffeeaa, 2);
