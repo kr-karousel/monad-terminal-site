@@ -87,6 +87,15 @@ canvas{display:block}
 <div id="stage-banner" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:48;pointer-events:none;font-size:52px;font-weight:bold;font-family:'Courier New',monospace;color:#fff;text-shadow:2px 2px 0 #333,0 0 30px #ffe066;letter-spacing:4px;opacity:0;transition:opacity .25s,transform .25s"></div>
 <div class="toast" id="toast"></div>
 
+<!-- Quality selector + FPS counter -->
+<div id="quality-hud" style="position:fixed;bottom:12px;right:12px;z-index:50;display:flex;align-items:center;gap:5px;font-family:'Courier New',monospace;font-size:11px;background:rgba(0,0,0,0.5);padding:4px 8px;border-radius:4px;border:1px solid #333;">
+  <span id="fps-display" style="color:#44ff88;min-width:32px;">-- fps</span>
+  <span style="color:#444;">|</span>
+  <button data-q="low"  onclick="setQuality('low')"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">LOW</button>
+  <button data-q="med"  onclick="setQuality('med')"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">MED</button>
+  <button data-q="high" onclick="setQuality('high')" style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">HIGH</button>
+</div>
+
 <!-- Dev mode overlay -->
 <div id="dev-hud" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:60;font-family:'Courier New',monospace">
   <div style="position:absolute;top:0;left:0;right:0;background:rgba(20,0,0,0.82);border-bottom:2px solid #ff3333;padding:7px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
@@ -139,11 +148,12 @@ canvas{display:block}
 const HQ = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && window.innerWidth >= 768;
 
 /* ── Renderer / Scene ─────────────────────────────────────────────────────── */
-const renderer = new THREE.WebGLRenderer({ antialias: HQ });
+const renderer = new THREE.WebGLRenderer({ antialias: HQ, powerPreference: 'high-performance' });
 renderer.setPixelRatio(HQ ? Math.min(window.devicePixelRatio, 2) : 1);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = HQ;
 renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.autoUpdate = false; // manually throttle shadow updates
 renderer.outputEncoding = THREE.sRGBEncoding;
 document.body.appendChild(renderer.domElement);
 
@@ -687,6 +697,57 @@ Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
 
 /* Objects available for in-dev-mode positioning */
 const devEditObjects = []; // { label, obj }
+
+/* ── Quality system ────────────────────────────────────────────────────────
+   LOW  : no shadows, pixelRatio 1  (mobile default)
+   MED  : shadow 512,  pixelRatio 1
+   HIGH : shadow 1024, pixelRatio ≤2 (desktop default)
+   ─────────────────────────────────────────────────────────────────────────*/
+const _QP = {
+  low:  { pxR:1, shad:false, sz:512,  sub:2 },
+  med:  { pxR:1, shad:true,  sz:512,  sub:3 },
+  high: { pxR:2, shad:true,  sz:1024, sub:4 },
+};
+let _qualLevel = HQ ? 'high' : 'low';
+let _physSub   = HQ ? 4 : 2;
+
+function setQuality(level) {
+  const q = _QP[level]; if (!q) return;
+  _qualLevel = level;
+  _physSub   = q.sub;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.pxR));
+  renderer.shadowMap.enabled = q.shad;
+  if (q.shad) {
+    if (dirLight.shadow.mapSize.x !== q.sz) {
+      dirLight.shadow.mapSize.set(q.sz, q.sz);
+      if (dirLight.shadow.map) { dirLight.shadow.map.dispose(); dirLight.shadow.map = null; }
+    }
+    renderer.shadowMap.needsUpdate = true;
+  }
+  // Highlight active button
+  document.querySelectorAll('#quality-hud button[data-q]').forEach(b => {
+    const active = b.dataset.q === level;
+    b.style.background = active ? '#223322' : '#1a1a1a';
+    b.style.color       = active ? '#44ff88' : '#888';
+    b.style.border      = active ? '1px solid #44ff44' : '1px solid #333';
+  });
+}
+setQuality(_qualLevel); // apply on load
+
+/* ── Ground mural (place /game/ground_mural.jpg to activate) ───────────── */
+(function() {
+  new THREE.TextureLoader().load('/game/ground_mural.jpg', tex => {
+    tex.encoding = THREE.sRGBEncoding;
+    // Wide horizontal plane just above ground surface
+    const geo = new THREE.PlaneGeometry(28, 8);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: false, depthWrite: true });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(0, 0.03, 0); // y=0.03: just above ground top to avoid z-fight
+    mesh.receiveShadow = false;
+    scene.add(mesh);
+  }, undefined, () => { /* file not found – silent */ });
+})();
 
 function glbFitClone(name, targetW, targetD) {
   const tmpl = glbAssets[name];
@@ -1753,6 +1814,8 @@ document.getElementById('btn-restart').addEventListener('click', () => {
    MAIN LOOP
    ═══════════════════════════════════════════════════════════════════════════ */
 let lastT = performance.now();
+let _fpsAccum = 0, _fpsCount = 0, _shadowTick = 0;
+const _fpsEl = document.getElementById('fps-display');
 function frame(now){
   requestAnimationFrame(frame);
   const dtRaw = Math.min(0.05, (now - lastT) / 1000);
@@ -1760,7 +1823,7 @@ function frame(now){
   const t = now / 1000;
 
   if (gameRunning && !gameWon && !gameOver && !devMode) {
-    const SUB = 4;
+    const SUB = _physSub;
     const dt = dtRaw / SUB;
     for (let i = 0; i < SUB; i++) physicsStep(dt);
     updateStateFromPhysics(dtRaw);
@@ -1883,6 +1946,21 @@ function frame(now){
 
   // Cloud drift
   clouds.forEach((c, i) => { c.position.x += 0.008 * (i%2===0 ? 1 : -1); if (c.position.x > 30) c.position.x = -30; if (c.position.x < -30) c.position.x = 30; });
+
+  // FPS counter (update every 30 frames)
+  _fpsCount++;
+  _fpsAccum += dtRaw;
+  if (_fpsAccum >= 0.5) {
+    _fpsEl.textContent = Math.round(_fpsCount / _fpsAccum) + ' fps';
+    _fpsEl.style.color = _fpsCount/_fpsAccum >= 45 ? '#44ff88' : _fpsCount/_fpsAccum >= 25 ? '#ffcc44' : '#ff4444';
+    _fpsCount = 0; _fpsAccum = 0;
+  }
+
+  // Shadow throttle: update every other frame (halves shadow render cost)
+  if (renderer.shadowMap.enabled) {
+    _shadowTick++;
+    renderer.shadowMap.needsUpdate = (_shadowTick % 2 === 0);
+  }
 
   renderer.render(scene, camera);
 }
