@@ -86,18 +86,52 @@ canvas{display:block}
 <div id="bonus-flash" style="position:fixed;inset:0;background:rgba(255,240,80,.75);pointer-events:none;z-index:45;opacity:0;transition:opacity .08s"></div>
 <div id="stage-banner" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:48;pointer-events:none;font-size:52px;font-weight:bold;font-family:'Courier New',monospace;color:#fff;text-shadow:2px 2px 0 #333,0 0 30px #ffe066;letter-spacing:4px;opacity:0;transition:opacity .25s,transform .25s"></div>
 <div class="toast" id="toast"></div>
+
+<!-- Quality selector + FPS counter -->
+<div id="quality-hud" style="position:fixed;bottom:12px;right:12px;z-index:50;display:flex;align-items:center;gap:5px;font-family:'Courier New',monospace;font-size:11px;background:rgba(0,0,0,0.5);padding:4px 8px;border-radius:4px;border:1px solid #333;">
+  <span id="fps-display" style="color:#44ff88;min-width:32px;">-- fps</span>
+  <span style="color:#444;">|</span>
+  <button data-q="low"  onclick="setQuality('low')"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">LOW</button>
+  <button data-q="med"  onclick="setQuality('med')"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">MED</button>
+  <button data-q="high" onclick="setQuality('high')" style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">HIGH</button>
+</div>
+
 <!-- Dev mode overlay -->
 <div id="dev-hud" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:60;font-family:'Courier New',monospace">
-  <div style="position:absolute;top:0;left:0;right:0;background:rgba(20,0,0,0.82);border-bottom:2px solid #ff3333;padding:7px 16px;display:flex;gap:22px;align-items:center;flex-wrap:wrap">
-    <span style="color:#ff3333;font-weight:bold;letter-spacing:2px;font-size:13px">⚙ DEV MODE</span>
-    <span id="dev-pos" style="color:#ffcc44;font-size:12px;letter-spacing:1px">x:0 y:0 z:0</span>
-    <span style="color:#ff6666;font-size:11px;letter-spacing:1px">WASD=이동 &nbsp;QE=위아래 &nbsp;SHIFT=빠르게 &nbsp;H=AABB박스 &nbsp;`=종료</span>
-    <span id="dev-aabb-label" style="color:#44ffaa;font-size:11px;letter-spacing:1px"></span>
+  <div style="position:absolute;top:0;left:0;right:0;background:rgba(20,0,0,0.82);border-bottom:2px solid #ff3333;padding:7px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+    <span style="color:#ff3333;font-weight:bold;letter-spacing:2px;font-size:13px">⚙ DEV</span>
+    <span id="dev-pos" style="color:#ffcc44;font-size:11px;">x:0 y:0 z:0</span>
+    <span style="color:#ff6666;font-size:10px;">WASD=이동 QE=높이 SHIFT=빠름 H=AABB G=팔레트 `=종료</span>
+    <span id="dev-aabb-label" style="color:#44ffaa;font-size:10px;"></span>
+    <span id="dev-edit-label" style="color:#ff44ff;font-size:10px;"></span>
   </div>
-  <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(20,0,0,0.7);border:1px solid #ff3333;padding:6px 18px;font-size:11px;color:#ff8888;letter-spacing:2px">마우스 클릭 후 드래그 = 카메라 회전</div>
+  <div id="dev-bottom-hint" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(20,0,0,0.7);border:1px solid #ff3333;padding:6px 18px;font-size:11px;color:#ff8888;letter-spacing:2px">클릭+드래그 = 카메라 회전</div>
+</div>
+
+<!-- Dev GLB palette sidebar (shown when G pressed in dev mode) -->
+<div id="dev-palette" style="display:none;position:fixed;left:0;top:46px;bottom:0;width:160px;background:rgba(0,0,18,0.94);border-right:2px solid #ff44ff;overflow-y:auto;z-index:65;font-family:'Courier New',monospace;padding:8px;box-sizing:border-box;">
+  <div style="color:#ff44ff;font-weight:bold;font-size:11px;letter-spacing:2px;margin-bottom:6px;">GLB 팔레트</div>
+  <div id="dev-palette-list" style="display:flex;flex-direction:column;gap:3px;"></div>
+  <hr style="border:none;border-top:1px solid #ff44ff44;margin:8px 0;">
+  <div style="color:#888;font-size:9px;margin-bottom:3px;">배치 스케일</div>
+  <div style="display:flex;align-items:center;gap:4px;margin-bottom:8px;">
+    <button id="dev-scale-dn" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:12px;line-height:1;">−</button>
+    <span id="dev-scale-val" style="color:#ffcc44;font-size:11px;flex:1;text-align:center;">1.0</span>
+    <button id="dev-scale-up" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:12px;line-height:1;">+</button>
+  </div>
+  <div style="color:#888;font-size:9px;margin-bottom:3px;">배치 높이 Y: <span id="dev-place-y-val" style="color:#ffcc44;">0</span></div>
+  <div style="display:flex;gap:3px;margin-bottom:8px;">
+    <button id="dev-y-dn" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:11px;flex:1;">↓</button>
+    <button id="dev-y-up" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:11px;flex:1;">↑</button>
+  </div>
+  <div id="dev-obj-info" style="color:#ffcc44;font-size:10px;line-height:1.5;word-break:break-all;min-height:48px;border-top:1px solid #ff44ff33;padding-top:6px;margin-bottom:6px;"></div>
+  <button id="dev-del-btn" style="display:none;width:100%;background:#440000;color:#ff6666;border:1px solid #ff3333;padding:3px;cursor:pointer;font-size:10px;margin-bottom:4px;">🗑 삭제 (Del)</button>
+  <button id="dev-export-btn" style="width:100%;background:#003300;color:#44ff88;border:1px solid #44ff44;padding:3px;cursor:pointer;font-size:10px;margin-bottom:4px;">📋 좌표출력 (P)</button>
+  <div style="color:#666;font-size:9px;line-height:1.4;margin-top:4px;">←→↑↓ = X/Z이동<br>PgUp/Dn = Y이동<br>TAB = 다음오브젝트<br>Esc = 선택해제</div>
 </div>
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://unpkg.com/three@0.134.0/examples/js/loaders/DRACOLoader.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CHOG CLIMB 3D — single-file Three.js game
@@ -109,12 +143,22 @@ canvas{display:block}
 (function(){
 'use strict';
 
+/* ── MeshoptDecoder (dynamic import to avoid CDN global issues) ──────────── */
+let _meshoptDecoder = null;
+const _meshoptPromise = import('https://unpkg.com/three@0.134.0/examples/jsm/libs/meshopt_decoder.module.js')
+  .then(m => { _meshoptDecoder = m.MeshoptDecoder; })
+  .catch(() => {});
+
+/* ── Quality tier (mobile = low, desktop = high) ─────────────────────────── */
+const HQ = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && window.innerWidth >= 768;
+
 /* ── Renderer / Scene ─────────────────────────────────────────────────────── */
-const renderer = new THREE.WebGLRenderer({ antialias:true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ antialias: HQ, powerPreference: 'high-performance' });
+renderer.setPixelRatio(HQ ? Math.min(window.devicePixelRatio, 2) : 1);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = HQ;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+renderer.shadowMap.autoUpdate = false; // manually throttle shadow updates
 renderer.outputEncoding = THREE.sRGBEncoding;
 document.body.appendChild(renderer.domElement);
 
@@ -133,19 +177,24 @@ scene.add(new THREE.AmbientLight(0xfff8e8, 0.85));
 const dirLight = new THREE.DirectionalLight(0xfff5c0, 1.5);
 dirLight.position.set(12, 30, 8);
 dirLight.castShadow = true;
-dirLight.shadow.mapSize.set(1024, 1024);
+dirLight.shadow.mapSize.set(HQ ? 1024 : 512, HQ ? 1024 : 512);
 dirLight.shadow.camera.near = 0.1;
-dirLight.shadow.camera.far = 160;
-dirLight.shadow.camera.left = -40;
-dirLight.shadow.camera.right = 40;
-dirLight.shadow.camera.top = 40;
-dirLight.shadow.camera.bottom = -40;
+dirLight.shadow.camera.far = 120;
+const _SR = HQ ? 22 : 16;
+dirLight.shadow.camera.left   = -_SR;
+dirLight.shadow.camera.right  =  _SR;
+dirLight.shadow.camera.top    =  _SR;
+dirLight.shadow.camera.bottom = -_SR;
 scene.add(dirLight);
 const fill = new THREE.DirectionalLight(0xaadeff, 0.4);
 fill.position.set(-10, 8, -10);
 scene.add(fill);
 const playerLight = new THREE.PointLight(0xffffff, 0.6, 18);
-scene.add(playerLight);
+if (HQ) scene.add(playerLight);
+
+// Draco decoder — must be declared before any GLTFLoader.setDRACOLoader() call
+const _dracoLoader = new THREE.DRACOLoader();
+_dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
 /* ── Background mountains — 3 parallax layers ─────────────────────────────── */
 function makeMountain(cx, cy, w, h, color, z){
@@ -304,14 +353,16 @@ function addTree(x, y, z, s=1){
   });
   g.position.set(x, y, z);
   scene.add(g);
+  return g;
 }
-// Dense forest around the ground platform
+// Procedural trees (hidden when GLBs load successfully)
+const proceduralTrees = [];
 const treePositions = [
   [-11,0,-3,1.3],[ -9,0, 4,1.0],[-13,0, 1,1.1],[-15,0,-2,0.9],[-7,0, 6,0.8],
   [ 11,0,-4,1.2],[  9,0, 5,1.0],[ 13,0, 0,1.1],[ 15,0,-3,0.9],[  7,0, 4,0.8],
   [-17,0, 2,0.8],[ 17,0, 3,0.7],[-19,0,-1,1.0],[ 19,0,-2,0.9],
 ];
-treePositions.forEach(([x,y,z,s]) => addTree(x,y,z,s));
+treePositions.forEach(([x,y,z,s]) => proceduralTrees.push(addTree(x,y,z,s)));
 
 // Bushes (low rounded shrubs)
 function addBush(x, y, z, s=1){
@@ -326,8 +377,10 @@ function addBush(x, y, z, s=1){
   });
   g.position.set(x, y, z);
   scene.add(g);
+  return g;
 }
-[[-6,0,3],[ 6,0,2],[-8,0,-2],[8,0,-3],[-4,0,5],[4,0,4],[-2,0,-4],[2,0,-5]].forEach(([x,y,z]) => addBush(x,y,z,0.55));
+const proceduralBushes = [];
+[[-6,0,3],[ 6,0,2],[-8,0,-2],[8,0,-3],[-4,0,5],[4,0,4],[-2,0,-4],[2,0,-5]].forEach(([x,y,z]) => proceduralBushes.push(addBush(x,y,z,0.55)));
 
 /* ── Stage-clear objects (replace flowers — GLB set in setupGLBVisuals) ─── */
 const stageClearObjects = []; // [{pos, group, light, collected}]
@@ -343,9 +396,8 @@ function buildStageClear(x, y, z) {
   g.add(new THREE.Mesh(new THREE.SphereGeometry(0.4,8,6), mat));
   g.position.set(x, y, z);
   scene.add(g);
-  const lt = new THREE.PointLight(0xffd700, 1.8, 14);
-  lt.position.set(x, y, z);
-  scene.add(lt);
+  const lt = HQ ? new THREE.PointLight(0xffd700, 1.8, 14) : null;
+  if (lt) { lt.position.set(x, y, z); scene.add(lt); }
   stageClearObjects.push({ pos: new THREE.Vector3(x, y, z), group: g, light: lt, collected: false });
 }
 
@@ -450,6 +502,7 @@ function updateMovingTiles(t) {
     if (tile.aabb.disabled) continue;
     const newX = tile.baseX + Math.sin(t * tile.spd + tile.phase) * tile.amp;
     tile.visual.position.x = newX;
+    if (tile.glbVisual) tile.glbVisual.position.x = newX;
     tile.aabb.minX = newX - tile.w/2;
     tile.aabb.maxX = newX + tile.w/2;
   }
@@ -521,9 +574,8 @@ let rocketGroup = null;
 let emoGroup    = null;
 let shipLaunching  = false;
 let shipLaunchTimer = 0;
-const rocketGlow = new THREE.PointLight(0xff8833, 2.5, 20);
-rocketGlow.position.set(0, ROCKET_Y - 2.5, 0);
-scene.add(rocketGlow);
+const rocketGlow = HQ ? new THREE.PointLight(0xff8833, 2.5, 20) : null;
+if (rocketGlow) { rocketGlow.position.set(0, ROCKET_Y - 2.5, 0); scene.add(rocketGlow); }
 
 /* ── Star field (visible in stage 5 space zone) ─────────────────────────── */
 const starCount = 140;
@@ -568,7 +620,10 @@ loadDiv.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;
 loadDiv.textContent = 'LOADING CHOG…';
 document.body.appendChild(loadDiv);
 
+_meshoptPromise.then(() => {
 const loader = new THREE.GLTFLoader();
+loader.setDRACOLoader(_dracoLoader);
+if (_meshoptDecoder) loader.setMeshoptDecoder(_meshoptDecoder);
 loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
   const model = gltf.scene;
 
@@ -614,6 +669,8 @@ loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
   loadDiv.textContent = 'MODEL LOAD FAILED — using fallback';
   modelLoaded = true; // continue with empty group
 });
+  Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
+}); // end _meshoptPromise.then
 
 /* ── GLB Asset Preloader ──────────────────────────────────────────────────── */
 const glbAssets = {};
@@ -635,14 +692,73 @@ const glbQueue  = [
 function loadGLBAsset(name, url) {
   return new Promise(resolve => {
     const l = new THREE.GLTFLoader();
+    l.setDRACOLoader(_dracoLoader);
+    if (_meshoptDecoder) l.setMeshoptDecoder(_meshoptDecoder);
     l.load(url, gltf => {
       gltf.scene.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
       glbAssets[name] = gltf.scene;
       resolve();
-    }, undefined, () => resolve());
+    }, undefined, err => { console.warn('GLB load failed:', name, err); resolve(); });
   });
 }
-Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
+
+/* Objects available for in-dev-mode positioning */
+const devEditObjects = []; // { label, obj }
+
+/* ── Quality system ────────────────────────────────────────────────────────
+   LOW  : no shadows, pixelRatio 1  (mobile default)
+   MED  : shadow 512,  pixelRatio 1
+   HIGH : shadow 1024, pixelRatio ≤2 (desktop default)
+   ─────────────────────────────────────────────────────────────────────────*/
+const _QP = {
+  low:  { pxR:1, shad:false, sz:512,  sub:2 },
+  med:  { pxR:1, shad:true,  sz:512,  sub:3 },
+  high: { pxR:2, shad:true,  sz:1024, sub:4 },
+};
+let _qualLevel = HQ ? 'high' : 'low';
+let _physSub   = HQ ? 4 : 2;
+
+function setQuality(level) {
+  const q = _QP[level]; if (!q) return;
+  _qualLevel = level;
+  _physSub   = q.sub;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.pxR));
+  renderer.shadowMap.enabled = q.shad;
+  if (q.shad) {
+    if (dirLight.shadow.mapSize.x !== q.sz) {
+      dirLight.shadow.mapSize.set(q.sz, q.sz);
+      if (dirLight.shadow.map) { dirLight.shadow.map.dispose(); dirLight.shadow.map = null; }
+    }
+    renderer.shadowMap.needsUpdate = true;
+  }
+  // Highlight active button
+  document.querySelectorAll('#quality-hud button[data-q]').forEach(b => {
+    const active = b.dataset.q === level;
+    b.style.background = active ? '#223322' : '#1a1a1a';
+    b.style.color       = active ? '#44ff88' : '#888';
+    b.style.border      = active ? '1px solid #44ff44' : '1px solid #333';
+  });
+}
+setQuality(_qualLevel); // apply on load
+
+/* ── Ground mural (maintile.png + maintile1.png side-by-side on platform) ── */
+(function() {
+  const tl = new THREE.TextureLoader();
+  function makeMuralPanel(file, x, w, d) {
+    tl.load(file, tex => {
+      tex.encoding = THREE.sRGBEncoding;
+      const geo = new THREE.PlaneGeometry(w, d);
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: true });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(x, 0.03, 0);
+      mesh.receiveShadow = false;
+      scene.add(mesh);
+    }, undefined, () => {});
+  }
+  makeMuralPanel('/game/maintile.png',  -7, 14, 8);   // left half — 1339×800
+  makeMuralPanel('/game/maintile1.png',  7, 14, 6.2); // right half — 1536×681
+})();
 
 function glbFitClone(name, targetW, targetD) {
   const tmpl = glbAssets[name];
@@ -694,7 +810,7 @@ function setupGLBVisuals() {
     p.mesh.visible = false;
   });
 
-  /* 2 ─ Moving tile visuals for stage 5 platforms */
+  /* 2 ─ Moving tile visuals for stage 5 platforms (added directly to scene, NOT as child) */
   let mtIdx = 0;
   movingTiles.forEach(tile => {
     if (tile.aabb.isCloud) return;
@@ -707,8 +823,10 @@ function setupGLBVisuals() {
     const clone = tmpl.clone();
     const sx = tileSz.x > 0.01 ? tile.w / tileSz.x : 1;
     clone.scale.set(sx, sx, 1.0);
-    tile.visual.add(clone);      // child moves with platform
-    tile.visual.visible = false; // hide BoxGeometry mesh
+    clone.position.copy(tile.visual.position); // start at same spot
+    scene.add(clone);
+    tile.glbVisual = clone;      // track for position sync in updateMovingTiles
+    tile.visual.visible = false; // hide BoxGeometry (clone is now separate in scene)
   });
 
   /* 3 ─ Grass / lollipop / candy decorations on platforms + ground */
@@ -737,23 +855,40 @@ function setupGLBVisuals() {
   ];
   decors.forEach(([n,s,x,y,z,ry]) => placeDecor(n,s,x,y,z,ry));
 
-  /* 4 ─ Trees + stones in starting stage 1 area */
-  placeDecor('tree1', 1.8, -10, 0, -3,  0.3);
-  placeDecor('tree2', 1.6,  10, 0, -2, -0.5);
-  placeDecor('tree3', 2.0, -14, 0,  1,  0.8);
-  placeDecor('tree1', 1.4,  14, 0,  0, -0.2);
-  placeDecor('tree2', 1.5,  -7, 0,  5,  0.4);
-  placeDecor('tree3', 1.7,   7, 0,  4, -0.6);
-  placeDecor('stone', 1.2,  -3, 0,  3,  0.0);
-  placeDecor('stone', 0.9,   4, 0, -4,  1.0);
-  placeDecor('stone', 1.0,   0, 0,  5, -0.5);
+  /* 4 ─ Trees + stones in starting stage 1 area (hide procedural fallbacks first) */
+  const glbTreesOk = glbAssets['tree1'] && glbAssets['tree2'] && glbAssets['tree3'];
+  if (glbTreesOk) {
+    proceduralTrees.forEach(t => scene.remove(t));
+    proceduralBushes.forEach(b => scene.remove(b));
+  }
+  const _td = [
+    // [name, scale, x, y, z, ry]  — spread around platform edges, varied z-depth
+    ['tree1', 2.0, -10, 0, -3.5,  0.3],
+    ['tree2', 1.8,  10, 0, -3.0, -0.5],
+    ['tree3', 2.2, -14, 0,  0.5,  0.8],
+    ['tree1', 1.6,  14, 0,  1.0, -0.2],
+    ['tree2', 1.7,  -7, 0,  4.5,  0.4],
+    ['tree3', 1.9,   7, 0,  4.0, -0.6],
+    ['tree1', 1.5, -18, 0,  0.0,  1.1],
+    ['tree2', 1.4,  18, 0, -1.0, -0.8],
+    ['tree3', 1.6, -12, 0,  5.0,  0.0],
+    ['tree1', 1.3,  12, 0,  5.0,  0.6],
+  ];
+  _td.forEach(([n, s, x, y, z, ry]) => {
+    const obj = placeDecor(n, s, x, y, z, ry);
+    if (obj) devEditObjects.push({ label: `${n}@(${x},${z})`, obj });
+  });
+  placeDecor('stone', 1.2,  -4, 0,  3.5,  0.0);
+  placeDecor('stone', 0.9,   5, 0, -3.5,  1.0);
+  placeDecor('stone', 1.0,   0, 0,  5.5, -0.5);
 
-  /* 5 ─ Moncock NPC beside start (behind/left of character spawn) */
+  /* 5 ─ Moncock NPC — behind and left, on the ground, facing right toward player */
   const mc = glbUniformClone('moncock', 1.3);
   if (mc) {
-    mc.position.set(-2.5, 1.5, -1.5);
-    mc.rotation.y = 0.8;
+    mc.position.set(-4, 0, 1.5);
+    mc.rotation.y = -0.4; // faces roughly toward player at (0,0,0)
     scene.add(mc);
+    devEditObjects.push({ label: 'moncock', obj: mc });
   }
 
   /* 6 ─ Stage-clear GLBs (replace placeholder star shapes) */
@@ -1128,7 +1263,7 @@ function updateCamera(dt){
   camLookAt.lerp(new THREE.Vector3(playerPos.x, playerPos.y + 1.5, 0), 0.12);
   camera.lookAt(camLookAt);
 
-  playerLight.position.set(playerPos.x, playerPos.y + 2, playerPos.z);
+  if (HQ) playerLight.position.set(playerPos.x, playerPos.y + 2, playerPos.z);
   dirLight.position.set(playerPos.x + 12, playerPos.y + 30, playerPos.z + 8);
   dirLight.target.position.copy(playerPos);
   dirLight.target.updateMatrixWorld();
@@ -1222,13 +1357,219 @@ document.getElementById('btn-gameover-retry').addEventListener('click', () => {
 });
 
 /* ── Dev / Admin Mode ─────────────────────────────────────────────────────── */
-// Toggle: backtick (`)   Move: WASD + QE   Fast: Shift   AABB: H
+// Toggle: backtick (`)   Move: WASD + QE   Fast: Shift   AABB: H   Edit: G
 let devMode    = false;
 let devShowAABB = false;
 const devCamPos   = new THREE.Vector3(0, 10, 20);
 let devYaw = 0, devPitch = 0;
 const devKeys     = {};
 const devAABBHelpers = [];
+
+/* ── GLB Palette / Object Editor (press G in dev mode) ──────────────────── */
+let devEditActive  = false;
+let devSelectedRef = null;  // currently selected {key, label, obj, scale}
+let devSelHelper   = null;
+let devGhostMesh   = null;
+let devPlacementKey   = null; // GLB key selected in palette
+let devPlacementScale = 1.0;
+let devPlaceY         = 0;   // horizontal placement plane height
+const devPlacedObjs   = [];  // objects placed via palette [{key,label,obj,scale}]
+const _editStep       = 0.25;
+const devEditLabelEl  = document.getElementById('dev-edit-label');
+const devPaletteEl    = document.getElementById('dev-palette');
+const devPaletteList  = document.getElementById('dev-palette-list');
+const devObjInfoEl    = document.getElementById('dev-obj-info');
+const devDelBtn       = document.getElementById('dev-del-btn');
+const devExportBtn    = document.getElementById('dev-export-btn');
+const devScaleValEl   = document.getElementById('dev-scale-val');
+const devPlaceYEl     = document.getElementById('dev-place-y-val');
+const _devRay         = new THREE.Raycaster();
+const _devMouse2      = new THREE.Vector2();
+const _devPlane       = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+const _devHit         = new THREE.Vector3();
+let   _devRayMeshes   = []; // collected once on palette open
+
+/* ── Palette population ──────────────────────────────────────────────────── */
+function devBuildPalette(manifestObjs) {
+  devPaletteList.innerHTML = '';
+  const keys = new Set(Object.keys(glbAssets));
+  if (manifestObjs) manifestObjs.forEach(o => keys.add(o.key));
+  keys.forEach(key => {
+    const btn = document.createElement('button');
+    const loaded = !!glbAssets[key];
+    btn.textContent = (loaded ? '✓ ' : '⏳ ') + key;
+    btn.dataset.key  = key;
+    btn.style.cssText = `display:block;width:100%;text-align:left;background:${loaded?'#111':'#1a0a00'};color:${loaded?'#ddd':'#886644'};border:1px solid #444;padding:4px 6px;cursor:pointer;font-size:10px;font-family:monospace;border-radius:2px;`;
+    btn.addEventListener('mousedown', e => { e.stopPropagation(); devPickPalette(key, btn); });
+    devPaletteList.appendChild(btn);
+  });
+}
+
+async function devLoadManifest() {
+  try {
+    const r = await fetch('/game/glb-manifest.json');
+    const data = await r.json();
+    const toLoad = (data.objects||[]).filter(o => !glbAssets[o.key]);
+    await Promise.all(toLoad.map(o => loadGLBAsset(o.key, o.file)));
+    devBuildPalette(data.objects);
+    // store default scales from manifest
+    (data.objects||[]).forEach(o => { if (!glbAssets[o.key+'_defScale']) glbAssets[o.key+'_defScale'] = o.scale; });
+  } catch(e) {
+    devBuildPalette(null); // fallback: just use already-loaded assets
+  }
+}
+
+/* ── Palette item selection (enter placement mode) ───────────────────────── */
+function devPickPalette(key, btnEl) {
+  devPaletteList.querySelectorAll('button').forEach(b => b.style.background = glbAssets[b.dataset.key] ? '#111' : '#1a0a00');
+  if (btnEl) btnEl.style.background = '#440044';
+  devPlacementKey   = glbAssets[key] ? key : null;
+  devPlacementScale = parseFloat(devScaleValEl.textContent) || 1.0;
+  devClearSelection();
+  devRebuildGhost();
+  const state = devPlacementKey ? `배치모드: ${key} | 씬 클릭 → 배치` : `${key} 로드 실패`;
+  devObjInfoEl.textContent = state;
+  devEditLabelEl.textContent = state;
+  document.getElementById('dev-bottom-hint').textContent = '씬 클릭 → 오브젝트 배치';
+}
+
+/* ── Ghost (preview) mesh ───────────────────────────────────────────────── */
+function devRebuildGhost() {
+  if (devGhostMesh) { scene.remove(devGhostMesh); devGhostMesh = null; }
+  if (!devPlacementKey || !glbAssets[devPlacementKey]) return;
+  devGhostMesh = glbAssets[devPlacementKey].clone();
+  devGhostMesh.scale.setScalar(devPlacementScale);
+  devGhostMesh.traverse(c => {
+    if (c.isMesh) {
+      const m = Array.isArray(c.material) ? c.material.map(x=>x.clone()) : c.material.clone();
+      c.material = m;
+      (Array.isArray(m)?m:[m]).forEach(x=>{x.transparent=true;x.opacity=0.45;});
+    }
+  });
+  scene.add(devGhostMesh);
+}
+
+/* ── Raycasting ─────────────────────────────────────────────────────────── */
+function devGetPoint(mx, my) {
+  _devMouse2.set((mx/window.innerWidth)*2-1, -(my/window.innerHeight)*2+1);
+  _devRay.setFromCamera(_devMouse2, camera);
+  const ghostIds = new Set(); if (devGhostMesh) devGhostMesh.traverse(c=>ghostIds.add(c.id));
+  const targets = _devRayMeshes.filter(m => m.visible && !ghostIds.has(m.id));
+  const hits = _devRay.intersectObjects(targets, false);
+  if (hits.length) return hits[0].point.clone();
+  _devPlane.constant = -devPlaceY;
+  return _devRay.ray.intersectPlane(_devPlane, _devHit) ? _devHit.clone() : null;
+}
+
+function devRaycastSelect(mx, my) {
+  _devMouse2.set((mx/window.innerWidth)*2-1, -(my/window.innerHeight)*2+1);
+  _devRay.setFromCamera(_devMouse2, camera);
+  const allObjs = devEditObjects.map(r=>r.obj);
+  const hits = _devRay.intersectObjects(allObjs, true);
+  if (!hits.length) { devClearSelection(); return; }
+  let root = hits[0].object;
+  while (root.parent && !devEditObjects.some(r=>r.obj===root)) root = root.parent;
+  const found = devEditObjects.find(r=>r.obj===root);
+  if (found) devSelectRef(found);
+  else devClearSelection();
+}
+
+/* ── Selection ──────────────────────────────────────────────────────────── */
+function devSelectRef(ref) {
+  if (devSelHelper) { scene.remove(devSelHelper); devSelHelper = null; }
+  devSelectedRef = ref;
+  devDelBtn.style.display = ref ? 'block' : 'none';
+  if (!ref) return;
+  devSelHelper = new THREE.BoxHelper(ref.obj, 0xff44ff);
+  scene.add(devSelHelper);
+  devRefreshInfo();
+}
+
+function devClearSelection() {
+  devSelectRef(null);
+  devEditLabelEl.textContent = devPlacementKey ? `배치모드: ${devPlacementKey}` : '';
+}
+
+function devRefreshInfo() {
+  if (!devSelectedRef) return;
+  const p = devSelectedRef.obj.position;
+  const lbl = devSelectedRef.label || devSelectedRef.key || '?';
+  const info = `선택: ${lbl}\nx:${p.x.toFixed(2)} y:${p.y.toFixed(2)} z:${p.z.toFixed(2)}\nscale: ${devSelectedRef.scale||'?'}`;
+  devObjInfoEl.textContent = info;
+  devEditLabelEl.textContent =
+    `«${lbl}» (${p.x.toFixed(1)},${p.y.toFixed(1)},${p.z.toFixed(1)}) | ←→↑↓ 이동 PgUp/Dn Y이동 Del 삭제`;
+}
+
+/* ── Place object ───────────────────────────────────────────────────────── */
+function devPlaceObject(pt) {
+  if (!devPlacementKey || !glbAssets[devPlacementKey]) return;
+  const obj = glbAssets[devPlacementKey].clone();
+  obj.scale.setScalar(devPlacementScale);
+  obj.position.copy(pt);
+  scene.add(obj);
+  const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale };
+  devPlacedObjs.push(ref);
+  devEditObjects.push(ref);
+  devSelectRef(ref);
+  // Re-collect raycast meshes so new object is selectable
+  devCollectRayMeshes();
+}
+
+/* ── Delete selected ────────────────────────────────────────────────────── */
+function devDeleteSelected() {
+  if (!devSelectedRef) return;
+  scene.remove(devSelectedRef.obj);
+  const i1 = devEditObjects.indexOf(devSelectedRef); if(i1>=0) devEditObjects.splice(i1,1);
+  const i2 = devPlacedObjs.indexOf(devSelectedRef); if(i2>=0) devPlacedObjs.splice(i2,1);
+  devSelectRef(null);
+  devCollectRayMeshes();
+}
+
+/* ── Move selected ──────────────────────────────────────────────────────── */
+function devMoveSelected(dx, dy, dz) {
+  if (!devSelectedRef) return;
+  const obj = devSelectedRef.obj;
+  obj.position.x += dx; obj.position.y += dy; obj.position.z += dz;
+  if (devSelHelper) devSelHelper.update();
+  devRefreshInfo();
+}
+
+/* ── Export positions ───────────────────────────────────────────────────── */
+function devPrintAllPositions() {
+  console.log('=== DEV OBJECT POSITIONS ===');
+  devEditObjects.forEach(({ label, key, obj, scale }) => {
+    const p = obj.position;
+    const n = label || key || '?';
+    console.log(`placeDecor('${key||'?'}', ${scale||1}, ${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)});  // ${n}`);
+  });
+  console.log('============================');
+  showToast('📋 콘솔 출력됨 (F12)');
+}
+
+/* ── Ray mesh collection ────────────────────────────────────────────────── */
+function devCollectRayMeshes() {
+  _devRayMeshes = [];
+  scene.traverse(c => { if (c.isMesh && c.visible) _devRayMeshes.push(c); });
+}
+
+/* ── Open / close palette ───────────────────────────────────────────────── */
+function enterDevEdit() {
+  devEditActive = true;
+  document.exitPointerLock && document.exitPointerLock();
+  devPaletteEl.style.display = 'block';
+  document.getElementById('dev-bottom-hint').textContent = '팔레트에서 GLB 선택 → 씬 클릭으로 배치';
+  devCollectRayMeshes();
+  devLoadManifest();
+}
+function exitDevEdit() {
+  devEditActive = false;
+  devPaletteEl.style.display = 'none';
+  if (devGhostMesh) { scene.remove(devGhostMesh); devGhostMesh = null; }
+  devPlacementKey = null;
+  devSelectRef(null);
+  devEditLabelEl.textContent = '';
+  document.getElementById('dev-bottom-hint').textContent = '클릭+드래그 = 카메라 회전';
+}
 const devHud      = document.getElementById('dev-hud');
 const devPosEl    = document.getElementById('dev-pos');
 const devAabbEl   = document.getElementById('dev-aabb-label');
@@ -1276,6 +1617,7 @@ function enterDevMode(){
 }
 function exitDevMode(){
   devMode = false;
+  if (devEditActive) exitDevEdit();
   devHud.style.display = 'none';
   if(devShowAABB){ clearAABBHelpers(); devShowAABB=false; }
   document.exitPointerLock && document.exitPointerLock();
@@ -1285,8 +1627,37 @@ document.addEventListener('keydown', e => {
   // Backtick toggle (works at any time)
   if (e.key === '`') { devMode ? exitDevMode() : enterDevMode(); return; }
   if (!devMode) return;
-  devKeys[e.key.toLowerCase()] = true;
-  if (e.key.toLowerCase() === 'h'){
+
+  const k = e.key.toLowerCase();
+
+  // G — toggle object edit sub-mode
+  if (k === 'g') { devEditActive ? exitDevEdit() : enterDevEdit(); e.preventDefault(); return; }
+
+  // Object edit mode gets arrow keys / pgup/pgdn / tab / p / delete / escape
+  if (devEditActive) {
+    const step = devKeys['shift'] ? 0.05 : _editStep;
+    if (e.key === 'ArrowLeft')   { devMoveSelected(-step,0,0); e.preventDefault(); return; }
+    if (e.key === 'ArrowRight')  { devMoveSelected( step,0,0); e.preventDefault(); return; }
+    if (e.key === 'ArrowUp')     { devMoveSelected(0,0,-step); e.preventDefault(); return; }
+    if (e.key === 'ArrowDown')   { devMoveSelected(0,0, step); e.preventDefault(); return; }
+    if (e.key === 'PageUp')      { devMoveSelected(0, step,0); e.preventDefault(); return; }
+    if (e.key === 'PageDown')    { devMoveSelected(0,-step,0); e.preventDefault(); return; }
+    if (e.key === 'Delete')      { devDeleteSelected(); e.preventDefault(); return; }
+    if (e.key === 'Escape')      { devClearSelection(); devPlacementKey=null; if(devGhostMesh){scene.remove(devGhostMesh);devGhostMesh=null;} devPaletteList.querySelectorAll('button').forEach(b=>b.style.background=glbAssets[b.dataset.key]?'#111':'#1a0a00'); e.preventDefault(); return; }
+    if (e.key === 'Tab') {
+      if (devEditObjects.length) {
+        const cur = devEditObjects.indexOf(devSelectedRef);
+        devSelectRef(devEditObjects[(cur+1) % devEditObjects.length]);
+      }
+      e.preventDefault(); return;
+    }
+    if (k === 'p') { devPrintAllPositions(); e.preventDefault(); return; }
+    if (e.key === '[') { devPlaceY -= 1; devPlaceYEl.textContent = devPlaceY; e.preventDefault(); return; }
+    if (e.key === ']') { devPlaceY += 1; devPlaceYEl.textContent = devPlaceY; e.preventDefault(); return; }
+  }
+
+  devKeys[k] = true;
+  if (k === 'h') {
     devShowAABB = !devShowAABB;
     devShowAABB ? buildAABBHelpers() : clearAABBHelpers();
   }
@@ -1297,15 +1668,57 @@ document.addEventListener('keyup', e => {
   devKeys[e.key.toLowerCase()] = false;
 });
 
-// Click canvas in devMode → request pointer lock for mouse look
-document.addEventListener('click', () => {
-  if (devMode && !document.pointerLockElement) renderer.domElement.requestPointerLock();
+/* ── Palette button events ─────────────────────────────────────────────── */
+document.getElementById('dev-scale-dn').addEventListener('mousedown', e => {
+  e.stopPropagation();
+  devPlacementScale = Math.max(0.1, Math.round((devPlacementScale-0.1)*10)/10);
+  devScaleValEl.textContent = devPlacementScale.toFixed(1);
+  if (devGhostMesh) devGhostMesh.scale.setScalar(devPlacementScale);
 });
+document.getElementById('dev-scale-up').addEventListener('mousedown', e => {
+  e.stopPropagation();
+  devPlacementScale = Math.round((devPlacementScale+0.1)*10)/10;
+  devScaleValEl.textContent = devPlacementScale.toFixed(1);
+  if (devGhostMesh) devGhostMesh.scale.setScalar(devPlacementScale);
+});
+document.getElementById('dev-y-dn').addEventListener('mousedown', e => {
+  e.stopPropagation(); devPlaceY -= 1; devPlaceYEl.textContent = devPlaceY;
+});
+document.getElementById('dev-y-up').addEventListener('mousedown', e => {
+  e.stopPropagation(); devPlaceY += 1; devPlaceYEl.textContent = devPlaceY;
+});
+devDelBtn.addEventListener('mousedown', e => { e.stopPropagation(); devDeleteSelected(); });
+devExportBtn.addEventListener('mousedown', e => { e.stopPropagation(); devPrintAllPositions(); });
+
+/* ── Canvas pointer events ─────────────────────────────────────────────── */
+document.addEventListener('click', e => {
+  if (!devMode) return;
+  // Ignore clicks that originate from the palette sidebar
+  if (e.target.closest('#dev-palette')) return;
+  if (devEditActive) {
+    if (devPlacementKey) {
+      const pt = devGetPoint(e.clientX, e.clientY);
+      if (pt) devPlaceObject(pt);
+    } else {
+      devRaycastSelect(e.clientX, e.clientY);
+    }
+  } else {
+    if (!document.pointerLockElement) renderer.domElement.requestPointerLock();
+  }
+});
+
 document.addEventListener('mousemove', e => {
-  if (!devMode || !document.pointerLockElement) return;
-  devYaw   -= e.movementX * 0.0025;
-  devPitch -= e.movementY * 0.0025;
-  devPitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, devPitch));
+  if (!devMode) return;
+  if (document.pointerLockElement) {
+    // Camera look (pointer-locked)
+    devYaw   -= e.movementX * 0.0025;
+    devPitch -= e.movementY * 0.0025;
+    devPitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, devPitch));
+  } else if (devEditActive && devGhostMesh) {
+    // Ghost follows mouse when in palette placement mode
+    const pt = devGetPoint(e.clientX, e.clientY);
+    if (pt) devGhostMesh.position.copy(pt);
+  }
 });
 
 function updateDevCamera(dt){
@@ -1388,10 +1801,10 @@ function resetGame(){
   // Reset rocket
   if(rocketGroup){ rocketGroup.visible=true; rocketGroup.position.set(0,ROCKET_Y,0); rocketGroup.rotation.y=0; }
   if(emoGroup){ emoGroup.visible=true; emoGroup.position.set(3.0,ROCKET_Y-1.5,0); }
-  rocketGlow.position.set(0,ROCKET_Y-2.5,0);
+  if (rocketGlow) rocketGlow.position.set(0,ROCKET_Y-2.5,0);
   shipLaunching=false; shipLaunchTimer=0;
   // Re-init moving tiles
-  for(const tile of movingTiles){ tile.visual.position.x=tile.baseX; tile.aabb.minX=tile.baseX-tile.w/2; tile.aabb.maxX=tile.baseX+tile.w/2; }
+  for(const tile of movingTiles){ tile.visual.position.x=tile.baseX; if(tile.glbVisual)tile.glbVisual.position.x=tile.baseX; tile.aabb.minX=tile.baseX-tile.w/2; tile.aabb.maxX=tile.baseX+tile.w/2; }
   setState('idle');
 }
 
@@ -1412,6 +1825,8 @@ document.getElementById('btn-restart').addEventListener('click', () => {
    MAIN LOOP
    ═══════════════════════════════════════════════════════════════════════════ */
 let lastT = performance.now();
+let _fpsAccum = 0, _fpsCount = 0, _shadowTick = 0;
+const _fpsEl = document.getElementById('fps-display');
 function frame(now){
   requestAnimationFrame(frame);
   const dtRaw = Math.min(0.05, (now - lastT) / 1000);
@@ -1419,7 +1834,7 @@ function frame(now){
   const t = now / 1000;
 
   if (gameRunning && !gameWon && !gameOver && !devMode) {
-    const SUB = 4;
+    const SUB = _physSub;
     const dt = dtRaw / SUB;
     for (let i = 0; i < SUB; i++) physicsStep(dt);
     updateStateFromPhysics(dtRaw);
@@ -1509,8 +1924,7 @@ function frame(now){
   if (rocketGroup && !shipLaunching) {
     rocketGroup.rotation.y = t * 0.4;
     rocketGroup.position.y = ROCKET_Y + Math.sin(t*1.4) * 0.35;
-    rocketGlow.position.y  = rocketGroup.position.y - 2.5;
-    rocketGlow.intensity   = 2.0 + Math.sin(t*3.0) * 0.8;
+    if (rocketGlow) { rocketGlow.position.y = rocketGroup.position.y - 2.5; rocketGlow.intensity = 2.0 + Math.sin(t*3.0) * 0.8; }
   }
 
   // EMO bounce beside rocket
@@ -1525,8 +1939,7 @@ function frame(now){
     shipLaunchTimer += dtRaw;
     if (rocketGroup) {
       rocketGroup.position.y += dtRaw * (6 + shipLaunchTimer * 28);
-      rocketGlow.position.y   = rocketGroup.position.y - 2.5;
-      rocketGlow.intensity    = 3 + Math.random() * 2;
+      if (rocketGlow) { rocketGlow.position.y = rocketGroup.position.y - 2.5; rocketGlow.intensity = 3 + Math.random() * 2; }
       if (Math.random() < 0.5) {
         spawnParticles(new THREE.Vector3(rocketGroup.position.x, rocketGroup.position.y - 2, 0), 0xff8833, 3);
         spawnParticles(new THREE.Vector3(rocketGroup.position.x, rocketGroup.position.y - 2, 0), 0xffeeaa, 2);
@@ -1544,6 +1957,21 @@ function frame(now){
 
   // Cloud drift
   clouds.forEach((c, i) => { c.position.x += 0.008 * (i%2===0 ? 1 : -1); if (c.position.x > 30) c.position.x = -30; if (c.position.x < -30) c.position.x = 30; });
+
+  // FPS counter (update every 30 frames)
+  _fpsCount++;
+  _fpsAccum += dtRaw;
+  if (_fpsAccum >= 0.5) {
+    _fpsEl.textContent = Math.round(_fpsCount / _fpsAccum) + ' fps';
+    _fpsEl.style.color = _fpsCount/_fpsAccum >= 45 ? '#44ff88' : _fpsCount/_fpsAccum >= 25 ? '#ffcc44' : '#ff4444';
+    _fpsCount = 0; _fpsAccum = 0;
+  }
+
+  // Shadow throttle: update every other frame (halves shadow render cost)
+  if (renderer.shadowMap.enabled) {
+    _shadowTick++;
+    renderer.shadowMap.needsUpdate = (_shadowTick % 2 === 0);
+  }
 
   renderer.render(scene, camera);
 }
