@@ -86,16 +86,39 @@ canvas{display:block}
 <div id="bonus-flash" style="position:fixed;inset:0;background:rgba(255,240,80,.75);pointer-events:none;z-index:45;opacity:0;transition:opacity .08s"></div>
 <div id="stage-banner" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:48;pointer-events:none;font-size:52px;font-weight:bold;font-family:'Courier New',monospace;color:#fff;text-shadow:2px 2px 0 #333,0 0 30px #ffe066;letter-spacing:4px;opacity:0;transition:opacity .25s,transform .25s"></div>
 <div class="toast" id="toast"></div>
+
 <!-- Dev mode overlay -->
 <div id="dev-hud" style="display:none;position:fixed;inset:0;pointer-events:none;z-index:60;font-family:'Courier New',monospace">
-  <div style="position:absolute;top:0;left:0;right:0;background:rgba(20,0,0,0.82);border-bottom:2px solid #ff3333;padding:7px 16px;display:flex;gap:22px;align-items:center;flex-wrap:wrap">
-    <span style="color:#ff3333;font-weight:bold;letter-spacing:2px;font-size:13px">⚙ DEV MODE</span>
-    <span id="dev-pos" style="color:#ffcc44;font-size:12px;letter-spacing:1px">x:0 y:0 z:0</span>
-    <span style="color:#ff6666;font-size:11px;letter-spacing:1px">WASD=이동 QE=위아래 SHIFT=빠름 H=AABB G=오브젝트편집 `=종료</span>
-    <span id="dev-aabb-label" style="color:#44ffaa;font-size:11px;letter-spacing:1px"></span>
-    <span id="dev-edit-label" style="color:#ff44ff;font-size:11px;letter-spacing:1px"></span>
+  <div style="position:absolute;top:0;left:0;right:0;background:rgba(20,0,0,0.82);border-bottom:2px solid #ff3333;padding:7px 16px;display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+    <span style="color:#ff3333;font-weight:bold;letter-spacing:2px;font-size:13px">⚙ DEV</span>
+    <span id="dev-pos" style="color:#ffcc44;font-size:11px;">x:0 y:0 z:0</span>
+    <span style="color:#ff6666;font-size:10px;">WASD=이동 QE=높이 SHIFT=빠름 H=AABB G=팔레트 `=종료</span>
+    <span id="dev-aabb-label" style="color:#44ffaa;font-size:10px;"></span>
+    <span id="dev-edit-label" style="color:#ff44ff;font-size:10px;"></span>
   </div>
-  <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(20,0,0,0.7);border:1px solid #ff3333;padding:6px 18px;font-size:11px;color:#ff8888;letter-spacing:2px">마우스 클릭 후 드래그 = 카메라 회전</div>
+  <div id="dev-bottom-hint" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(20,0,0,0.7);border:1px solid #ff3333;padding:6px 18px;font-size:11px;color:#ff8888;letter-spacing:2px">클릭+드래그 = 카메라 회전</div>
+</div>
+
+<!-- Dev GLB palette sidebar (shown when G pressed in dev mode) -->
+<div id="dev-palette" style="display:none;position:fixed;left:0;top:46px;bottom:0;width:160px;background:rgba(0,0,18,0.94);border-right:2px solid #ff44ff;overflow-y:auto;z-index:65;font-family:'Courier New',monospace;padding:8px;box-sizing:border-box;">
+  <div style="color:#ff44ff;font-weight:bold;font-size:11px;letter-spacing:2px;margin-bottom:6px;">GLB 팔레트</div>
+  <div id="dev-palette-list" style="display:flex;flex-direction:column;gap:3px;"></div>
+  <hr style="border:none;border-top:1px solid #ff44ff44;margin:8px 0;">
+  <div style="color:#888;font-size:9px;margin-bottom:3px;">배치 스케일</div>
+  <div style="display:flex;align-items:center;gap:4px;margin-bottom:8px;">
+    <button id="dev-scale-dn" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:12px;line-height:1;">−</button>
+    <span id="dev-scale-val" style="color:#ffcc44;font-size:11px;flex:1;text-align:center;">1.0</span>
+    <button id="dev-scale-up" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:12px;line-height:1;">+</button>
+  </div>
+  <div style="color:#888;font-size:9px;margin-bottom:3px;">배치 높이 Y: <span id="dev-place-y-val" style="color:#ffcc44;">0</span></div>
+  <div style="display:flex;gap:3px;margin-bottom:8px;">
+    <button id="dev-y-dn" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:11px;flex:1;">↓</button>
+    <button id="dev-y-up" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:11px;flex:1;">↑</button>
+  </div>
+  <div id="dev-obj-info" style="color:#ffcc44;font-size:10px;line-height:1.5;word-break:break-all;min-height:48px;border-top:1px solid #ff44ff33;padding-top:6px;margin-bottom:6px;"></div>
+  <button id="dev-del-btn" style="display:none;width:100%;background:#440000;color:#ff6666;border:1px solid #ff3333;padding:3px;cursor:pointer;font-size:10px;margin-bottom:4px;">🗑 삭제 (Del)</button>
+  <button id="dev-export-btn" style="width:100%;background:#003300;color:#44ff88;border:1px solid #44ff44;padding:3px;cursor:pointer;font-size:10px;margin-bottom:4px;">📋 좌표출력 (P)</button>
+  <div style="color:#666;font-size:9px;line-height:1.4;margin-top:4px;">←→↑↓ = X/Z이동<br>PgUp/Dn = Y이동<br>TAB = 다음오브젝트<br>Esc = 선택해제</div>
 </div>
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -1270,51 +1293,210 @@ let devYaw = 0, devPitch = 0;
 const devKeys     = {};
 const devAABBHelpers = [];
 
-/* Object editor (press G in dev mode) */
+/* ── GLB Palette / Object Editor (press G in dev mode) ──────────────────── */
 let devEditActive  = false;
-let devEditIdx     = -1;
+let devSelectedRef = null;  // currently selected {key, label, obj, scale}
 let devSelHelper   = null;
-const devEditLabelEl = document.getElementById('dev-edit-label');
-const _editStep    = 0.25;
+let devGhostMesh   = null;
+let devPlacementKey   = null; // GLB key selected in palette
+let devPlacementScale = 1.0;
+let devPlaceY         = 0;   // horizontal placement plane height
+const devPlacedObjs   = [];  // objects placed via palette [{key,label,obj,scale}]
+const _editStep       = 0.25;
+const devEditLabelEl  = document.getElementById('dev-edit-label');
+const devPaletteEl    = document.getElementById('dev-palette');
+const devPaletteList  = document.getElementById('dev-palette-list');
+const devObjInfoEl    = document.getElementById('dev-obj-info');
+const devDelBtn       = document.getElementById('dev-del-btn');
+const devExportBtn    = document.getElementById('dev-export-btn');
+const devScaleValEl   = document.getElementById('dev-scale-val');
+const devPlaceYEl     = document.getElementById('dev-place-y-val');
+const _devRay         = new THREE.Raycaster();
+const _devMouse2      = new THREE.Vector2();
+const _devPlane       = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+const _devHit         = new THREE.Vector3();
+let   _devRayMeshes   = []; // collected once on palette open
 
-function devSelectObj(idx) {
-  if (devSelHelper) { scene.remove(devSelHelper); devSelHelper = null; }
-  devEditIdx = idx;
-  if (idx < 0 || idx >= devEditObjects.length) { devEditLabelEl.textContent=''; return; }
-  const { label, obj } = devEditObjects[idx];
-  devSelHelper = new THREE.BoxHelper(obj, 0xff44ff);
-  scene.add(devSelHelper);
-  const p = obj.position;
-  devEditLabelEl.textContent =
-    `[G편집|TAB=다음|화살표=이동|PgUp/Dn=Y|P=출력] ${idx+1}/${devEditObjects.length} «${label}» (${p.x.toFixed(2)},${p.y.toFixed(2)},${p.z.toFixed(2)})`;
+/* ── Palette population ──────────────────────────────────────────────────── */
+function devBuildPalette(manifestObjs) {
+  devPaletteList.innerHTML = '';
+  const keys = new Set(Object.keys(glbAssets));
+  if (manifestObjs) manifestObjs.forEach(o => keys.add(o.key));
+  keys.forEach(key => {
+    const btn = document.createElement('button');
+    const loaded = !!glbAssets[key];
+    btn.textContent = (loaded ? '✓ ' : '⏳ ') + key;
+    btn.dataset.key  = key;
+    btn.style.cssText = `display:block;width:100%;text-align:left;background:${loaded?'#111':'#1a0a00'};color:${loaded?'#ddd':'#886644'};border:1px solid #444;padding:4px 6px;cursor:pointer;font-size:10px;font-family:monospace;border-radius:2px;`;
+    btn.addEventListener('mousedown', e => { e.stopPropagation(); devPickPalette(key, btn); });
+    devPaletteList.appendChild(btn);
+  });
 }
 
+async function devLoadManifest() {
+  try {
+    const r = await fetch('/game/glb-manifest.json');
+    const data = await r.json();
+    const toLoad = (data.objects||[]).filter(o => !glbAssets[o.key]);
+    await Promise.all(toLoad.map(o => loadGLBAsset(o.key, o.file)));
+    devBuildPalette(data.objects);
+    // store default scales from manifest
+    (data.objects||[]).forEach(o => { if (!glbAssets[o.key+'_defScale']) glbAssets[o.key+'_defScale'] = o.scale; });
+  } catch(e) {
+    devBuildPalette(null); // fallback: just use already-loaded assets
+  }
+}
+
+/* ── Palette item selection (enter placement mode) ───────────────────────── */
+function devPickPalette(key, btnEl) {
+  devPaletteList.querySelectorAll('button').forEach(b => b.style.background = glbAssets[b.dataset.key] ? '#111' : '#1a0a00');
+  if (btnEl) btnEl.style.background = '#440044';
+  devPlacementKey   = glbAssets[key] ? key : null;
+  devPlacementScale = parseFloat(devScaleValEl.textContent) || 1.0;
+  devClearSelection();
+  devRebuildGhost();
+  const state = devPlacementKey ? `배치모드: ${key} | 씬 클릭 → 배치` : `${key} 로드 실패`;
+  devObjInfoEl.textContent = state;
+  devEditLabelEl.textContent = state;
+  document.getElementById('dev-bottom-hint').textContent = '씬 클릭 → 오브젝트 배치';
+}
+
+/* ── Ghost (preview) mesh ───────────────────────────────────────────────── */
+function devRebuildGhost() {
+  if (devGhostMesh) { scene.remove(devGhostMesh); devGhostMesh = null; }
+  if (!devPlacementKey || !glbAssets[devPlacementKey]) return;
+  devGhostMesh = glbAssets[devPlacementKey].clone();
+  devGhostMesh.scale.setScalar(devPlacementScale);
+  devGhostMesh.traverse(c => {
+    if (c.isMesh) {
+      const m = Array.isArray(c.material) ? c.material.map(x=>x.clone()) : c.material.clone();
+      c.material = m;
+      (Array.isArray(m)?m:[m]).forEach(x=>{x.transparent=true;x.opacity=0.45;});
+    }
+  });
+  scene.add(devGhostMesh);
+}
+
+/* ── Raycasting ─────────────────────────────────────────────────────────── */
+function devGetPoint(mx, my) {
+  _devMouse2.set((mx/window.innerWidth)*2-1, -(my/window.innerHeight)*2+1);
+  _devRay.setFromCamera(_devMouse2, camera);
+  const ghostIds = new Set(); if (devGhostMesh) devGhostMesh.traverse(c=>ghostIds.add(c.id));
+  const targets = _devRayMeshes.filter(m => m.visible && !ghostIds.has(m.id));
+  const hits = _devRay.intersectObjects(targets, false);
+  if (hits.length) return hits[0].point.clone();
+  _devPlane.constant = -devPlaceY;
+  return _devRay.ray.intersectPlane(_devPlane, _devHit) ? _devHit.clone() : null;
+}
+
+function devRaycastSelect(mx, my) {
+  _devMouse2.set((mx/window.innerWidth)*2-1, -(my/window.innerHeight)*2+1);
+  _devRay.setFromCamera(_devMouse2, camera);
+  const allObjs = devEditObjects.map(r=>r.obj);
+  const hits = _devRay.intersectObjects(allObjs, true);
+  if (!hits.length) { devClearSelection(); return; }
+  let root = hits[0].object;
+  while (root.parent && !devEditObjects.some(r=>r.obj===root)) root = root.parent;
+  const found = devEditObjects.find(r=>r.obj===root);
+  if (found) devSelectRef(found);
+  else devClearSelection();
+}
+
+/* ── Selection ──────────────────────────────────────────────────────────── */
+function devSelectRef(ref) {
+  if (devSelHelper) { scene.remove(devSelHelper); devSelHelper = null; }
+  devSelectedRef = ref;
+  devDelBtn.style.display = ref ? 'block' : 'none';
+  if (!ref) return;
+  devSelHelper = new THREE.BoxHelper(ref.obj, 0xff44ff);
+  scene.add(devSelHelper);
+  devRefreshInfo();
+}
+
+function devClearSelection() {
+  devSelectRef(null);
+  devEditLabelEl.textContent = devPlacementKey ? `배치모드: ${devPlacementKey}` : '';
+}
+
+function devRefreshInfo() {
+  if (!devSelectedRef) return;
+  const p = devSelectedRef.obj.position;
+  const lbl = devSelectedRef.label || devSelectedRef.key || '?';
+  const info = `선택: ${lbl}\nx:${p.x.toFixed(2)} y:${p.y.toFixed(2)} z:${p.z.toFixed(2)}\nscale: ${devSelectedRef.scale||'?'}`;
+  devObjInfoEl.textContent = info;
+  devEditLabelEl.textContent =
+    `«${lbl}» (${p.x.toFixed(1)},${p.y.toFixed(1)},${p.z.toFixed(1)}) | ←→↑↓ 이동 PgUp/Dn Y이동 Del 삭제`;
+}
+
+/* ── Place object ───────────────────────────────────────────────────────── */
+function devPlaceObject(pt) {
+  if (!devPlacementKey || !glbAssets[devPlacementKey]) return;
+  const obj = glbAssets[devPlacementKey].clone();
+  obj.scale.setScalar(devPlacementScale);
+  obj.position.copy(pt);
+  scene.add(obj);
+  const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale };
+  devPlacedObjs.push(ref);
+  devEditObjects.push(ref);
+  devSelectRef(ref);
+  // Re-collect raycast meshes so new object is selectable
+  devCollectRayMeshes();
+}
+
+/* ── Delete selected ────────────────────────────────────────────────────── */
+function devDeleteSelected() {
+  if (!devSelectedRef) return;
+  scene.remove(devSelectedRef.obj);
+  const i1 = devEditObjects.indexOf(devSelectedRef); if(i1>=0) devEditObjects.splice(i1,1);
+  const i2 = devPlacedObjs.indexOf(devSelectedRef); if(i2>=0) devPlacedObjs.splice(i2,1);
+  devSelectRef(null);
+  devCollectRayMeshes();
+}
+
+/* ── Move selected ──────────────────────────────────────────────────────── */
 function devMoveSelected(dx, dy, dz) {
-  if (devEditIdx < 0) return;
-  const obj = devEditObjects[devEditIdx].obj;
+  if (!devSelectedRef) return;
+  const obj = devSelectedRef.obj;
   obj.position.x += dx; obj.position.y += dy; obj.position.z += dz;
   if (devSelHelper) devSelHelper.update();
-  devSelectObj(devEditIdx);
+  devRefreshInfo();
 }
 
+/* ── Export positions ───────────────────────────────────────────────────── */
 function devPrintAllPositions() {
   console.log('=== DEV OBJECT POSITIONS ===');
-  devEditObjects.forEach(({ label, obj }) => {
+  devEditObjects.forEach(({ label, key, obj, scale }) => {
     const p = obj.position;
-    console.log(`${label}:  x=${p.x.toFixed(3)}, y=${p.y.toFixed(3)}, z=${p.z.toFixed(3)}`);
+    const n = label || key || '?';
+    console.log(`placeDecor('${key||'?'}', ${scale||1}, ${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)});  // ${n}`);
   });
   console.log('============================');
-  showToast('📋 좌표 콘솔 출력됨 (F12 열어보기)');
+  showToast('📋 콘솔 출력됨 (F12)');
 }
 
+/* ── Ray mesh collection ────────────────────────────────────────────────── */
+function devCollectRayMeshes() {
+  _devRayMeshes = [];
+  scene.traverse(c => { if (c.isMesh && c.visible) _devRayMeshes.push(c); });
+}
+
+/* ── Open / close palette ───────────────────────────────────────────────── */
 function enterDevEdit() {
   devEditActive = true;
   document.exitPointerLock && document.exitPointerLock();
-  devSelectObj(devEditObjects.length > 0 ? 0 : -1);
+  devPaletteEl.style.display = 'block';
+  document.getElementById('dev-bottom-hint').textContent = '팔레트에서 GLB 선택 → 씬 클릭으로 배치';
+  devCollectRayMeshes();
+  devLoadManifest();
 }
 function exitDevEdit() {
   devEditActive = false;
-  devSelectObj(-1);
+  devPaletteEl.style.display = 'none';
+  if (devGhostMesh) { scene.remove(devGhostMesh); devGhostMesh = null; }
+  devPlacementKey = null;
+  devSelectRef(null);
+  devEditLabelEl.textContent = '';
+  document.getElementById('dev-bottom-hint').textContent = '클릭+드래그 = 카메라 회전';
 }
 const devHud      = document.getElementById('dev-hud');
 const devPosEl    = document.getElementById('dev-pos');
@@ -1379,7 +1561,7 @@ document.addEventListener('keydown', e => {
   // G — toggle object edit sub-mode
   if (k === 'g') { devEditActive ? exitDevEdit() : enterDevEdit(); e.preventDefault(); return; }
 
-  // Object edit mode gets arrow keys / pgup/pgdn / tab / p
+  // Object edit mode gets arrow keys / pgup/pgdn / tab / p / delete / escape
   if (devEditActive) {
     const step = devKeys['shift'] ? 0.05 : _editStep;
     if (e.key === 'ArrowLeft')   { devMoveSelected(-step,0,0); e.preventDefault(); return; }
@@ -1388,11 +1570,18 @@ document.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown')   { devMoveSelected(0,0, step); e.preventDefault(); return; }
     if (e.key === 'PageUp')      { devMoveSelected(0, step,0); e.preventDefault(); return; }
     if (e.key === 'PageDown')    { devMoveSelected(0,-step,0); e.preventDefault(); return; }
+    if (e.key === 'Delete')      { devDeleteSelected(); e.preventDefault(); return; }
+    if (e.key === 'Escape')      { devClearSelection(); devPlacementKey=null; if(devGhostMesh){scene.remove(devGhostMesh);devGhostMesh=null;} devPaletteList.querySelectorAll('button').forEach(b=>b.style.background=glbAssets[b.dataset.key]?'#111':'#1a0a00'); e.preventDefault(); return; }
     if (e.key === 'Tab') {
-      const next = (devEditIdx + 1) % devEditObjects.length;
-      devSelectObj(next); e.preventDefault(); return;
+      if (devEditObjects.length) {
+        const cur = devEditObjects.indexOf(devSelectedRef);
+        devSelectRef(devEditObjects[(cur+1) % devEditObjects.length]);
+      }
+      e.preventDefault(); return;
     }
     if (k === 'p') { devPrintAllPositions(); e.preventDefault(); return; }
+    if (e.key === '[') { devPlaceY -= 1; devPlaceYEl.textContent = devPlaceY; e.preventDefault(); return; }
+    if (e.key === ']') { devPlaceY += 1; devPlaceYEl.textContent = devPlaceY; e.preventDefault(); return; }
   }
 
   devKeys[k] = true;
@@ -1407,16 +1596,57 @@ document.addEventListener('keyup', e => {
   devKeys[e.key.toLowerCase()] = false;
 });
 
-// Click canvas in devMode → request pointer lock (only when NOT in edit mode)
-document.addEventListener('click', () => {
-  if (devMode && !devEditActive && !document.pointerLockElement)
-    renderer.domElement.requestPointerLock();
+/* ── Palette button events ─────────────────────────────────────────────── */
+document.getElementById('dev-scale-dn').addEventListener('mousedown', e => {
+  e.stopPropagation();
+  devPlacementScale = Math.max(0.1, Math.round((devPlacementScale-0.1)*10)/10);
+  devScaleValEl.textContent = devPlacementScale.toFixed(1);
+  if (devGhostMesh) devGhostMesh.scale.setScalar(devPlacementScale);
 });
+document.getElementById('dev-scale-up').addEventListener('mousedown', e => {
+  e.stopPropagation();
+  devPlacementScale = Math.round((devPlacementScale+0.1)*10)/10;
+  devScaleValEl.textContent = devPlacementScale.toFixed(1);
+  if (devGhostMesh) devGhostMesh.scale.setScalar(devPlacementScale);
+});
+document.getElementById('dev-y-dn').addEventListener('mousedown', e => {
+  e.stopPropagation(); devPlaceY -= 1; devPlaceYEl.textContent = devPlaceY;
+});
+document.getElementById('dev-y-up').addEventListener('mousedown', e => {
+  e.stopPropagation(); devPlaceY += 1; devPlaceYEl.textContent = devPlaceY;
+});
+devDelBtn.addEventListener('mousedown', e => { e.stopPropagation(); devDeleteSelected(); });
+devExportBtn.addEventListener('mousedown', e => { e.stopPropagation(); devPrintAllPositions(); });
+
+/* ── Canvas pointer events ─────────────────────────────────────────────── */
+document.addEventListener('click', e => {
+  if (!devMode) return;
+  // Ignore clicks that originate from the palette sidebar
+  if (e.target.closest('#dev-palette')) return;
+  if (devEditActive) {
+    if (devPlacementKey) {
+      const pt = devGetPoint(e.clientX, e.clientY);
+      if (pt) devPlaceObject(pt);
+    } else {
+      devRaycastSelect(e.clientX, e.clientY);
+    }
+  } else {
+    if (!document.pointerLockElement) renderer.domElement.requestPointerLock();
+  }
+});
+
 document.addEventListener('mousemove', e => {
-  if (!devMode || !document.pointerLockElement) return;
-  devYaw   -= e.movementX * 0.0025;
-  devPitch -= e.movementY * 0.0025;
-  devPitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, devPitch));
+  if (!devMode) return;
+  if (document.pointerLockElement) {
+    // Camera look (pointer-locked)
+    devYaw   -= e.movementX * 0.0025;
+    devPitch -= e.movementY * 0.0025;
+    devPitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, devPitch));
+  } else if (devEditActive && devGhostMesh) {
+    // Ghost follows mouse when in palette placement mode
+    const pt = devGetPoint(e.clientX, e.clientY);
+    if (pt) devGhostMesh.position.copy(pt);
+  }
 });
 
 function updateDevCamera(dt){

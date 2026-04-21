@@ -1,0 +1,17 @@
+{
+  "objects": [
+    {"key": "tile1",      "file": "/game/floating_tile_opt.glb",  "scale": 1.0},
+    {"key": "tile3",      "file": "/game/floating_tile3_opt.glb", "scale": 1.0},
+    {"key": "grass",      "file": "/game/grass_opt.glb",          "scale": 0.9},
+    {"key": "lollipop",   "file": "/game/lollipop1_opt.glb",      "scale": 0.9},
+    {"key": "candy",      "file": "/game/candy_opt.glb",          "scale": 0.8},
+    {"key": "stone",      "file": "/game/stone1_opt.glb",         "scale": 1.0},
+    {"key": "tree1",      "file": "/game/tree1_opt.glb",          "scale": 1.8},
+    {"key": "tree2",      "file": "/game/tree2_opt.glb",          "scale": 1.8},
+    {"key": "tree3",      "file": "/game/tree3_opt.glb",          "scale": 1.8},
+    {"key": "moncock",    "file": "/game/moncock_opt.glb",        "scale": 1.3},
+    {"key": "stageClear", "file": "/game/stage_clear_opt.glb",    "scale": 1.6},
+    {"key": "rocket",     "file": "/game/rocket_opt.glb",         "scale": 2.2},
+    {"key": "emo",        "file": "/game/EMO_opt.glb",            "scale": 1.4}
+  ]
+}
