@@ -338,6 +338,23 @@ const platformDefs = [
 
 const cliffDefs = [];
 
+/* ── Stage definitions — fill via dev editor, then paste output here ──────
+   Each stage entry: { key, scale, x, y, z, ry, motion? }
+   tile1/tile2/tile3/stoneTile keys also create physics AABBs (w=4,h=1,d=4 default)
+   ──────────────────────────────────────────────────────────────────────── */
+const STAGE_DEFS = [
+  [], // stage 1 — to be designed
+  [], // stage 2
+  [], // stage 3
+  [], // stage 4
+  [], // stage 5
+];
+const TILE_KEYS = new Set(['tile1','tile2','tile3','stoneTile']);
+const TILE_DEFAULT_W = 4, TILE_DEFAULT_H = 1, TILE_DEFAULT_D = 4;
+
+let _stageObjs  = [];  // { obj, aabb? } for current stage — cleared on transition
+let _stageIdx   = 0;
+
 const platforms = []; // physics AABBs
 const platformMeshes = []; // { mesh, def } for GLB tile overlay
 
@@ -549,6 +566,88 @@ function updateMovingTiles(t) {
     tile.aabb.minX = newX - tile.w/2;
     tile.aabb.maxX = newX + tile.w/2;
   }
+}
+
+/* ── Stage loader ────────────────────────────────────────────────────────── */
+function loadStage(idx) {
+  // Clear previous stage objects from scene
+  _stageObjs.forEach(({ obj, aabb }) => {
+    scene.remove(obj);
+    if (aabb) {
+      const i = platforms.indexOf(aabb);
+      if (i >= 0) platforms.splice(i, 1);
+    }
+  });
+  _stageObjs = [];
+  // Clear stage-clear objects
+  stageClearObjects.forEach(sc => { scene.remove(sc.group); if(sc.light) scene.remove(sc.light); });
+  stageClearObjects.length = 0;
+
+  _stageIdx = idx;
+  const defs = STAGE_DEFS[idx] || [];
+
+  defs.forEach(entry => {
+    const { key, scale = 1, x = 0, y = 0, z = 0, ry = 0, motion } = entry;
+    const tmpl = glbAssets[key];
+    if (!tmpl) return;
+    const obj = tmpl.clone();
+    obj.scale.setScalar(scale);
+    obj.position.set(x, y, z);
+    obj.rotation.y = ry;
+    obj.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+    scene.add(obj);
+
+    let aabb = null;
+    if (TILE_KEYS.has(key)) {
+      const hw = TILE_DEFAULT_W / 2 * scale;
+      const hh = TILE_DEFAULT_H / 2 * scale;
+      const hd = TILE_DEFAULT_D / 2 * scale;
+      aabb = {
+        minX: x - hw, maxX: x + hw,
+        minY: y - hh,  maxY: y + hh,
+        minZ: z - hd,  maxZ: z + hd,
+        disabled: false,
+        _obj: obj, _baseX: x, _baseY: y,
+        _hw: hw, _hh: hh,
+        _motion: motion || null,
+      };
+      platforms.push(aabb);
+    }
+
+    const phase = Math.random() * Math.PI * 2;
+    const ref = {
+      key, obj, scale,
+      motion: motion ? { ...motion, phase } : null,
+      _motBase: motion ? new THREE.Vector3(x, y, z) : null,
+      _motPhase: phase,
+    };
+    if (aabb) ref.aabb = aabb;
+    _stageObjs.push(ref);
+  });
+
+  // Add stage-clear portal above the highest tile + 3
+  const highestY = defs.reduce((m, e) => Math.max(m, e.y || 0), 0);
+  if (defs.length > 0) buildStageClear(0, highestY + 4, 0);
+
+  // Reset player to ground
+  resetGame();
+  currentStage = 0; // stage-clear portal is index 0 for this stage
+}
+
+function fadeTransition(cb) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:#000;z-index:99;opacity:0;transition:opacity 0.5s;pointer-events:none;';
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => { overlay.style.opacity = '1'; });
+  setTimeout(() => {
+    cb();
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 600);
+  }, 550);
+}
+
+function showWinScreen() {
+  summitOv.classList.remove('hidden');
 }
 
 /* ── Mushroom + flower tracking ─────────────────────────────────────────── */
@@ -1915,7 +2014,19 @@ function frame(now){
         if (sc.light) sc.light.intensity = 0;
         spawnParticles(sc.pos.clone(), 0xffd700, 30);
         spawnParticles(sc.pos.clone(), 0xffffff, 15);
-        advanceStage();
+        const nextIdx = _stageIdx + 1;
+        if (nextIdx >= STAGE_DEFS.length) {
+          // Game won — show win screen
+          showWinScreen();
+        } else {
+          // Fade out, load next stage, fade in
+          bonusFlash.style.opacity='1';
+          setTimeout(()=>{ bonusFlash.style.opacity='0'; },180);
+          shake.trigger(0.3);
+          showStageBanner(`STAGE ${nextIdx + 1}`);
+          showToast(`STAGE ${nextIdx + 1}!`);
+          fadeTransition(() => loadStage(nextIdx));
+        }
       }
     }
 
@@ -1983,6 +2094,26 @@ function frame(now){
     if (axis === 'x') ref.obj.position.x = ref._motBase.x + offset;
     else if (axis === 'y') ref.obj.position.y = ref._motBase.y + offset;
     if (devSelHelper) devSelHelper.update();
+  });
+
+  // Animate stage-loaded objects with motion
+  _stageObjs.forEach(ref => {
+    if (!ref.motion || !ref._motBase) return;
+    const { axis, spd, amp, phase } = ref.motion;
+    const offset = Math.sin(t * spd + (phase || 0)) * amp;
+    if (axis === 'x') {
+      ref.obj.position.x = ref._motBase.x + offset;
+      if (ref.aabb) {
+        ref.aabb.minX = ref._motBase.x + offset - ref.aabb._hw;
+        ref.aabb.maxX = ref._motBase.x + offset + ref.aabb._hw;
+      }
+    } else if (axis === 'y') {
+      ref.obj.position.y = ref._motBase.y + offset;
+      if (ref.aabb) {
+        ref.aabb.minY = ref._motBase.y + offset - ref.aabb._hh;
+        ref.aabb.maxY = ref._motBase.y + offset + ref.aabb._hh;
+      }
+    }
   });
 
   // Background: sky → space as player climbs into stage 5
