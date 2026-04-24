@@ -50,13 +50,78 @@ canvas{display:block}
 </style>
 </head>
 <body>
-<div id="start-overlay" class="overlay">
-  <h1>CHOG <span>to the Top</span></h1>
-  <p>Stuck in a pot. Spaceship at the top. Let's go.<br/><br/>
-  <b>DRAG</b> from CHOG to aim — the arrow shows launch direction.<br/>
-  <b>RELEASE</b> to spring launch. Longer drag = more power.<br/>
-  Falling is part of the game.</p>
-  <button id="btn-start" class="btn">BEGIN CLIMB</button>
+<div id="start-overlay" class="overlay" style="align-items:stretch;justify-content:flex-start;overflow-y:auto;padding:0;gap:0;background:linear-gradient(160deg,#060010,#100020,#060010)">
+  <div style="width:100%;max-width:860px;margin:0 auto;padding:20px 14px 36px;box-sizing:border-box">
+
+    <!-- comic title -->
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="display:inline-block;background:#fff;border:4px solid #000;padding:10px 28px;transform:rotate(-1.5deg);box-shadow:6px 6px 0 rgba(0,0,0,.6)">
+        <span style="font-family:'Courier New',monospace;font-size:clamp(22px,4.5vw,52px);font-weight:bold;letter-spacing:4px;color:#000">CHOG <span style="color:#9966ff">TO THE TOP</span></span>
+      </div>
+    </div>
+
+    <!-- 2×2 comic grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">
+
+      <div style="border:4px solid #000;background:#000;display:flex;flex-direction:column;box-shadow:4px 4px 0 rgba(80,40,160,.7)">
+        <div style="background:#ffe000;color:#000;font-family:'Courier New',monospace;font-size:clamp(8px,1.1vw,11px);font-weight:bold;padding:3px 8px;border-bottom:2px solid #000;letter-spacing:2px">① CLIMBING</div>
+        <img src="/game/0.png" alt="" style="width:100%;display:block">
+        <div style="background:#fff;color:#000;padding:7px 10px;font-family:'Courier New',monospace;font-size:clamp(9px,1.3vw,13px);font-weight:bold;line-height:1.55;border-top:3px solid #000">
+          CHOG WAS CLIMBING TOWARD HIS ALL-TIME HIGH, PUSHING HIGHER AND HIGHER UP THE MOUNTAIN.
+        </div>
+      </div>
+
+      <div style="border:4px solid #000;background:#000;display:flex;flex-direction:column;box-shadow:4px 4px 0 rgba(80,40,160,.7)">
+        <div style="background:#ffe000;color:#000;font-family:'Courier New',monospace;font-size:clamp(8px,1.1vw,11px);font-weight:bold;padding:3px 8px;border-bottom:2px solid #000;letter-spacing:2px">② THE APPLE</div>
+        <div style="position:relative">
+          <img src="/game/1.png" alt="" style="width:100%;display:block">
+          <div style="position:absolute;top:10px;right:8px;background:#fff;border:2px solid #000;border-radius:50% 50% 50% 0;padding:5px 9px;font-family:'Courier New',monospace;font-size:clamp(8px,1.1vw,12px);font-weight:bold;max-width:54%;text-align:center;line-height:1.4;box-shadow:2px 2px 0 rgba(0,0,0,.4)">OOOOH!!<br>SO DELICIOUS!!</div>
+        </div>
+        <div style="background:#fff;color:#000;padding:7px 10px;font-family:'Courier New',monospace;font-size:clamp(9px,1.3vw,13px);font-weight:bold;line-height:1.55;border-top:3px solid #000">
+          SUDDENLY, THE MOST INSANELY DELICIOUS APPLE GLISTENED IN THE SUNLIGHT. TEMPTED, HE REACHED OUT TO GRAB IT—
+        </div>
+      </div>
+
+      <div style="border:4px solid #000;background:#000;display:flex;flex-direction:column;box-shadow:4px 4px 0 rgba(80,40,160,.7)">
+        <div style="background:#ff3333;color:#fff;font-family:'Courier New',monospace;font-size:clamp(8px,1.1vw,11px);font-weight:bold;padding:3px 8px;border-bottom:2px solid #000;letter-spacing:2px">③ THE FALL</div>
+        <div style="position:relative">
+          <img src="/game/2.png" alt="" style="width:100%;display:block">
+          <div style="position:absolute;top:10px;left:6px;background:#ff3333;color:#fff;border:3px solid #000;padding:4px 10px;font-family:'Courier New',monospace;font-size:clamp(13px,2vw,24px);font-weight:bold;transform:rotate(-8deg);letter-spacing:2px;box-shadow:3px 3px 0 rgba(0,0,0,.5)">WAAAAH!!</div>
+        </div>
+        <div style="background:#fff;color:#000;padding:7px 10px;font-family:'Courier New',monospace;font-size:clamp(9px,1.3vw,13px);font-weight:bold;line-height:1.55;border-top:3px solid #000">
+          —BUT IN THAT MOMENT, HE SLIPPED AND TUMBLED OFF THE CLIFF!!
+        </div>
+      </div>
+
+      <div style="border:4px solid #000;background:#000;display:flex;flex-direction:column;box-shadow:4px 4px 0 rgba(80,40,160,.7)">
+        <div style="background:#9966ff;color:#fff;font-family:'Courier New',monospace;font-size:clamp(8px,1.1vw,11px);font-weight:bold;padding:3px 8px;border-bottom:2px solid #000;letter-spacing:2px">④ THE POT</div>
+        <div style="position:relative">
+          <img src="/game/4.jpg" alt="" style="width:100%;display:block">
+          <div style="position:absolute;bottom:8px;right:8px;background:#9966ff;color:#fff;border:2px solid #000;border-radius:12px;padding:5px 10px;font-family:'Courier New',monospace;font-size:clamp(9px,1.2vw,13px);font-weight:bold;text-align:center;line-height:1.4">NOOOOO!!</div>
+        </div>
+        <div style="background:#111;color:#fff;padding:7px 10px;font-family:'Courier New',monospace;font-size:clamp(9px,1.3vw,13px);font-weight:bold;line-height:1.55;border-top:3px solid #9966ff">
+          ...AND GOT STUCK INSIDE A GIANT POT! NOW HE MUST CLIMB ALL THE WAY BACK TO THE TOP!
+        </div>
+      </div>
+
+    </div>
+
+    <!-- loading video -->
+    <div style="text-align:center;margin-bottom:18px">
+      <video id="intro-video" autoplay muted playsinline preload="auto"
+             style="max-width:100%;max-height:260px;border:3px solid #9966ff;border-radius:6px;display:block;margin:0 auto;background:#000">
+        <source src="/game/Loading.mp4" type="video/mp4">
+      </video>
+    </div>
+
+    <!-- start button (revealed after video) -->
+    <div style="text-align:center;padding-bottom:10px">
+      <button id="btn-start" class="btn" style="display:none;font-size:clamp(14px,2vw,20px);padding:16px clamp(32px,5vw,72px);letter-spacing:4px;background:linear-gradient(135deg,#7733ff,#9966ff,#cc44ff);border-color:#cc99ff;box-shadow:0 0 24px rgba(153,102,255,.7),0 4px 0 #4422aa">
+        ▶ GAME START
+      </button>
+    </div>
+
+  </div>
 </div>
 <div id="summit-overlay" class="overlay hidden">
   <h1>🚀 LAUNCHED!</h1>
@@ -132,7 +197,6 @@ canvas{display:block}
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/loaders/DRACOLoader.js"></script>
-<script src="https://unpkg.com/meshoptimizer@0.20.0/meshopt_decoder.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════════════════
    CHOG CLIMB 3D — single-file Three.js game
@@ -143,6 +207,12 @@ canvas{display:block}
    ═══════════════════════════════════════════════════════════════════════════ */
 (function(){
 'use strict';
+
+/* ── MeshoptDecoder (dynamic import to avoid CDN global issues) ──────────── */
+let _meshoptDecoder = null;
+const _meshoptPromise = import('https://unpkg.com/three@0.134.0/examples/jsm/libs/meshopt_decoder.module.js')
+  .then(m => { _meshoptDecoder = m.MeshoptDecoder; })
+  .catch(() => {});
 
 /* ── Quality tier (mobile = low, desktop = high) ─────────────────────────── */
 const HQ = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && window.innerWidth >= 768;
@@ -615,9 +685,10 @@ loadDiv.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;
 loadDiv.textContent = 'LOADING CHOG…';
 document.body.appendChild(loadDiv);
 
+_meshoptPromise.then(() => {
 const loader = new THREE.GLTFLoader();
 loader.setDRACOLoader(_dracoLoader);
-loader.setMeshoptDecoder(MeshoptDecoder);
+if (_meshoptDecoder) loader.setMeshoptDecoder(_meshoptDecoder);
 loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
   const model = gltf.scene;
 
@@ -663,6 +734,8 @@ loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
   loadDiv.textContent = 'MODEL LOAD FAILED — using fallback';
   modelLoaded = true; // continue with empty group
 });
+  Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
+}); // end _meshoptPromise.then
 
 /* ── GLB Asset Preloader ──────────────────────────────────────────────────── */
 const glbAssets = {};
@@ -685,7 +758,7 @@ function loadGLBAsset(name, url) {
   return new Promise(resolve => {
     const l = new THREE.GLTFLoader();
     l.setDRACOLoader(_dracoLoader);
-    l.setMeshoptDecoder(MeshoptDecoder);
+    if (_meshoptDecoder) l.setMeshoptDecoder(_meshoptDecoder);
     l.load(url, gltf => {
       gltf.scene.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
       glbAssets[name] = gltf.scene;
@@ -693,7 +766,65 @@ function loadGLBAsset(name, url) {
     }, undefined, err => { console.warn('GLB load failed:', name, err); resolve(); });
   });
 }
-Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
+
+/* Objects available for in-dev-mode positioning */
+const devEditObjects = []; // { label, obj }
+
+/* ── Quality system ────────────────────────────────────────────────────────
+   LOW  : no shadows, pixelRatio 1  (mobile default)
+   MED  : shadow 512,  pixelRatio 1
+   HIGH : shadow 1024, pixelRatio ≤2 (desktop default)
+   ─────────────────────────────────────────────────────────────────────────*/
+const _QP = {
+  low:  { pxR:1, shad:false, sz:512,  sub:2 },
+  med:  { pxR:1, shad:true,  sz:512,  sub:3 },
+  high: { pxR:2, shad:true,  sz:1024, sub:4 },
+};
+let _qualLevel = HQ ? 'high' : 'low';
+let _physSub   = HQ ? 4 : 2;
+
+function setQuality(level) {
+  const q = _QP[level]; if (!q) return;
+  _qualLevel = level;
+  _physSub   = q.sub;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.pxR));
+  renderer.shadowMap.enabled = q.shad;
+  if (q.shad) {
+    if (dirLight.shadow.mapSize.x !== q.sz) {
+      dirLight.shadow.mapSize.set(q.sz, q.sz);
+      if (dirLight.shadow.map) { dirLight.shadow.map.dispose(); dirLight.shadow.map = null; }
+    }
+    renderer.shadowMap.needsUpdate = true;
+  }
+  // Highlight active button
+  document.querySelectorAll('#quality-hud button[data-q]').forEach(b => {
+    const active = b.dataset.q === level;
+    b.style.background = active ? '#223322' : '#1a1a1a';
+    b.style.color       = active ? '#44ff88' : '#888';
+    b.style.border      = active ? '1px solid #44ff44' : '1px solid #333';
+  });
+}
+window.setQuality = setQuality; // expose for inline onclick
+// Also wire via addEventListener so it works even without global scope
+document.querySelectorAll('#quality-hud button[data-q]').forEach(btn => {
+  btn.addEventListener('click', () => setQuality(btn.dataset.q));
+});
+setQuality(_qualLevel); // apply on load
+
+/* ── Ground mural (maintile.png centred on starting platform) ───────────── */
+(function() {
+  new THREE.TextureLoader().load('/game/maintile.png', tex => {
+    tex.encoding = THREE.sRGBEncoding;
+    // 1339×800 → natural aspect 1.674; use width=22 → depth=22/1.674≈13.1
+    const geo = new THREE.PlaneGeometry(22, 13.1);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: true });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(0, 0.03, 0);
+    mesh.receiveShadow = false;
+    scene.add(mesh);
+  }, undefined, () => {});
+})();
 
 /* Objects available for in-dev-mode positioning */
 const devEditObjects = []; // { label, obj }
@@ -1796,6 +1927,21 @@ function resetGame(){
   for(const tile of movingTiles){ tile.visual.position.x=tile.baseX; if(tile.glbVisual)tile.glbVisual.position.x=tile.baseX; tile.aabb.minX=tile.baseX-tile.w/2; tile.aabb.maxX=tile.baseX+tile.w/2; }
   setState('idle');
 }
+
+/* ── Intro video: reveal GAME START button when video ends ──────────────── */
+(function() {
+  const vid = document.getElementById('intro-video');
+  const btn = document.getElementById('btn-start');
+  function revealStart() { btn.style.display = 'inline-block'; }
+  if (vid) {
+    vid.addEventListener('ended', revealStart);
+    vid.addEventListener('error',  revealStart);
+    const p = vid.play();
+    if (p instanceof Promise) p.catch(revealStart);
+  } else {
+    revealStart();
+  }
+})();
 
 document.getElementById('btn-start').addEventListener('click', () => {
   startOv.classList.add('hidden');
