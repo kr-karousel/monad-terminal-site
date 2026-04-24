@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- CHOG to the Top — v2 -->
+<!-- CHOG to the Moon -->
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>CHOG to the Top</title>
+<title>CHOG to the Moon</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;overflow:hidden;font-family:'Courier New',monospace;color:#fff}
@@ -47,81 +47,65 @@ canvas{display:block}
 .result-stat .r-label{color:#ffe066;font-size:10px;letter-spacing:3px}
 .result-stat .r-val{font-size:36px;font-weight:bold}
 .result-stat .r-unit{font-size:13px;opacity:.6}
+/* Comic panel caption overlay */
+.pcap{position:absolute;bottom:0;left:0;right:0;padding:28px 22px 18px;
+  background:linear-gradient(transparent,rgba(0,0,0,0.88));
+  color:#fff;font-family:'Courier New',monospace;
+  font-size:clamp(13px,2.2vw,18px);font-weight:bold;line-height:1.55;
+  letter-spacing:.3px;text-shadow:1px 1px 4px rgba(0,0,0,.9);
+  opacity:0;transform:translateY(14px);pointer-events:none;
+  transition:opacity .55s ease .38s, transform .55s ease .38s}
+.pcap.show{opacity:1;transform:translateY(0)}
 </style>
 </head>
 <body>
-<div id="start-overlay" class="overlay" style="align-items:stretch;justify-content:flex-start;overflow-y:auto;padding:0;gap:0;background:linear-gradient(160deg,#060010,#100020,#060010)">
-  <div style="width:100%;max-width:860px;margin:0 auto;padding:20px 14px 36px;box-sizing:border-box">
+<div id="start-overlay" class="overlay" style="overflow:hidden;gap:0;padding:0;flex-direction:column;background:#08000f;justify-content:flex-start">
 
-    <!-- comic title -->
-    <div style="text-align:center;margin-bottom:18px">
-      <div style="display:inline-block;background:#fff;border:4px solid #000;padding:10px 28px;transform:rotate(-1.5deg);box-shadow:6px 6px 0 rgba(0,0,0,.6)">
-        <span style="font-family:'Courier New',monospace;font-size:clamp(22px,4.5vw,52px);font-weight:bold;letter-spacing:4px;color:#000">CHOG <span style="color:#9966ff">TO THE TOP</span></span>
+  <!-- ── Comic panel slideshow ── -->
+  <div id="panel-viewport" style="position:relative;width:100%;height:62vh;overflow:hidden;cursor:pointer;flex-shrink:0;background:#08000f">
+    <div id="panel-track" style="display:flex;width:400%;height:100%;transition:transform 0.42s cubic-bezier(0.4,0,0.2,1);will-change:transform">
+      <div style="width:25%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
+        <img src="/game/0.png" draggable="false" style="height:100%;width:auto;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
+        <div id="pcap-0" class="pcap">CHOG was climbing toward his all-time high, pushing higher and higher up the mountain.</div>
+      </div>
+      <div style="width:25%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
+        <img src="/game/1.png" draggable="false" style="height:100%;width:auto;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
+        <div id="pcap-1" class="pcap">Suddenly, he spotted the most insanely delicious apple glistening in the sunlight. Tempted, he reached out to grab it—</div>
+      </div>
+      <div style="width:25%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
+        <img src="/game/2.png" draggable="false" style="height:100%;width:auto;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
+        <div id="pcap-2" class="pcap">—but in that moment, he slipped and tumbled off the cliff!</div>
+      </div>
+      <div style="width:25%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
+        <img src="/game/4.jpg" draggable="false" style="height:100%;width:auto;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
+        <div id="pcap-3" class="pcap">And got stuck inside a giant pot.<br>Now he must climb all the way back to the moon! 🌙</div>
       </div>
     </div>
-
-    <!-- 2×2 comic grid -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px">
-
-      <div style="border:4px solid #000;background:#000;display:flex;flex-direction:column;box-shadow:4px 4px 0 rgba(80,40,160,.7)">
-        <div style="background:#ffe000;color:#000;font-family:'Courier New',monospace;font-size:clamp(8px,1.1vw,11px);font-weight:bold;padding:3px 8px;border-bottom:2px solid #000;letter-spacing:2px">① CLIMBING</div>
-        <img src="/game/0.png" alt="" style="width:100%;display:block">
-        <div style="background:#fff;color:#000;padding:7px 10px;font-family:'Courier New',monospace;font-size:clamp(9px,1.3vw,13px);font-weight:bold;line-height:1.55;border-top:3px solid #000">
-          CHOG WAS CLIMBING TOWARD HIS ALL-TIME HIGH, PUSHING HIGHER AND HIGHER UP THE MOUNTAIN.
-        </div>
-      </div>
-
-      <div style="border:4px solid #000;background:#000;display:flex;flex-direction:column;box-shadow:4px 4px 0 rgba(80,40,160,.7)">
-        <div style="background:#ffe000;color:#000;font-family:'Courier New',monospace;font-size:clamp(8px,1.1vw,11px);font-weight:bold;padding:3px 8px;border-bottom:2px solid #000;letter-spacing:2px">② THE APPLE</div>
-        <div style="position:relative">
-          <img src="/game/1.png" alt="" style="width:100%;display:block">
-          <div style="position:absolute;top:10px;right:8px;background:#fff;border:2px solid #000;border-radius:50% 50% 50% 0;padding:5px 9px;font-family:'Courier New',monospace;font-size:clamp(8px,1.1vw,12px);font-weight:bold;max-width:54%;text-align:center;line-height:1.4;box-shadow:2px 2px 0 rgba(0,0,0,.4)">OOOOH!!<br>SO DELICIOUS!!</div>
-        </div>
-        <div style="background:#fff;color:#000;padding:7px 10px;font-family:'Courier New',monospace;font-size:clamp(9px,1.3vw,13px);font-weight:bold;line-height:1.55;border-top:3px solid #000">
-          SUDDENLY, THE MOST INSANELY DELICIOUS APPLE GLISTENED IN THE SUNLIGHT. TEMPTED, HE REACHED OUT TO GRAB IT—
-        </div>
-      </div>
-
-      <div style="border:4px solid #000;background:#000;display:flex;flex-direction:column;box-shadow:4px 4px 0 rgba(80,40,160,.7)">
-        <div style="background:#ff3333;color:#fff;font-family:'Courier New',monospace;font-size:clamp(8px,1.1vw,11px);font-weight:bold;padding:3px 8px;border-bottom:2px solid #000;letter-spacing:2px">③ THE FALL</div>
-        <div style="position:relative">
-          <img src="/game/2.png" alt="" style="width:100%;display:block">
-          <div style="position:absolute;top:10px;left:6px;background:#ff3333;color:#fff;border:3px solid #000;padding:4px 10px;font-family:'Courier New',monospace;font-size:clamp(13px,2vw,24px);font-weight:bold;transform:rotate(-8deg);letter-spacing:2px;box-shadow:3px 3px 0 rgba(0,0,0,.5)">WAAAAH!!</div>
-        </div>
-        <div style="background:#fff;color:#000;padding:7px 10px;font-family:'Courier New',monospace;font-size:clamp(9px,1.3vw,13px);font-weight:bold;line-height:1.55;border-top:3px solid #000">
-          —BUT IN THAT MOMENT, HE SLIPPED AND TUMBLED OFF THE CLIFF!!
-        </div>
-      </div>
-
-      <div style="border:4px solid #000;background:#000;display:flex;flex-direction:column;box-shadow:4px 4px 0 rgba(80,40,160,.7)">
-        <div style="background:#9966ff;color:#fff;font-family:'Courier New',monospace;font-size:clamp(8px,1.1vw,11px);font-weight:bold;padding:3px 8px;border-bottom:2px solid #000;letter-spacing:2px">④ THE POT</div>
-        <div style="position:relative">
-          <img src="/game/4.jpg" alt="" style="width:100%;display:block">
-          <div style="position:absolute;bottom:8px;right:8px;background:#9966ff;color:#fff;border:2px solid #000;border-radius:12px;padding:5px 10px;font-family:'Courier New',monospace;font-size:clamp(9px,1.2vw,13px);font-weight:bold;text-align:center;line-height:1.4">NOOOOO!!</div>
-        </div>
-        <div style="background:#111;color:#fff;padding:7px 10px;font-family:'Courier New',monospace;font-size:clamp(9px,1.3vw,13px);font-weight:bold;line-height:1.55;border-top:3px solid #9966ff">
-          ...AND GOT STUCK INSIDE A GIANT POT! NOW HE MUST CLIMB ALL THE WAY BACK TO THE TOP!
-        </div>
-      </div>
-
+    <!-- tap hint -->
+    <div id="panel-hint" style="position:absolute;bottom:14px;right:20px;color:rgba(255,255,255,0.55);font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;pointer-events:none;transition:opacity 0.3s">TAP TO CONTINUE →</div>
+    <!-- progress dots -->
+    <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:10px;pointer-events:none">
+      <div id="pdot-0" style="width:7px;height:7px;border-radius:50%;background:#fff;transition:all 0.3s"></div>
+      <div id="pdot-1" style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.28);transition:all 0.3s"></div>
+      <div id="pdot-2" style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.28);transition:all 0.3s"></div>
+      <div id="pdot-3" style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.28);transition:all 0.3s"></div>
     </div>
-
-    <!-- loading video -->
-    <div style="text-align:center;margin-bottom:18px">
-      <video id="intro-video" autoplay muted playsinline preload="auto"
-             style="max-width:100%;max-height:260px;border:3px solid #9966ff;border-radius:6px;display:block;margin:0 auto;background:#000">
-        <source src="/game/Loading.mp4" type="video/mp4">
-      </video>
-    </div>
-
-    <!-- start button (revealed after video) -->
-    <div style="text-align:center;padding-bottom:10px">
-      <button id="btn-start" class="btn" style="display:none;font-size:clamp(14px,2vw,20px);padding:16px clamp(32px,5vw,72px);letter-spacing:4px;background:linear-gradient(135deg,#7733ff,#9966ff,#cc44ff);border-color:#cc99ff;box-shadow:0 0 24px rgba(153,102,255,.7),0 4px 0 #4422aa">
-        ▶ GAME START
-      </button>
-    </div>
-
   </div>
+
+  <!-- divider -->
+  <div style="height:2px;flex-shrink:0;background:linear-gradient(90deg,transparent,#9966ff88,#9966ff,#9966ff88,transparent)"></div>
+
+  <!-- ── Video + start button ── -->
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px 14px;gap:10px;background:#08000f">
+    <video id="intro-video" autoplay muted playsinline preload="auto"
+           style="max-width:100%;flex:1;min-height:0;object-fit:contain;border-radius:6px;display:block">
+      <source src="/game/Loading.mp4" type="video/mp4">
+    </video>
+    <button id="btn-start" class="btn" style="display:none;flex-shrink:0;font-size:clamp(14px,2vw,18px);padding:14px clamp(28px,5vw,64px);letter-spacing:4px;background:linear-gradient(135deg,#7733ff,#9966ff);border-color:#cc99ff;box-shadow:0 0 20px rgba(153,102,255,.65),0 3px 0 #4422aa">
+      ▶ GAME START
+    </button>
+  </div>
+
 </div>
 <div id="summit-overlay" class="overlay hidden">
   <h1>🚀 LAUNCHED!</h1>
@@ -1928,14 +1912,53 @@ function resetGame(){
   setState('idle');
 }
 
-/* ── Intro video: reveal GAME START button when video ends ──────────────── */
+/* ── Comic panel slideshow + video end handler ───────────────────────────── */
 (function() {
+  /* --- panel slideshow --- */
+  const track   = document.getElementById('panel-track');
+  const hint    = document.getElementById('panel-hint');
+  const viewport= document.getElementById('panel-viewport');
+  const PANELS  = 4;
+  let cur = 0;
+
+  function showCap(i) {
+    for (let k = 0; k < PANELS; k++) {
+      const el = document.getElementById('pcap-' + k);
+      if (el) el.classList.toggle('show', k === i);
+    }
+  }
+  function updateDots(i) {
+    for (let k = 0; k < PANELS; k++) {
+      const d = document.getElementById('pdot-' + k);
+      if (d) { d.style.background = k === i ? '#fff' : 'rgba(255,255,255,0.28)'; d.style.transform = k === i ? 'scale(1.35)' : 'scale(1)'; }
+    }
+  }
+  function goPanel(i) {
+    cur = i;
+    track.style.transform = 'translateX(-' + (cur * 25) + '%)';
+    updateDots(cur);
+    showCap(cur);
+    if (hint) hint.style.opacity = cur >= PANELS - 1 ? '0' : '1';
+  }
+
+  if (viewport) viewport.addEventListener('click', () => { if (cur < PANELS - 1) goPanel(cur + 1); });
+  goPanel(0); // show first panel caption immediately
+
+  /* --- video / start button --- */
   const vid = document.getElementById('intro-video');
   const btn = document.getElementById('btn-start');
-  function revealStart() { btn.style.display = 'inline-block'; }
+  let _shown = false;
+  function revealStart() {
+    if (_shown) return; _shown = true;
+    btn.style.display = 'inline-block';
+  }
   if (vid) {
     vid.addEventListener('ended', revealStart);
     vid.addEventListener('error',  revealStart);
+    // Polling: catch cases where 'ended' fires before listener attaches
+    const _poll = setInterval(() => { if (vid.ended) { revealStart(); clearInterval(_poll); } }, 300);
+    // Hard fallback: show button after 20 s max
+    setTimeout(revealStart, 20000);
     const p = vid.play();
     if (p instanceof Promise) p.catch(revealStart);
   } else {
