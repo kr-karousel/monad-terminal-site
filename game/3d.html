@@ -48,12 +48,13 @@ canvas{display:block}
 .result-stat .r-val{font-size:36px;font-weight:bold}
 .result-stat .r-unit{font-size:13px;opacity:.6}
 /* Comic panel caption overlay */
-.pcap{position:absolute;bottom:0;left:0;right:0;padding:28px 22px 18px;
-  background:linear-gradient(transparent,rgba(0,0,0,0.88));
+.pcap{position:absolute;bottom:0;left:0;right:0;padding:36px 10% 28px;
+  background:linear-gradient(transparent 0%,rgba(0,0,0,0.72) 30%,rgba(0,0,0,0.92) 100%);
   color:#fff;font-family:'Courier New',monospace;
-  font-size:clamp(13px,2.2vw,18px);font-weight:bold;line-height:1.55;
-  letter-spacing:.3px;text-shadow:1px 1px 4px rgba(0,0,0,.9);
-  opacity:0;transform:translateY(14px);pointer-events:none;
+  font-size:clamp(16px,2.8vw,26px);font-weight:bold;line-height:1.6;
+  letter-spacing:.4px;text-align:center;
+  text-shadow:0 2px 8px rgba(0,0,0,1),0 0 24px rgba(0,0,0,.8),2px 2px 0 rgba(0,0,0,.9);
+  opacity:0;transform:translateY(18px);pointer-events:none;
   transition:opacity .55s ease .38s, transform .55s ease .38s}
 .pcap.show{opacity:1;transform:translateY(0)}
 </style>
@@ -126,13 +127,16 @@ canvas{display:block}
 <div id="stage-banner" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:48;pointer-events:none;font-size:52px;font-weight:bold;font-family:'Courier New',monospace;color:#fff;text-shadow:2px 2px 0 #333,0 0 30px #ffe066;letter-spacing:4px;opacity:0;transition:opacity .25s,transform .25s"></div>
 <div class="toast" id="toast"></div>
 
-<!-- Quality selector + FPS counter -->
-<div id="quality-hud" style="position:fixed;bottom:12px;right:12px;z-index:50;display:flex;align-items:center;gap:5px;font-family:'Courier New',monospace;font-size:11px;background:rgba(0,0,0,0.5);padding:4px 8px;border-radius:4px;border:1px solid #333;">
-  <span id="fps-display" style="color:#44ff88;min-width:32px;">-- fps</span>
-  <span style="color:#444;">|</span>
-  <button data-q="low"  onclick="setQuality('low')"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">LOW</button>
-  <button data-q="med"  onclick="setQuality('med')"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">MED</button>
-  <button data-q="high" onclick="setQuality('high')" style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">HIGH</button>
+<!-- Quality selector + FPS counter (collapsible) -->
+<div id="quality-hud" style="position:fixed;bottom:12px;right:12px;z-index:50;display:flex;align-items:center;gap:0;font-family:'Courier New',monospace;font-size:11px;background:rgba(0,0,0,0.5);border-radius:4px;border:1px solid #333;overflow:hidden;">
+  <div id="quality-panel" style="display:flex;align-items:center;gap:5px;padding:4px 8px;transition:max-width .25s,opacity .25s,padding .25s;max-width:200px;opacity:1;">
+    <span id="fps-display" style="color:#44ff88;min-width:32px;">-- fps</span>
+    <span style="color:#444;">|</span>
+    <button data-q="low"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">LOW</button>
+    <button data-q="med"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">MED</button>
+    <button data-q="high" style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">HIGH</button>
+  </div>
+  <button id="quality-toggle" title="Show/hide quality panel" style="background:transparent;color:#666;border:none;border-left:1px solid #333;padding:4px 7px;cursor:pointer;font-size:12px;line-height:1;flex-shrink:0;">◀</button>
 </div>
 
 <!-- Dev mode overlay -->
@@ -182,11 +186,15 @@ canvas{display:block}
 (function(){
 'use strict';
 
-/* ── MeshoptDecoder (dynamic import to avoid CDN global issues) ──────────── */
+/* ── MeshoptDecoder (dynamic import, two CDN fallbacks) ──────────────────── */
 let _meshoptDecoder = null;
 const _meshoptPromise = import('https://unpkg.com/three@0.134.0/examples/jsm/libs/meshopt_decoder.module.js')
   .then(m => { _meshoptDecoder = m.MeshoptDecoder; })
-  .catch(() => {});
+  .catch(() =>
+    import('https://cdn.jsdelivr.net/npm/three@0.134.0/examples/jsm/libs/meshopt_decoder.module.js')
+      .then(m => { _meshoptDecoder = m.MeshoptDecoder; })
+      .catch(() => { console.warn('MeshoptDecoder unavailable — GLBs will load without compression support'); })
+  );
 
 /* ── Quality tier (mobile = low, desktop = high) ─────────────────────────── */
 const HQ = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && window.innerWidth >= 768;
@@ -761,7 +769,10 @@ function setQuality(level) {
   const q = _QP[level]; if (!q) return;
   _qualLevel = level;
   _physSub   = q.sub;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.pxR));
+  const pr = Math.min(window.devicePixelRatio, q.pxR);
+  renderer.setPixelRatio(pr);
+  // Force canvas to resize so new pixel ratio actually applies
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.shadowMap.enabled = q.shad;
   if (q.shad) {
     if (dirLight.shadow.mapSize.x !== q.sz) {
@@ -778,24 +789,48 @@ function setQuality(level) {
     b.style.border      = active ? '1px solid #44ff44' : '1px solid #333';
   });
 }
-window.setQuality = setQuality; // expose for inline onclick
-// Also wire via addEventListener so it works even without global scope
+window.setQuality = setQuality;
 document.querySelectorAll('#quality-hud button[data-q]').forEach(btn => {
   btn.addEventListener('click', () => setQuality(btn.dataset.q));
 });
 setQuality(_qualLevel); // apply on load
 
-/* ── Ground mural (maintile.png centred on starting platform) ───────────── */
+// Quality HUD collapse toggle
+(function() {
+  const panel = document.getElementById('quality-panel');
+  const btn   = document.getElementById('quality-toggle');
+  let open = true;
+  if (btn && panel) {
+    btn.addEventListener('click', () => {
+      open = !open;
+      if (open) {
+        panel.style.maxWidth = '200px';
+        panel.style.opacity  = '1';
+        panel.style.padding  = '4px 8px';
+        btn.textContent = '◀';
+      } else {
+        panel.style.maxWidth = '0';
+        panel.style.opacity  = '0';
+        panel.style.padding  = '4px 0';
+        btn.textContent = '▶';
+      }
+    });
+  }
+})();
+
+/* ── Front-face mural (maintile.png on the front wall of the starting island) */
 (function() {
   new THREE.TextureLoader().load('/game/maintile.png', tex => {
     tex.encoding = THREE.sRGBEncoding;
-    // 1339×800 → natural aspect 1.674; use width=22 → depth=22/1.674≈13.1
-    const geo = new THREE.PlaneGeometry(22, 13.1);
-    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: true });
+    // 1339×800 → aspect 1.674; width=26 → height≈15.5
+    // Platform front face is at z=+4 (w:28, d:8, centered at z=0)
+    const W = 26, H = W / (1339/800);
+    const geo = new THREE.PlaneGeometry(W, H);
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.FrontSide });
     const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(0, 0.03, 0);
-    mesh.receiveShadow = false;
+    // Vertical plane, naturally faces +z (toward camera at z=20)
+    // Center mural at y=0 (ground level), z=4.05 (just in front of platform face)
+    mesh.position.set(0, 0, 4.05);
     scene.add(mesh);
   }, undefined, () => {});
 })();
