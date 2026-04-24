@@ -230,19 +230,32 @@ const _meshoptPromise = import('https://unpkg.com/three@0.134.0/examples/jsm/lib
   );
 
 /* ── Quality tier (mobile = low, desktop = high) ─────────────────────────── */
-const HQ = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && window.innerWidth >= 768;
+// Also catches iPads in "Request Desktop Website" mode via maxTouchPoints
+const _isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1;
+const HQ = !_isMobile && window.innerWidth >= 768;
 
 /* ── Renderer / Scene ─────────────────────────────────────────────────────── */
-const renderer = new THREE.WebGLRenderer({ antialias: HQ, alpha: false, powerPreference: HQ ? 'high-performance' : 'default' });
-renderer.setPixelRatio(HQ ? Math.min(window.devicePixelRatio, 2) : 1);
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: HQ && !_isMobile, alpha: false, powerPreference: 'default' });
+} catch(e) {
+  document.body.innerHTML = '<div style="color:#fff;padding:40px;font-family:monospace;background:#000;position:fixed;inset:0;z-index:9999;font-size:16px;">WebGL 초기화 실패: ' + e.message + '</div>';
+  throw e;
+}
+renderer.setPixelRatio(_isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = HQ;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.shadowMap.autoUpdate = false;
-if (HQ) renderer.outputEncoding = THREE.sRGBEncoding;
+// sRGBEncoding skipped entirely — causes black screen on certain mobile GPUs/drivers
 renderer.setClearColor(0x5bbfef, 1);
 renderer.domElement.id = 'game-canvas';
+// Set position inline (don't rely on CSS rule timing)
+renderer.domElement.style.cssText += ';position:fixed;top:0;left:0;z-index:0;';
 document.body.appendChild(renderer.domElement);
+// Recover from WebGL context loss
+renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); }, false);
+renderer.domElement.addEventListener('webglcontextrestored', () => { renderer.setSize(window.innerWidth, window.innerHeight); }, false);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x5bbfef);
