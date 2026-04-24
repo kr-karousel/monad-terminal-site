@@ -170,6 +170,24 @@ canvas{display:block}
   </div>
   <div id="dev-obj-info" style="color:#ffcc44;font-size:10px;line-height:1.5;word-break:break-all;min-height:48px;border-top:1px solid #ff44ff33;padding-top:6px;margin-bottom:6px;"></div>
   <button id="dev-del-btn" style="display:none;width:100%;background:#440000;color:#ff6666;border:1px solid #ff3333;padding:3px;cursor:pointer;font-size:10px;margin-bottom:4px;">🗑 삭제 (Del)</button>
+  <div id="dev-motion-panel" style="display:none;border-top:1px solid #ff44ff44;padding-top:6px;margin-bottom:6px;">
+    <div style="color:#ff88ff;font-size:9px;font-weight:bold;margin-bottom:4px;">움직임 설정</div>
+    <div style="display:flex;gap:3px;margin-bottom:4px;">
+      <button id="dev-mot-none" style="flex:1;background:#440;color:#aaa;border:1px solid #666;padding:2px;cursor:pointer;font-size:9px;font-family:monospace;">없음</button>
+      <button id="dev-mot-x"    style="flex:1;background:#111;color:#aaa;border:1px solid #444;padding:2px;cursor:pointer;font-size:9px;font-family:monospace;">← X →</button>
+      <button id="dev-mot-y"    style="flex:1;background:#111;color:#aaa;border:1px solid #444;padding:2px;cursor:pointer;font-size:9px;font-family:monospace;">↑ Y ↓</button>
+    </div>
+    <div style="color:#888;font-size:9px;">속도: <span id="dev-mot-spd-val" style="color:#ffcc44;">1.0</span></div>
+    <div style="display:flex;gap:3px;margin-bottom:3px;">
+      <button id="dev-mot-spd-dn" style="flex:1;background:#222;color:#fff;border:1px solid #555;padding:1px;cursor:pointer;font-size:11px;">−</button>
+      <button id="dev-mot-spd-up" style="flex:1;background:#222;color:#fff;border:1px solid #555;padding:1px;cursor:pointer;font-size:11px;">+</button>
+    </div>
+    <div style="color:#888;font-size:9px;">진폭: <span id="dev-mot-amp-val" style="color:#ffcc44;">2.0</span></div>
+    <div style="display:flex;gap:3px;">
+      <button id="dev-mot-amp-dn" style="flex:1;background:#222;color:#fff;border:1px solid #555;padding:1px;cursor:pointer;font-size:11px;">−</button>
+      <button id="dev-mot-amp-up" style="flex:1;background:#222;color:#fff;border:1px solid #555;padding:1px;cursor:pointer;font-size:11px;">+</button>
+    </div>
+  </div>
   <button id="dev-export-btn" style="width:100%;background:#003300;color:#44ff88;border:1px solid #44ff44;padding:3px;cursor:pointer;font-size:10px;margin-bottom:4px;">📋 좌표출력 (P)</button>
   <div style="color:#666;font-size:9px;line-height:1.4;margin-top:4px;">←→↑↓ = X/Z이동<br>PgUp/Dn = Y이동<br>TAB = 다음오브젝트<br>Esc = 선택해제</div>
 </div>
@@ -641,20 +659,38 @@ loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
 
 /* ── GLB Asset Preloader ──────────────────────────────────────────────────── */
 const glbAssets = {};
-const glbQueue  = [
-  ['tile1',      '/game/floating_tile_opt.glb'],
-  ['tile3',      '/game/floating_tile3_opt.glb'],
-  ['grass',      '/game/grass_opt.glb'],
-  ['lollipop',   '/game/lollipop1_opt.glb'],
-  ['candy',      '/game/candy_opt.glb'],
-  ['stone',      '/game/stone1_opt.glb'],
-  ['tree1',      '/game/tree1_opt.glb'],
-  ['tree2',      '/game/tree2_opt.glb'],
-  ['tree3',      '/game/tree3_opt.glb'],
-  ['moncock',    '/game/moncock_opt.glb'],
-  ['stageClear', '/game/stage_clear_opt.glb'],
-  ['rocket',     '/game/rocket_opt.glb'],
-  ['emo',        '/game/EMO_opt.glb'],
+const glbQueue = [
+  // Platform tiles
+  ['tile1',        '/game/floating tile_final.glb'],
+  ['tile2',        '/game/floating tile2_final.glb'],
+  ['tile3',        '/game/floating tile3_final.glb'],
+  ['stoneTile',    '/game/long_stone_tile1_final.glb'],
+  // Decorations
+  ['candy',        '/game/candy_final.glb'],
+  ['lollipop',     '/game/lollipop1_final.glb'],
+  ['stone',        '/game/stone1_final.glb'],
+  ['spherical',    '/game/spherical_floating_final.glb'],
+  ['tree1',        '/game/tree1_final.glb'],
+  ['tree2',        '/game/tree2_final.glb'],
+  ['tree3',        '/game/tree3_final.glb'],
+  // NPC / characters
+  ['benja',        '/game/benja_final.glb'],
+  ['boatBoy',      '/game/boat_boy_final.glb'],
+  ['chogOrigin',   '/game/CHOG_origin_final.glb'],
+  ['chogWall',     '/game/chog_wall_final.glb'],
+  ['chogTop',      '/game/chog_tothetop_final.glb'],
+  ['floatingChog', '/game/floating_chog_final.glb'],
+  ['claud',        '/game/claud_final.glb'],
+  ['cworock',      '/game/CWOROCK_final.glb'],
+  ['emo',          '/game/EMO_final.glb'],
+  ['moncock',      '/game/moncock_final.glb'],
+  ['monadog1',     '/game/monadog1_final.glb'],
+  ['monadog2',     '/game/monadog2_final.glb'],
+  ['shramp',       '/game/shramp_final.glb'],
+  ['toad',         '/game/toad_final.glb'],
+  // Special
+  ['rocket',       '/game/rocket_final.glb'],
+  ['stageClear',   '/game/stage clear_final.glb'],
 ];
 function loadGLBAsset(name, url) {
   return new Promise(resolve => {
@@ -771,10 +807,11 @@ function setupGLBVisuals() {
   const tileSz  = new THREE.Vector3();
 
   /* 1 ─ Floating tile visuals: replace BoxGeometry platforms */
+  const _tileKeys = ['tile1','tile2','tile3'];
   let tileIdx = 0;
   platformMeshes.forEach(p => {
     if (p.def.flat) return; // skip ground and summit-flag flat tiles
-    const name = tileIdx % 2 === 0 ? 'tile1' : 'tile3';
+    const name = _tileKeys[tileIdx % 3];
     tileIdx++;
     const tmpl = glbAssets[name];
     if (!tmpl) return;
@@ -793,7 +830,7 @@ function setupGLBVisuals() {
   let mtIdx = 0;
   movingTiles.forEach(tile => {
     if (tile.aabb.isCloud) return;
-    const name = mtIdx % 2 === 0 ? 'tile1' : 'tile3';
+    const name = _tileKeys[mtIdx % 3];
     mtIdx++;
     const tmpl = glbAssets[name];
     if (!tmpl) return;
@@ -1378,10 +1415,11 @@ function devSelectRef(ref) {
   if (devSelHelper) { scene.remove(devSelHelper); devSelHelper = null; }
   devSelectedRef = ref;
   devDelBtn.style.display = ref ? 'block' : 'none';
-  if (!ref) return;
+  if (!ref) { devMotRefreshPanel(); return; }
   devSelHelper = new THREE.BoxHelper(ref.obj, 0xff44ff);
   scene.add(devSelHelper);
   devRefreshInfo();
+  devMotRefreshPanel();
 }
 
 function devClearSelection() {
@@ -1424,6 +1462,81 @@ function devDeleteSelected() {
   devCollectRayMeshes();
 }
 
+/* ── Dev editor: per-object motion ──────────────────────────────────────── */
+const _devMotAxBtns = {
+  none: document.getElementById('dev-mot-none'),
+  x:    document.getElementById('dev-mot-x'),
+  y:    document.getElementById('dev-mot-y'),
+};
+const _devMotSpdEl  = document.getElementById('dev-mot-spd-val');
+const _devMotAmpEl  = document.getElementById('dev-mot-amp-val');
+const _devMotPanel  = document.getElementById('dev-motion-panel');
+
+function devMotHighlightAxis(axis) {
+  Object.entries(_devMotAxBtns).forEach(([k,b]) => {
+    if (!b) return;
+    b.style.background = k === axis ? '#440044' : '#111';
+    b.style.color      = k === axis ? '#ff88ff' : '#aaa';
+  });
+}
+
+function devMotApply() {
+  const ref = devSelectedRef; if (!ref) return;
+  const spd = parseFloat(_devMotSpdEl.textContent) || 1.0;
+  const amp = parseFloat(_devMotAmpEl.textContent) || 2.0;
+  if (!ref.motion || ref.motion.axis === 'none') {
+    ref.motion = null;
+    ref._motBase = null;
+  } else {
+    if (!ref._motBase) ref._motBase = ref.obj.position.clone();
+    ref.motion = { axis: ref.motion.axis, spd, amp, phase: ref._motPhase || 0 };
+  }
+}
+
+if (_devMotAxBtns.none) _devMotAxBtns.none.addEventListener('click', () => {
+  if (!devSelectedRef) return;
+  devSelectedRef.motion = null; devSelectedRef._motBase = null;
+  devMotHighlightAxis('none');
+  _devMotPanel.style.display = 'block'; // keep panel open
+});
+if (_devMotAxBtns.x) _devMotAxBtns.x.addEventListener('click', () => {
+  if (!devSelectedRef) return;
+  if (!devSelectedRef.motion) devSelectedRef.motion = { axis:'x', spd:1.0, amp:2.0, phase:0 };
+  else devSelectedRef.motion.axis = 'x';
+  if (!devSelectedRef._motBase) devSelectedRef._motBase = devSelectedRef.obj.position.clone();
+  devMotHighlightAxis('x'); devMotApply();
+});
+if (_devMotAxBtns.y) _devMotAxBtns.y.addEventListener('click', () => {
+  if (!devSelectedRef) return;
+  if (!devSelectedRef.motion) devSelectedRef.motion = { axis:'y', spd:1.0, amp:2.0, phase:0 };
+  else devSelectedRef.motion.axis = 'y';
+  if (!devSelectedRef._motBase) devSelectedRef._motBase = devSelectedRef.obj.position.clone();
+  devMotHighlightAxis('y'); devMotApply();
+});
+
+function _devMotStep(el, delta, min, max) {
+  let v = Math.round((parseFloat(el.textContent) + delta) * 10) / 10;
+  v = Math.max(min, Math.min(max, v));
+  el.textContent = v.toFixed(1);
+  devMotApply();
+}
+document.getElementById('dev-mot-spd-dn')?.addEventListener('click', () => _devMotStep(_devMotSpdEl, -0.1, 0.1, 5.0));
+document.getElementById('dev-mot-spd-up')?.addEventListener('click', () => _devMotStep(_devMotSpdEl, +0.1, 0.1, 5.0));
+document.getElementById('dev-mot-amp-dn')?.addEventListener('click', () => _devMotStep(_devMotAmpEl, -0.5, 0.5, 10.0));
+document.getElementById('dev-mot-amp-up')?.addEventListener('click', () => _devMotStep(_devMotAmpEl, +0.5, 0.5, 10.0));
+
+function devMotRefreshPanel() {
+  const ref = devSelectedRef;
+  if (!ref) { _devMotPanel.style.display = 'none'; return; }
+  _devMotPanel.style.display = 'block';
+  const m = ref.motion;
+  devMotHighlightAxis(m ? m.axis : 'none');
+  if (m) {
+    _devMotSpdEl.textContent = (m.spd || 1.0).toFixed(1);
+    _devMotAmpEl.textContent = (m.amp || 2.0).toFixed(1);
+  }
+}
+
 /* ── Move selected ──────────────────────────────────────────────────────── */
 function devMoveSelected(dx, dy, dz) {
   if (!devSelectedRef) return;
@@ -1436,12 +1549,24 @@ function devMoveSelected(dx, dy, dz) {
 /* ── Export positions ───────────────────────────────────────────────────── */
 function devPrintAllPositions() {
   console.log('=== DEV OBJECT POSITIONS ===');
-  devEditObjects.forEach(({ label, key, obj, scale }) => {
+  devEditObjects.forEach(({ label, key, obj, scale, motion: ref_motion }) => {
     const p = obj.position;
     const n = label || key || '?';
-    console.log(`placeDecor('${key||'?'}', ${scale||1}, ${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)});  // ${n}`);
+    const ref = devEditObjects.find(r => r.obj === obj);
+    const motStr = (ref && ref.motion && ref.motion.axis)
+      ? `, {axis:'${ref.motion.axis}',amp:${ref.motion.amp.toFixed(1)},spd:${ref.motion.spd.toFixed(1)}}`
+      : '';
+    console.log(`placeDecor('${key||'?'}', ${scale||1}, ${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)}${motStr});  // ${n}`);
   });
   console.log('============================');
+
+  console.log('\n// === STAGE DEF FORMAT (paste into STAGE_DEFS[n]) ===');
+  console.log('[\n' + devEditObjects.map(({ key, obj, scale, motion }) => {
+    const p = obj.position;
+    const m = motion ? `,motion:{axis:'${motion.axis}',amp:${motion.amp.toFixed(1)},spd:${motion.spd.toFixed(1)}}` : '';
+    return `  {key:'${key||'?'}',scale:${scale||1},x:${p.x.toFixed(3)},y:${p.y.toFixed(3)},z:${p.z.toFixed(3)}${m}}`;
+  }).join(',\n') + '\n]');
+
   showToast('📋 콘솔 출력됨 (F12)');
 }
 
@@ -1848,6 +1973,17 @@ function frame(now){
 
   // Moving tiles
   updateMovingTiles(t);
+
+  // Animate dev-placed objects with motion
+  const _mt = clock.getElapsedTime ? clock.getElapsedTime() : t;
+  devEditObjects.forEach(ref => {
+    if (!ref.motion || !ref._motBase) return;
+    const { axis, spd, amp, phase } = ref.motion;
+    const offset = Math.sin(_mt * spd + (phase || 0)) * amp;
+    if (axis === 'x') ref.obj.position.x = ref._motBase.x + offset;
+    else if (axis === 'y') ref.obj.position.y = ref._motBase.y + offset;
+    if (devSelHelper) devSelHelper.update();
+  });
 
   // Background: sky → space as player climbs into stage 5
   const bgBlend = Math.max(0, Math.min(1, (playerPos.y - 200) / 120));
