@@ -818,22 +818,6 @@ setQuality(_qualLevel); // apply on load
   }
 })();
 
-/* ── Front-face mural (maintile.png on the front wall of the starting island) */
-(function() {
-  new THREE.TextureLoader().load('/game/maintile.png', tex => {
-    tex.encoding = THREE.sRGBEncoding;
-    // 1339×800 → aspect 1.674; width=26 → height≈15.5
-    // Platform front face is at z=+4 (w:28, d:8, centered at z=0)
-    const W = 26, H = W / (1339/800);
-    const geo = new THREE.PlaneGeometry(W, H);
-    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.FrontSide });
-    const mesh = new THREE.Mesh(geo, mat);
-    // Vertical plane, naturally faces +z (toward camera at z=20)
-    // Center mural at y=0 (ground level), z=4.05 (just in front of platform face)
-    mesh.position.set(0, 0, 4.05);
-    scene.add(mesh);
-  }, undefined, () => {});
-})();
 
 function glbFitClone(name, targetW, targetD) {
   const tmpl = glbAssets[name];
