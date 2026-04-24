@@ -148,6 +148,19 @@ canvas{display:block}
     <span style="color:#ff6666;font-size:10px;">WASD=이동 QE=높이 SHIFT=빠름 H=AABB G=팔레트 `=종료</span>
     <span id="dev-aabb-label" style="color:#44ffaa;font-size:10px;"></span>
     <span id="dev-edit-label" style="color:#ff44ff;font-size:10px;"></span>
+    <!-- Physics tweakers -->
+    <span style="display:flex;align-items:center;gap:3px;pointer-events:all;">
+      <span style="color:#ff9966;font-size:9px;">중력:</span>
+      <button id="dev-grav-dn" style="background:#222;color:#fff;border:1px solid #555;padding:0 5px;cursor:pointer;font-size:11px;line-height:1.4;">−</button>
+      <span id="dev-grav-val" style="color:#ffcc44;font-size:10px;min-width:28px;text-align:center;">-16</span>
+      <button id="dev-grav-up" style="background:#222;color:#fff;border:1px solid #555;padding:0 5px;cursor:pointer;font-size:11px;line-height:1.4;">+</button>
+    </span>
+    <span style="display:flex;align-items:center;gap:3px;pointer-events:all;">
+      <span style="color:#ff9966;font-size:9px;">발사력:</span>
+      <button id="dev-force-dn" style="background:#222;color:#fff;border:1px solid #555;padding:0 5px;cursor:pointer;font-size:11px;line-height:1.4;">−</button>
+      <span id="dev-force-val" style="color:#ffcc44;font-size:10px;min-width:24px;text-align:center;">24</span>
+      <button id="dev-force-up" style="background:#222;color:#fff;border:1px solid #555;padding:0 5px;cursor:pointer;font-size:11px;line-height:1.4;">+</button>
+    </span>
   </div>
   <div id="dev-bottom-hint" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(20,0,0,0.7);border:1px solid #ff3333;padding:6px 18px;font-size:11px;color:#ff8888;letter-spacing:2px">클릭+드래그 = 카메라 회전</div>
 </div>
@@ -961,8 +974,8 @@ function setupGLBVisuals() {
    (Using a hand-rolled solver keeps the build self-contained. Swap in
     cannon-es here if desired — the AnimationState / sync logic does not care.)
    ═══════════════════════════════════════════════════════════════════════════ */
-const GRAVITY          = -16;
-const MAX_LAUNCH_FORCE = 24;
+let GRAVITY          = -16;
+let MAX_LAUNCH_FORCE = 24;
 const BOUNCE           = 0.28;
 const FRICTION_GROUND  = 0.82;
 const AIR_DRAG         = 0.992;
@@ -1211,8 +1224,9 @@ function onUp(){
   playerVel.x = nsx * force;
   playerVel.z = 0;  // no Z on launch — 2.5D feel
 
-  // Vertical: -nsy maps screen-up drag to positive world Y
-  playerVel.y = vertSign * force + force * 0.18;
+  // Vertical gets 40% of force so arc is wide/flat (trajectory follows drag direction
+  // but prioritises horizontal range over height — matches sketch shape 3)
+  playerVel.y = vertSign * force * 0.4;
 
   // Visual feedback
   squash.trigger('launch', 0.6 + power * 0.6);
@@ -1812,6 +1826,18 @@ document.getElementById('dev-y-up').addEventListener('mousedown', e => {
 });
 devDelBtn.addEventListener('mousedown', e => { e.stopPropagation(); devDeleteSelected(); });
 devExportBtn.addEventListener('mousedown', e => { e.stopPropagation(); devPrintAllPositions(); });
+
+/* ── Dev physics tweakers (gravity / launch force) ──────────────────────── */
+(function() {
+  const gravValEl  = document.getElementById('dev-grav-val');
+  const forceValEl = document.getElementById('dev-force-val');
+  function setGrav(v)  { GRAVITY = Math.round(Math.max(-60, Math.min(-2, v))); gravValEl.textContent = GRAVITY; }
+  function setForce(v) { MAX_LAUNCH_FORCE = Math.round(Math.max(4, Math.min(80, v))); forceValEl.textContent = MAX_LAUNCH_FORCE; }
+  document.getElementById('dev-grav-dn') ?.addEventListener('click', e => { e.stopPropagation(); setGrav(GRAVITY - 2); });
+  document.getElementById('dev-grav-up') ?.addEventListener('click', e => { e.stopPropagation(); setGrav(GRAVITY + 2); });
+  document.getElementById('dev-force-dn')?.addEventListener('click', e => { e.stopPropagation(); setForce(MAX_LAUNCH_FORCE - 2); });
+  document.getElementById('dev-force-up')?.addEventListener('click', e => { e.stopPropagation(); setForce(MAX_LAUNCH_FORCE + 2); });
+})();
 
 /* ── Canvas pointer events ─────────────────────────────────────────────── */
 document.addEventListener('click', e => {
