@@ -237,7 +237,17 @@ const HQ = !_isMobile && window.innerWidth >= 768;
 /* ── Renderer / Scene ─────────────────────────────────────────────────────── */
 let renderer;
 try {
-  renderer = new THREE.WebGLRenderer({ antialias: HQ && !_isMobile, alpha: false, powerPreference: 'default' });
+  if (_isMobile) {
+    // Samsung/Android WebGL2 has rendering bugs with Three.js r134 — force WebGL1
+    const _cv = document.createElement('canvas');
+    const _gl = _cv.getContext('webgl', { alpha: false, antialias: false, powerPreference: 'default' })
+             || _cv.getContext('experimental-webgl', { alpha: false, antialias: false });
+    renderer = _gl
+      ? new THREE.WebGLRenderer({ canvas: _cv, context: _gl, alpha: false })
+      : new THREE.WebGLRenderer({ alpha: false, antialias: false, powerPreference: 'default' });
+  } else {
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'default' });
+  }
 } catch(e) {
   document.body.innerHTML = '<div style="color:#fff;padding:40px;font-family:monospace;background:#000;position:fixed;inset:0;z-index:9999;font-size:16px;">WebGL 초기화 실패: ' + e.message + '</div>';
   throw e;
@@ -247,13 +257,10 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = HQ;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.shadowMap.autoUpdate = false;
-// sRGBEncoding skipped entirely — causes black screen on certain mobile GPUs/drivers
 renderer.setClearColor(0x5bbfef, 1);
 renderer.domElement.id = 'game-canvas';
-// Set position inline (don't rely on CSS rule timing)
-renderer.domElement.style.cssText += ';position:fixed;top:0;left:0;z-index:0;';
+renderer.domElement.style.cssText += ';position:fixed;top:0;left:0;z-index:0;transform:translateZ(0);';
 document.body.appendChild(renderer.domElement);
-// Recover from WebGL context loss
 renderer.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); }, false);
 renderer.domElement.addEventListener('webglcontextrestored', () => { renderer.setSize(window.innerWidth, window.innerHeight); }, false);
 
