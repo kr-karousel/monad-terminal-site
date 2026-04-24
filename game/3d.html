@@ -800,60 +800,6 @@ setQuality(_qualLevel); // apply on load
   }, undefined, () => {});
 })();
 
-/* Objects available for in-dev-mode positioning */
-const devEditObjects = []; // { label, obj }
-
-/* ── Quality system ────────────────────────────────────────────────────────
-   LOW  : no shadows, pixelRatio 1  (mobile default)
-   MED  : shadow 512,  pixelRatio 1
-   HIGH : shadow 1024, pixelRatio ≤2 (desktop default)
-   ─────────────────────────────────────────────────────────────────────────*/
-const _QP = {
-  low:  { pxR:1, shad:false, sz:512,  sub:2 },
-  med:  { pxR:1, shad:true,  sz:512,  sub:3 },
-  high: { pxR:2, shad:true,  sz:1024, sub:4 },
-};
-let _qualLevel = HQ ? 'high' : 'low';
-let _physSub   = HQ ? 4 : 2;
-
-function setQuality(level) {
-  const q = _QP[level]; if (!q) return;
-  _qualLevel = level;
-  _physSub   = q.sub;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.pxR));
-  renderer.shadowMap.enabled = q.shad;
-  if (q.shad) {
-    if (dirLight.shadow.mapSize.x !== q.sz) {
-      dirLight.shadow.mapSize.set(q.sz, q.sz);
-      if (dirLight.shadow.map) { dirLight.shadow.map.dispose(); dirLight.shadow.map = null; }
-    }
-    renderer.shadowMap.needsUpdate = true;
-  }
-  // Highlight active button
-  document.querySelectorAll('#quality-hud button[data-q]').forEach(b => {
-    const active = b.dataset.q === level;
-    b.style.background = active ? '#223322' : '#1a1a1a';
-    b.style.color       = active ? '#44ff88' : '#888';
-    b.style.border      = active ? '1px solid #44ff44' : '1px solid #333';
-  });
-}
-setQuality(_qualLevel); // apply on load
-
-/* ── Ground mural (place /game/ground_mural.jpg to activate) ───────────── */
-(function() {
-  new THREE.TextureLoader().load('/game/ground_mural.jpg', tex => {
-    tex.encoding = THREE.sRGBEncoding;
-    // Wide horizontal plane just above ground surface
-    const geo = new THREE.PlaneGeometry(28, 8);
-    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: false, depthWrite: true });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.x = -Math.PI / 2;
-    mesh.position.set(0, 0.03, 0); // y=0.03: just above ground top to avoid z-fight
-    mesh.receiveShadow = false;
-    scene.add(mesh);
-  }, undefined, () => { /* file not found – silent */ });
-})();
-
 function glbFitClone(name, targetW, targetD) {
   const tmpl = glbAssets[name];
   if (!tmpl) return null;
