@@ -59,53 +59,43 @@ canvas{display:block}
 </style>
 </head>
 <body>
-<div id="start-overlay" class="overlay" style="overflow:hidden;gap:0;padding:0;flex-direction:column;background:#08000f;justify-content:flex-start">
-
-  <!-- ── Comic panel slideshow ── -->
-  <div id="panel-viewport" style="position:relative;width:100%;height:62vh;overflow:hidden;cursor:pointer;flex-shrink:0;background:#08000f">
-    <div id="panel-track" style="display:flex;width:400%;height:100%;transition:transform 0.42s cubic-bezier(0.4,0,0.2,1);will-change:transform">
-      <div style="width:25%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
-        <img src="/game/0.png" draggable="false" style="height:100%;width:auto;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
-        <div id="pcap-0" class="pcap">CHOG was climbing toward his all-time high, pushing higher and higher up the mountain.</div>
+<div id="start-overlay" class="overlay" style="align-items:stretch;justify-content:stretch;overflow:hidden;gap:0;padding:0;background:#08000f">
+  <div id="panel-viewport" style="position:relative;width:100%;height:100%;overflow:hidden;cursor:pointer;background:#08000f">
+    <div id="panel-track" style="display:flex;width:500%;height:100%;transition:transform 0.45s cubic-bezier(0.4,0,0.2,1);will-change:transform">
+      <div style="width:20%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
+        <img src="/game/0.png" draggable="false" style="max-height:100%;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
+        <div id="pcap-0" class="pcap">CHOG was climbing toward his all-time high, pushing higher and higher up the mountain...</div>
       </div>
-      <div style="width:25%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
-        <img src="/game/1.png" draggable="false" style="height:100%;width:auto;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
-        <div id="pcap-1" class="pcap">Suddenly, he spotted the most insanely delicious apple glistening in the sunlight. Tempted, he reached out to grab it—</div>
+      <div style="width:20%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
+        <img src="/game/1.png" draggable="false" style="max-height:100%;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
+        <div id="pcap-1" class="pcap">Suddenly, he spotted the most insanely delicious apple glistening in the sunlight.</div>
       </div>
-      <div style="width:25%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
-        <img src="/game/2.png" draggable="false" style="height:100%;width:auto;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
-        <div id="pcap-2" class="pcap">—but in that moment, he slipped and tumbled off the cliff!</div>
+      <div style="width:20%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
+        <img src="/game/2.png" draggable="false" style="max-height:100%;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
+        <div id="pcap-2" class="pcap">Tempted, he reached out to grab it &mdash; but in that moment, he slipped!</div>
       </div>
-      <div style="width:25%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
-        <img src="/game/4.jpg" draggable="false" style="height:100%;width:auto;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
-        <div id="pcap-3" class="pcap">And got stuck inside a giant pot.<br>Now he must climb all the way back to the moon! 🌙</div>
+      <div style="width:20%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
+        <img src="/game/3.jpg" draggable="false" style="max-height:100%;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
+        <div id="pcap-3" class="pcap">He tumbled off the cliff and CRASHED down hard &mdash;</div>
+      </div>
+      <div style="width:20%;height:100%;position:relative;display:flex;align-items:center;justify-content:center;background:#08000f">
+        <img src="/game/4.jpg" draggable="false" style="max-height:100%;max-width:100%;object-fit:contain;display:block;pointer-events:none;user-select:none">
+        <div id="pcap-4" class="pcap">&hellip; and got stuck inside a giant pot. Now &mdash; climb back to the moon! 🌙</div>
       </div>
     </div>
+
     <!-- tap hint -->
-    <div id="panel-hint" style="position:absolute;bottom:14px;right:20px;color:rgba(255,255,255,0.55);font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;pointer-events:none;transition:opacity 0.3s">TAP TO CONTINUE →</div>
+    <div id="panel-hint" style="position:absolute;bottom:44px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-family:'Courier New',monospace;font-size:12px;letter-spacing:3px;pointer-events:none;transition:all 0.3s;white-space:nowrap">TAP TO CONTINUE →</div>
+
     <!-- progress dots -->
-    <div style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:10px;pointer-events:none">
-      <div id="pdot-0" style="width:7px;height:7px;border-radius:50%;background:#fff;transition:all 0.3s"></div>
-      <div id="pdot-1" style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.28);transition:all 0.3s"></div>
-      <div id="pdot-2" style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.28);transition:all 0.3s"></div>
-      <div id="pdot-3" style="width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.28);transition:all 0.3s"></div>
+    <div style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:10px;pointer-events:none">
+      <div id="pdot-0" style="width:8px;height:8px;border-radius:50%;background:#fff;transition:all 0.3s"></div>
+      <div id="pdot-1" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.28);transition:all 0.3s"></div>
+      <div id="pdot-2" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.28);transition:all 0.3s"></div>
+      <div id="pdot-3" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.28);transition:all 0.3s"></div>
+      <div id="pdot-4" style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.28);transition:all 0.3s"></div>
     </div>
   </div>
-
-  <!-- divider -->
-  <div style="height:2px;flex-shrink:0;background:linear-gradient(90deg,transparent,#9966ff88,#9966ff,#9966ff88,transparent)"></div>
-
-  <!-- ── Video + start button ── -->
-  <div style="flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px 14px;gap:10px;background:#08000f">
-    <video id="intro-video" autoplay muted playsinline preload="auto"
-           style="max-width:100%;flex:1;min-height:0;object-fit:contain;border-radius:6px;display:block">
-      <source src="/game/Loading.mp4" type="video/mp4">
-    </video>
-    <button id="btn-start" class="btn" style="display:none;flex-shrink:0;font-size:clamp(14px,2vw,18px);padding:14px clamp(28px,5vw,64px);letter-spacing:4px;background:linear-gradient(135deg,#7733ff,#9966ff);border-color:#cc99ff;box-shadow:0 0 20px rgba(153,102,255,.65),0 3px 0 #4422aa">
-      ▶ GAME START
-    </button>
-  </div>
-
 </div>
 <div id="summit-overlay" class="overlay hidden">
   <h1>🚀 LAUNCHED!</h1>
@@ -1912,13 +1902,13 @@ function resetGame(){
   setState('idle');
 }
 
-/* ── Comic panel slideshow + video end handler ───────────────────────────── */
+/* ── Comic slideshow: click to advance, last panel click starts the game ─── */
 (function() {
-  /* --- panel slideshow --- */
-  const track   = document.getElementById('panel-track');
-  const hint    = document.getElementById('panel-hint');
-  const viewport= document.getElementById('panel-viewport');
-  const PANELS  = 4;
+  const track    = document.getElementById('panel-track');
+  const hint     = document.getElementById('panel-hint');
+  const viewport = document.getElementById('panel-viewport');
+  const PANELS   = 5;
+  const STEP     = 100 / PANELS; // = 20 for 5 panels
   let cur = 0;
 
   function showCap(i) {
@@ -1930,48 +1920,32 @@ function resetGame(){
   function updateDots(i) {
     for (let k = 0; k < PANELS; k++) {
       const d = document.getElementById('pdot-' + k);
-      if (d) { d.style.background = k === i ? '#fff' : 'rgba(255,255,255,0.28)'; d.style.transform = k === i ? 'scale(1.35)' : 'scale(1)'; }
+      if (d) {
+        d.style.background = k === i ? '#fff' : 'rgba(255,255,255,0.28)';
+        d.style.transform  = k === i ? 'scale(1.35)' : 'scale(1)';
+      }
     }
   }
   function goPanel(i) {
     cur = i;
-    track.style.transform = 'translateX(-' + (cur * 25) + '%)';
+    track.style.transform = 'translateX(-' + (cur * STEP) + '%)';
     updateDots(cur);
     showCap(cur);
-    if (hint) hint.style.opacity = cur >= PANELS - 1 ? '0' : '1';
+    if (hint) hint.textContent = cur < PANELS - 1 ? 'TAP TO CONTINUE →' : '▶ TAP TO START GAME';
+  }
+  function startGame() {
+    startOv.classList.add('hidden');
+    resetGame();
+    gameRunning = true;
+    showToast('GO! DRAG FROM CHOG TO LAUNCH');
   }
 
-  if (viewport) viewport.addEventListener('click', () => { if (cur < PANELS - 1) goPanel(cur + 1); });
-  goPanel(0); // show first panel caption immediately
-
-  /* --- video / start button --- */
-  const vid = document.getElementById('intro-video');
-  const btn = document.getElementById('btn-start');
-  let _shown = false;
-  function revealStart() {
-    if (_shown) return; _shown = true;
-    btn.style.display = 'inline-block';
-  }
-  if (vid) {
-    vid.addEventListener('ended', revealStart);
-    vid.addEventListener('error',  revealStart);
-    // Polling: catch cases where 'ended' fires before listener attaches
-    const _poll = setInterval(() => { if (vid.ended) { revealStart(); clearInterval(_poll); } }, 300);
-    // Hard fallback: show button after 20 s max
-    setTimeout(revealStart, 20000);
-    const p = vid.play();
-    if (p instanceof Promise) p.catch(revealStart);
-  } else {
-    revealStart();
-  }
+  if (viewport) viewport.addEventListener('click', () => {
+    if (cur < PANELS - 1) goPanel(cur + 1);
+    else                  startGame();
+  });
+  goPanel(0);
 })();
-
-document.getElementById('btn-start').addEventListener('click', () => {
-  startOv.classList.add('hidden');
-  resetGame();
-  gameRunning = true;
-  showToast('GO! DRAG FROM CHOG TO LAUNCH');
-});
 document.getElementById('btn-restart').addEventListener('click', () => {
   summitOv.classList.add('hidden');
   resetGame();
