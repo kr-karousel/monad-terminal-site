@@ -48,13 +48,14 @@ canvas{display:block}
 .result-stat .r-val{font-size:36px;font-weight:bold}
 .result-stat .r-unit{font-size:13px;opacity:.6}
 /* Comic panel caption overlay */
-.pcap{position:absolute;bottom:0;left:0;right:0;padding:36px 10% 28px;
-  background:linear-gradient(transparent 0%,rgba(0,0,0,0.72) 30%,rgba(0,0,0,0.92) 100%);
+.pcap{position:absolute;top:0;left:0;right:0;padding:22px 10% 40px;
+  background:linear-gradient(rgba(0,0,0,0.90) 0%,rgba(0,0,0,0.70) 55%,transparent 100%);
   color:#fff;font-family:'Courier New',monospace;
   font-size:clamp(16px,2.8vw,26px);font-weight:bold;line-height:1.6;
   letter-spacing:.4px;text-align:center;
   text-shadow:0 2px 8px rgba(0,0,0,1),0 0 24px rgba(0,0,0,.8),2px 2px 0 rgba(0,0,0,.9);
-  opacity:0;transform:translateY(18px);pointer-events:none;
+  overflow:hidden;
+  opacity:0;transform:translateY(-18px);pointer-events:none;
   transition:opacity .55s ease .38s, transform .55s ease .38s}
 .pcap.show{opacity:1;transform:translateY(0)}
 </style>
