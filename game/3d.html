@@ -7,9 +7,8 @@
 <title>CHOG to the Moon</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;overflow:hidden;font-family:'Courier New',monospace;color:#fff}
+body{background:#5bbfef;overflow:hidden;font-family:'Courier New',monospace;color:#fff}
 canvas{display:block}
-#sky-bg{position:fixed;inset:0;z-index:-1;background:#5bbfef;}
 #game-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0}
 #arrow-canvas{position:fixed;top:0;left:0;pointer-events:none;z-index:10}
 #hud{position:fixed;top:16px;left:16px;z-index:20;pointer-events:none;
@@ -63,7 +62,6 @@ canvas{display:block}
 </style>
 </head>
 <body>
-<div id="sky-bg"></div>
 <div id="start-overlay" class="overlay" style="align-items:stretch;justify-content:stretch;overflow:hidden;gap:0;padding:0;background:#08000f">
   <div id="panel-viewport" style="position:relative;width:100%;height:100%;overflow:hidden;cursor:pointer;background:#08000f">
     <div id="panel-track" style="display:flex;width:500%;height:100%;transition:transform 0.45s cubic-bezier(0.4,0,0.2,1);will-change:transform">
@@ -2169,10 +2167,10 @@ function frame(now){
 
   // Background: sky → space as player climbs into stage 5
   const bgBlend = Math.max(0, Math.min(1, (playerPos.y - 200) / 120));
-  // Sky-to-space transition via CSS background (canvas is transparent)
+  // Sky-to-space transition: update body background (canvas is transparent)
   if (bgBlend > 0.01) {
     const _sc = SKY_COL.clone().lerp(SPACE_COL, bgBlend);
-    document.getElementById('sky-bg').style.background = '#' + _sc.getHexString();
+    document.body.style.background = '#' + _sc.getHexString();
   }
   scene.fog.color.copy(FOG_COL).lerp(SPACE_COL, bgBlend);
   starMat.opacity = bgBlend > 0.05
