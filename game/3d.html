@@ -154,6 +154,12 @@ canvas{display:block}
   <input type="range" id="bgm-vol" min="0" max="1" step="0.05" value="0.45" title="볼륨">
 </div>
 <div id="bonus-flash" style="position:fixed;inset:0;background:rgba(255,240,80,.75);pointer-events:none;z-index:45;opacity:0;transition:opacity .08s"></div>
+<div id="stage-clear-screen" style="display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,0.78);flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity 0.4s;">
+  <div id="scs-label" style="font-family:'Courier New',monospace;font-size:clamp(16px,4vw,26px);color:#ffe066;letter-spacing:5px;margin-bottom:6px;text-shadow:0 0 18px #ff8800;"></div>
+  <div id="scs-result" style="font-family:'Courier New',monospace;font-size:clamp(36px,10vw,82px);font-weight:bold;color:#fff;letter-spacing:4px;text-shadow:2px 2px 0 #000,0 0 40px #ffe066;margin-bottom:20px;"></div>
+  <div style="font-family:'Courier New',monospace;font-size:clamp(10px,2.5vw,16px);color:#88ccff;letter-spacing:4px;margin-bottom:4px;">CLEAR TIME</div>
+  <div id="scs-time" style="font-family:'Courier New',monospace;font-size:clamp(28px,8vw,64px);font-weight:bold;color:#fff;text-shadow:0 0 24px #88ddff;"></div>
+</div>
 <div id="stage-banner" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.5);z-index:48;pointer-events:none;font-size:52px;font-weight:bold;font-family:'Courier New',monospace;color:#fff;text-shadow:2px 2px 0 #333,0 0 30px #ffe066;letter-spacing:4px;opacity:0;transition:opacity .25s,transform .25s"></div>
 <div class="toast" id="toast"></div>
 
@@ -298,6 +304,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = HQ;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 renderer.shadowMap.autoUpdate = false;
+renderer.outputEncoding = THREE.sRGBEncoding;
 // Transparent canvas — sky comes from #sky-bg CSS div behind it
 renderer.setClearColor(0x000000, 0);
 renderer.domElement.id = 'game-canvas';
@@ -317,8 +324,8 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHei
 camera.position.set(0, 6, 20);
 
 /* ── Lighting ─────────────────────────────────────────────────────────────── */
-scene.add(new THREE.AmbientLight(0xfff8e8, 0.85));
-const dirLight = new THREE.DirectionalLight(0xfff5c0, 1.5);
+scene.add(new THREE.AmbientLight(0xfff8e8, 1.8));
+const dirLight = new THREE.DirectionalLight(0xfffde0, 1.6);
 dirLight.position.set(12, 30, 8);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(HQ ? 1024 : 512, HQ ? 1024 : 512);
@@ -330,11 +337,19 @@ dirLight.shadow.camera.right  =  _SR;
 dirLight.shadow.camera.top    =  _SR;
 dirLight.shadow.camera.bottom = -_SR;
 scene.add(dirLight);
-const fill = new THREE.DirectionalLight(0xaadeff, 0.4);
+const fill = new THREE.DirectionalLight(0xc8e8ff, 0.7);
 fill.position.set(-10, 8, -10);
 scene.add(fill);
-const playerLight = new THREE.PointLight(0xffffff, 0.6, 18);
-if (HQ) scene.add(playerLight);
+// Front fill — lights faces toward camera
+const frontFill = new THREE.DirectionalLight(0xfff8e0, 0.55);
+frontFill.position.set(0, 4, 28);
+scene.add(frontFill);
+// Bottom fill — softens dark undersides
+const bottomFill = new THREE.DirectionalLight(0x8899cc, 0.28);
+bottomFill.position.set(0, -12, 6);
+scene.add(bottomFill);
+const playerLight = new THREE.PointLight(0xffffff, 0.8, 20);
+scene.add(playerLight);
 
 // Draco decoder — must be declared before any GLTFLoader.setDRACOLoader() call
 const _dracoLoader = new THREE.DRACOLoader();
@@ -707,6 +722,8 @@ function loadStage(idx) {
 
   defs.forEach(entry => {
     const { key, scale = 1, x = 0, y = 0, z = 0, ry = 0, motion } = entry;
+    // Stage-clear portal handled separately
+    if (key === 'stageClear') { buildStageClear(x, y, z); return; }
     const tmpl = glbAssets[key];
     if (!tmpl) return;
     const obj = tmpl.clone();
@@ -759,9 +776,12 @@ function loadStage(idx) {
     _stageObjs.push(ref);
   });
 
-  // Add stage-clear portal above the highest tile + 3
-  const highestY = defs.reduce((m, e) => Math.max(m, e.y || 0), 0);
-  if (defs.length > 0) buildStageClear(0, highestY + 4, 0);
+  // Auto-place stage-clear portal only if not manually placed in defs
+  const hasStageClear = defs.some(e => e.key === 'stageClear');
+  if (!hasStageClear && defs.length > 0) {
+    const highestY = defs.reduce((m, e) => Math.max(m, e.y || 0), 0);
+    buildStageClear(0, highestY + 4, 0);
+  }
 
   // Reset player to ground
   resetGame();
@@ -1705,7 +1725,19 @@ function devRefreshInfo() {
 
 /* ── Place object ───────────────────────────────────────────────────────── */
 function devPlaceObject(pt) {
-  if (!devPlacementKey || !glbAssets[devPlacementKey]) return;
+  if (!devPlacementKey) return;
+  // Stage-clear portal — special flow
+  if (devPlacementKey === 'stageClear') {
+    buildStageClear(pt.x, pt.y, pt.z);
+    const sc = stageClearObjects[stageClearObjects.length - 1];
+    const ref = { key: 'stageClear', label: `stageClear@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj: sc.group, scale: 1, trigger: 'none', stageClearRef: sc };
+    devPlacedObjs.push(ref);
+    devEditObjects.push(ref);
+    devSelectRef(ref);
+    devCollectRayMeshes();
+    return;
+  }
+  if (!glbAssets[devPlacementKey]) return;
   const obj = glbAssets[devPlacementKey].clone();
   obj.scale.setScalar(devPlacementScale);
   obj.rotation.y = THREE.MathUtils.degToRad(devPlacementRY);
@@ -1738,6 +1770,12 @@ function devDeleteSelected() {
   if (devSelectedRef.aabb) {
     const i = platforms.indexOf(devSelectedRef.aabb);
     if (i >= 0) platforms.splice(i, 1);
+  }
+  if (devSelectedRef.stageClearRef) {
+    const sc = devSelectedRef.stageClearRef;
+    if (sc.light) scene.remove(sc.light);
+    const i = stageClearObjects.indexOf(sc);
+    if (i >= 0) stageClearObjects.splice(i, 1);
   }
   const i1 = devEditObjects.indexOf(devSelectedRef); if(i1>=0) devEditObjects.splice(i1,1);
   const i2 = devPlacedObjs.indexOf(devSelectedRef); if(i2>=0) devPlacedObjs.splice(i2,1);
@@ -1851,6 +1889,11 @@ function devMoveSelected(dx, dy, dz) {
     a.minX += dx; a.maxX += dx;
     a.minY += dy; a.maxY += dy;
     a.minZ += dz; a.maxZ += dz;
+  }
+  if (devSelectedRef.stageClearRef) {
+    const sc = devSelectedRef.stageClearRef;
+    sc.pos.x += dx; sc.pos.y += dy; sc.pos.z += dz;
+    if (sc.light) { sc.light.position.x += dx; sc.light.position.y += dy; sc.light.position.z += dz; }
   }
   if (devSelHelper) devSelHelper.update();
   devRefreshInfo();
@@ -2185,6 +2228,19 @@ function advanceStage(){
   showToast(`🌸 STAGE ${currentStage+1}!`);
 }
 
+function showStageClearScreen(completedStage, time, cb) {
+  const screen = document.getElementById('stage-clear-screen');
+  document.getElementById('scs-label').textContent = `STAGE ${completedStage}`;
+  document.getElementById('scs-result').textContent = 'CLEAR!';
+  document.getElementById('scs-time').textContent = formatTime(time);
+  screen.style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(() => { screen.style.opacity = '1'; }));
+  setTimeout(() => {
+    screen.style.opacity = '0';
+    setTimeout(() => { screen.style.display = 'none'; cb(); }, 450);
+  }, 2600);
+}
+
 function showRuggedScreen() {
   const ov  = document.getElementById('rugged-overlay');
   const txt = document.getElementById('rugged-text');
@@ -2200,9 +2256,9 @@ function showRuggedScreen() {
   }, 700);
   setTimeout(() => { txt.style.animation = 'ruggedGlitch 0.55s steps(1) forwards'; }, 1300);
   setTimeout(() => { txt.style.animation = 'ruggedPulse 2.2s ease-in-out infinite'; }, 1900);
-  // Auto-restart after 3s
+  // Auto-restart after 3s — resume from current stage
   setTimeout(() => {
-    loadStage(0);
+    loadStage(_stageIdx);
     gameRunning = true;
   }, 3000);
 }
@@ -2220,6 +2276,8 @@ function triggerGameOver(){
 function resetGame(){
   const _rugOv = document.getElementById('rugged-overlay');
   if (_rugOv) { _rugOv.style.transition='opacity 0.3s'; _rugOv.style.opacity='0'; setTimeout(()=>{ _rugOv.style.display='none'; _rugOv.style.pointerEvents='none'; },320); }
+  const _scs = document.getElementById('stage-clear-screen');
+  if (_scs) { _scs.style.opacity='0'; setTimeout(()=>{ _scs.style.display='none'; },420); }
   playerPos.set(0,2,0); playerVel.set(0,0,0);
   gameWon=false; gameOver=false; currentStage=0;
   clearTime=0; bestHeight=0; prevMilestone=0;
@@ -2329,13 +2387,14 @@ function frame(now){
           // Game won — show win screen
           showWinScreen();
         } else {
-          // Fade out, load next stage, fade in
           bonusFlash.style.opacity='1';
           setTimeout(()=>{ bonusFlash.style.opacity='0'; },180);
           shake.trigger(0.3);
-          showStageBanner(`STAGE ${nextIdx + 1}`);
-          showToast(`STAGE ${nextIdx + 1}!`);
-          fadeTransition(() => loadStage(nextIdx));
+          gameRunning = false;
+          showStageClearScreen(_stageIdx + 1, clearTime, () => {
+            gameRunning = true;
+            fadeTransition(() => loadStage(nextIdx));
+          });
         }
       }
     }
