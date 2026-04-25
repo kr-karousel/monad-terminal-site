@@ -40,6 +40,15 @@ canvas{display:block}
 #timer-val.warn{color:#ffdd44}
 #timer-val.danger{color:#ff4444;animation:pulse .5s infinite alternate}
 @keyframes pulse{from{opacity:1}to{opacity:.4}}
+/* Death — "You got rugged" screen */
+#rugged-overlay{position:fixed;inset:0;z-index:60;background:#000;opacity:0;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+#rugged-text{font-family:'Courier New',monospace;font-size:clamp(32px,8vw,68px);font-weight:bold;color:#ff1a1a;letter-spacing:4px;text-align:center;opacity:0;text-shadow:0 0 28px #ff0000,0 0 55px #ff000055;line-height:1.3}
+#rugged-retry{margin-top:40px;background:#110000;border:2px solid #ff2222;color:#ff5555;padding:14px 52px;font-size:15px;font-family:'Courier New',monospace;cursor:pointer;border-radius:8px;letter-spacing:3px;font-weight:bold;opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s,background .2s;pointer-events:none}
+#rugged-retry.show{opacity:1;transform:translateY(0);pointer-events:auto}
+#rugged-retry:hover{background:#280000}
+@keyframes ruggedIn{0%{opacity:0;transform:scale(0.25) rotate(-12deg);filter:blur(16px)}60%{opacity:1;transform:scale(1.12) rotate(2deg);filter:blur(0)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
+@keyframes ruggedGlitch{0%{text-shadow:4px 1px 0 #00eeff,-4px -1px 0 #ff00cc,0 0 40px #ff2200;letter-spacing:12px}25%{text-shadow:-4px 2px 0 #00eeff,4px -2px 0 #ff00cc,0 0 30px #ff0000;letter-spacing:1px}50%{text-shadow:3px -1px 0 #00eeff,-3px 1px 0 #ff00cc,0 0 36px #ff1100;letter-spacing:7px}80%,100%{text-shadow:0 0 28px #ff0000,0 0 55px #ff000055;letter-spacing:4px}}
+@keyframes ruggedPulse{0%,100%{text-shadow:0 0 28px #ff0000,0 0 55px #ff000055}50%{text-shadow:0 0 50px #ff2200,0 0 90px #ff220040,0 0 8px #ff9999}}
 /* Result overlay */
 #result-overlay .result-card{background:rgba(20,10,40,.98);border:1px solid #9966ff;border-radius:16px;padding:40px 60px;text-align:center;display:flex;flex-direction:column;gap:16px;align-items:center}
 #result-overlay h1{font-size:42px;letter-spacing:4px}
@@ -113,6 +122,10 @@ canvas{display:block}
   <h1 style="color:#ff4444">☠️ GAME OVER</h1>
   <p>Touched a poisonous mushroom!<br/>CHOG did not make it.</p>
   <button id="btn-gameover-retry" class="btn" style="background:#ef4444;border-color:#b91c1c">TRY AGAIN</button>
+</div>
+<div id="rugged-overlay">
+  <div id="rugged-text">You got rugged</div>
+  <button id="rugged-retry">TRY AGAIN</button>
 </div>
 <div id="hud">
   <div class="row"><div class="label">HEIGHT</div><div class="val"><span id="h-val">0</span><span class="unit">m</span></div></div>
@@ -1586,6 +1599,11 @@ document.getElementById('btn-gameover-retry').addEventListener('click', () => {
   gameRunning = true;
   showToast('GO! DRAG FROM CHOG TO LAUNCH');
 });
+document.getElementById('rugged-retry').addEventListener('click', () => {
+  resetGame();
+  gameRunning = true;
+  showToast('GO! DRAG FROM CHOG TO LAUNCH');
+});
 
 /* ── Dev / Admin Mode ─────────────────────────────────────────────────────── */
 // Toggle: backtick (`)   Move: WASD + QE   Fast: Shift   AABB: H   Edit: G
@@ -2174,6 +2192,38 @@ function advanceStage(){
   showToast(`🌸 STAGE ${currentStage+1}!`);
 }
 
+function showRuggedScreen() {
+  const ov  = document.getElementById('rugged-overlay');
+  const txt = document.getElementById('rugged-text');
+  const btn = document.getElementById('rugged-retry');
+  txt.style.animation = '';
+  txt.style.opacity = '0';
+  btn.classList.remove('show');
+  ov.style.opacity = '0';
+  ov.style.display = 'flex';
+  // Fade screen to black over 0.75s
+  ov.style.transition = 'opacity 0.75s ease';
+  requestAnimationFrame(() => requestAnimationFrame(() => { ov.style.opacity = '1'; }));
+  // Text entrance at 0.7s
+  setTimeout(() => {
+    txt.style.animation = 'ruggedIn 0.55s cubic-bezier(0.18,1.2,0.35,1) forwards';
+    txt.style.opacity = '1';
+  }, 700);
+  // Glitch burst at 1.3s
+  setTimeout(() => {
+    txt.style.animation = 'ruggedGlitch 0.55s steps(1) forwards';
+  }, 1300);
+  // Settle to pulse at 1.9s
+  setTimeout(() => {
+    txt.style.animation = 'ruggedPulse 2.2s ease-in-out infinite';
+  }, 1900);
+  // Show retry button at 2.3s
+  setTimeout(() => {
+    btn.classList.add('show');
+    ov.style.pointerEvents = 'auto';
+  }, 2300);
+}
+
 function triggerGameOver(){
   gameRunning=false; gameOver=true;
   bonusFlash.style.background='rgba(255,40,40,.72)';
@@ -2181,10 +2231,12 @@ function triggerGameOver(){
   setTimeout(()=>{ bonusFlash.style.opacity='0'; bonusFlash.style.background='rgba(255,240,80,.75)'; },320);
   shake.trigger(0.9);
   spawnParticles(playerPos.clone(), 0xff2222, 32);
-  setTimeout(()=> gameoverOv.classList.remove('hidden'), 500);
+  showRuggedScreen();
 }
 
 function resetGame(){
+  const _rugOv = document.getElementById('rugged-overlay');
+  if (_rugOv) { _rugOv.style.transition='opacity 0.3s'; _rugOv.style.opacity='0'; setTimeout(()=>{ _rugOv.style.display='none'; _rugOv.style.pointerEvents='none'; },320); }
   playerPos.set(0,2,0); playerVel.set(0,0,0);
   gameWon=false; gameOver=false; currentStage=0;
   clearTime=0; bestHeight=0; prevMilestone=0;
