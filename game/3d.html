@@ -1141,11 +1141,11 @@ function setupGLBVisuals() {
    (Using a hand-rolled solver keeps the build self-contained. Swap in
     cannon-es here if desired — the AnimationState / sync logic does not care.)
    ═══════════════════════════════════════════════════════════════════════════ */
-let GRAVITY          = -42;
-let MAX_LAUNCH_FORCE = 82;
+let GRAVITY          = -65;
+let MAX_LAUNCH_FORCE = 58;
 const BOUNCE           = 0.28;
 const FRICTION_GROUND  = 0.82;
-const AIR_DRAG         = 0.992;
+const AIR_DRAG         = 0.998;
 const PLAYER_RADIUS    = 0.78;
 const MAX_SPEED        = 120;
 
@@ -1392,9 +1392,7 @@ function onUp(){
   playerVel.x = nsx * force;
   playerVel.z = 0;  // no Z on launch — 2.5D feel
 
-  // Vertical gets 40% of force so arc is wide/flat (trajectory follows drag direction
-  // but prioritises horizontal range over height — matches sketch shape 3)
-  playerVel.y = vertSign * force * 0.4;
+  playerVel.y = vertSign * force * 0.7;
 
   // Visual feedback
   squash.trigger('launch', 0.6 + power * 0.6);
