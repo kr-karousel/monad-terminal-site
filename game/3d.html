@@ -202,7 +202,7 @@ canvas{display:block}
   <div style="color:#888;font-size:9px;margin-bottom:3px;">배치 스케일</div>
   <div style="display:flex;align-items:center;gap:4px;margin-bottom:8px;">
     <button id="dev-scale-dn" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:12px;line-height:1;">−</button>
-    <span id="dev-scale-val" style="color:#ffcc44;font-size:11px;flex:1;text-align:center;">1.0</span>
+    <input id="dev-scale-val" type="number" min="0.1" step="0.1" value="1.0" style="color:#ffcc44;font-size:11px;flex:1;text-align:center;background:transparent;border:none;outline:none;width:44px;-moz-appearance:textfield;" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">
     <button id="dev-scale-up" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:12px;line-height:1;">+</button>
   </div>
   <div style="color:#888;font-size:9px;margin-bottom:3px;">배치 높이 Y: <span id="dev-place-y-val" style="color:#ffcc44;">0</span></div>
@@ -723,6 +723,21 @@ function loadStage(idx) {
         _motion: motion || null,
       };
       platforms.push(aabb);
+    } else {
+      // All other GLB objects also get an AABB computed from their bounding box
+      const box3 = new THREE.Box3().setFromObject(obj);
+      const bc = box3.getCenter(new THREE.Vector3());
+      const bs = box3.getSize(new THREE.Vector3());
+      if (bs.x > 0.01 && bs.y > 0.01) {
+        aabb = {
+          minX: bc.x - bs.x/2, maxX: bc.x + bs.x/2,
+          minY: bc.y - bs.y/2, maxY: bc.y + bs.y/2,
+          minZ: bc.z - bs.z/2, maxZ: bc.z + bs.z/2,
+          disabled: false,
+          _hw: bs.x/2, _hh: bs.y/2, _hd: bs.z/2,
+        };
+        platforms.push(aabb);
+      }
     }
 
     const phase = Math.random() * Math.PI * 2;
@@ -1600,7 +1615,7 @@ function devPickPalette(key, btnEl) {
   devPaletteList.querySelectorAll('button').forEach(b => b.style.background = glbAssets[b.dataset.key] ? '#111' : '#1a0a00');
   if (btnEl) btnEl.style.background = '#440044';
   devPlacementKey   = glbAssets[key] ? key : null;
-  devPlacementScale = parseFloat(devScaleValEl.textContent) || 1.0;
+  devPlacementScale = parseFloat(devScaleValEl.value) || 1.0;
   devClearSelection();
   devRebuildGhost();
   const state = devPlacementKey ? `배치모드: ${key} | 씬 클릭 → 배치` : `${key} 로드 실패`;
@@ -1688,12 +1703,23 @@ function devPlaceObject(pt) {
   obj.rotation.y = THREE.MathUtils.degToRad(devPlacementRY);
   obj.position.copy(pt);
   scene.add(obj);
+  // Build AABB from world-space bounding box of the placed object
+  const box3 = new THREE.Box3().setFromObject(obj);
+  const bc = box3.getCenter(new THREE.Vector3());
+  const bs = box3.getSize(new THREE.Vector3());
+  const aabb = {
+    minX: bc.x - bs.x/2, maxX: bc.x + bs.x/2,
+    minY: bc.y - bs.y/2, maxY: bc.y + bs.y/2,
+    minZ: bc.z - bs.z/2, maxZ: bc.z + bs.z/2,
+    disabled: false,
+    _hw: bs.x/2, _hh: bs.y/2, _hd: bs.z/2,
+  };
+  platforms.push(aabb);
   const ryRad = parseFloat((devPlacementRY * Math.PI / 180).toFixed(4));
-  const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale, ry: ryRad, trigger: 'none' };
+  const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale, ry: ryRad, trigger: 'none', aabb };
   devPlacedObjs.push(ref);
   devEditObjects.push(ref);
   devSelectRef(ref);
-  // Re-collect raycast meshes so new object is selectable
   devCollectRayMeshes();
 }
 
@@ -1701,6 +1727,10 @@ function devPlaceObject(pt) {
 function devDeleteSelected() {
   if (!devSelectedRef) return;
   scene.remove(devSelectedRef.obj);
+  if (devSelectedRef.aabb) {
+    const i = platforms.indexOf(devSelectedRef.aabb);
+    if (i >= 0) platforms.splice(i, 1);
+  }
   const i1 = devEditObjects.indexOf(devSelectedRef); if(i1>=0) devEditObjects.splice(i1,1);
   const i2 = devPlacedObjs.indexOf(devSelectedRef); if(i2>=0) devPlacedObjs.splice(i2,1);
   devSelectRef(null);
@@ -1808,6 +1838,12 @@ function devMoveSelected(dx, dy, dz) {
   if (!devSelectedRef) return;
   const obj = devSelectedRef.obj;
   obj.position.x += dx; obj.position.y += dy; obj.position.z += dz;
+  if (devSelectedRef.aabb) {
+    const a = devSelectedRef.aabb;
+    a.minX += dx; a.maxX += dx;
+    a.minY += dy; a.maxY += dy;
+    a.minZ += dz; a.maxZ += dz;
+  }
   if (devSelHelper) devSelHelper.update();
   devRefreshInfo();
 }
@@ -1966,14 +2002,18 @@ document.addEventListener('keyup', e => {
 document.getElementById('dev-scale-dn').addEventListener('mousedown', e => {
   e.stopPropagation();
   devPlacementScale = Math.max(0.1, Math.round((devPlacementScale-0.1)*10)/10);
-  devScaleValEl.textContent = devPlacementScale.toFixed(1);
+  devScaleValEl.value = devPlacementScale.toFixed(1);
   if (devGhostMesh) devGhostMesh.scale.setScalar(devPlacementScale);
 });
 document.getElementById('dev-scale-up').addEventListener('mousedown', e => {
   e.stopPropagation();
   devPlacementScale = Math.round((devPlacementScale+0.1)*10)/10;
-  devScaleValEl.textContent = devPlacementScale.toFixed(1);
+  devScaleValEl.value = devPlacementScale.toFixed(1);
   if (devGhostMesh) devGhostMesh.scale.setScalar(devPlacementScale);
+});
+devScaleValEl.addEventListener('change', e => {
+  const v = parseFloat(devScaleValEl.value);
+  if (v > 0) { devPlacementScale = v; if (devGhostMesh) devGhostMesh.scale.setScalar(v); }
 });
 document.getElementById('dev-y-dn').addEventListener('mousedown', e => {
   e.stopPropagation(); devPlaceY -= 1; devPlaceYEl.textContent = devPlaceY;
