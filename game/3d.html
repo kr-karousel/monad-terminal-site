@@ -307,10 +307,37 @@ if (HQ) scene.add(playerLight);
 const _dracoLoader = new THREE.DRACOLoader();
 _dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
-/* ── Background mountains — high-quality layered panorama ────────────────── */
-function makeMountainRange(peaks, color, z, snowRatio = 0.22) {
-  // peaks: array of [x, y] world coords for the mountain ridge
-  // Build a closed shape from peak points with irregular jagged edge
+/* ── Background mountains — atmospheric layered panorama ─────────────────── */
+function makeBgMat(col, op) {
+  return new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: true, opacity: op != null ? op : 0.97 });
+}
+
+// Moon glow — soft luminous orb top-right
+(function() {
+  function addCircle(r, col, op, z, cx, cy) {
+    const sh = new THREE.Shape();
+    sh.absarc(0, 0, r, 0, Math.PI * 2, false);
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh, 32), makeBgMat(col, op));
+    m.position.set(cx, cy, z);
+    scene.add(m);
+  }
+  addCircle(16, 0xffe8a0, 0.06, -37, 26, 50);
+  addCircle(10, 0xfff2c0, 0.13, -37, 26, 50);
+  addCircle(6.5, 0xfffadc, 0.25, -36.5, 26, 50);
+  addCircle(4,   0xfffef6, 0.90, -36, 26, 50);
+})();
+
+// Warm atmospheric glow band at horizon
+(function() {
+  const sh = new THREE.Shape();
+  sh.moveTo(-70, -6); sh.lineTo(70, -6); sh.lineTo(70, 16); sh.lineTo(-70, 16); sh.closePath();
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), makeBgMat(0xc09050, 0.15));
+  m.position.set(0, 0, -38);
+  scene.add(m);
+})();
+
+function makeMountainRange(peaks, color, z, snowRatio, shadowCol) {
+  if (snowRatio == null) snowRatio = 0.22;
   const shape = new THREE.Shape();
   const floorY = -4;
   const xs = peaks.map(p => p[0]);
@@ -318,10 +345,7 @@ function makeMountainRange(peaks, color, z, snowRatio = 0.22) {
   const maxX = Math.max(...xs) + 8;
 
   shape.moveTo(minX, floorY);
-  // Left base to first peak area
-  shape.lineTo(peaks[0][0] - (peaks[0][0]-minX)*0.5, floorY + (peaks[0][1]-floorY)*0.1);
-
-  // Trace all peaks with jagged intermediate points
+  shape.lineTo(peaks[0][0] - (peaks[0][0] - minX) * 0.5, floorY + (peaks[0][1] - floorY) * 0.1);
   for (let i = 0; i < peaks.length; i++) {
     const [px, py] = peaks[i];
     if (i === 0) {
@@ -329,65 +353,115 @@ function makeMountainRange(peaks, color, z, snowRatio = 0.22) {
       shape.lineTo(px - 0.8, py * 0.88);
       shape.lineTo(px, py);
     } else {
-      const [ppx, ppy] = peaks[i-1];
+      const [ppx, ppy] = peaks[i - 1];
       const midX = (ppx + px) / 2;
       const midY = Math.min(ppy, py) * 0.55 + Math.max(ppy, py) * 0.1;
-      // Valley between peaks
       shape.lineTo(midX + 1, midY);
       shape.lineTo(midX + 3, midY * 0.85);
-      // Approach next peak
       shape.lineTo(px - 1.5, py * 0.75);
       shape.lineTo(px + 0.5, py * 0.92);
       shape.lineTo(px, py);
     }
-    // Right side of peak
-    if (i < peaks.length - 1) {
-      shape.lineTo(px + 1.2, py * 0.82);
-    }
+    if (i < peaks.length - 1) shape.lineTo(px + 1.2, py * 0.82);
   }
-  // Right slope down to base
-  const lp = peaks[peaks.length-1];
+  const lp = peaks[peaks.length - 1];
   shape.lineTo(lp[0] + 3, lp[1] * 0.5);
   shape.lineTo(maxX, floorY);
   shape.closePath();
 
-  const mat = new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.96 });
-  const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), mat);
+  const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), makeBgMat(color));
   mesh.position.set(0, 0, z);
   scene.add(mesh);
 
-  // Snow caps on each peak
-  peaks.forEach(([px, py]) => {
-    const sh = py * snowRatio;
-    const cap = new THREE.Shape();
-    cap.moveTo(px - sh*1.1, py - sh*0.6);
-    cap.lineTo(px - sh*0.4, py - sh*0.15);
-    cap.lineTo(px, py);
-    cap.lineTo(px + sh*0.5, py - sh*0.18);
-    cap.lineTo(px + sh*0.9, py - sh*0.5);
-    cap.lineTo(px + sh*0.2, py - sh*0.35);
-    cap.lineTo(px, py - sh*0.12);
-    cap.lineTo(px - sh*0.3, py - sh*0.4);
-    cap.closePath();
-    const capMesh = new THREE.Mesh(
-      new THREE.ShapeGeometry(cap),
-      new THREE.MeshLambertMaterial({ color: 0xf0f8ff, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
-    );
-    capMesh.position.set(0, 0, z + 0.2);
-    scene.add(capMesh);
+  // Shadow faces — darker right-side slope on each peak
+  if (shadowCol != null) {
+    peaks.forEach(([px, py], i) => {
+      const nx = i < peaks.length - 1 ? peaks[i + 1][0] : px + 7;
+      const ny = i < peaks.length - 1 ? peaks[i + 1][1] : floorY;
+      const midX = (px + nx) / 2 + 1;
+      const midY = Math.min(py, ny) * 0.55 + Math.max(py, ny) * 0.1;
+      const shadow = new THREE.Shape();
+      shadow.moveTo(px, py);
+      shadow.lineTo(px + 1.2, py * 0.82);
+      shadow.lineTo(midX, midY);
+      shadow.closePath();
+      const sm = new THREE.Mesh(new THREE.ShapeGeometry(shadow), makeBgMat(shadowCol, 0.40));
+      sm.position.set(0, 0, z + 0.15);
+      scene.add(sm);
+    });
+  }
+
+  // Snow caps
+  if (snowRatio > 0) {
+    peaks.forEach(([px, py]) => {
+      const sr = py * snowRatio;
+      const cap = new THREE.Shape();
+      cap.moveTo(px - sr * 1.1, py - sr * 0.6);
+      cap.lineTo(px - sr * 0.4, py - sr * 0.15);
+      cap.lineTo(px, py);
+      cap.lineTo(px + sr * 0.5, py - sr * 0.18);
+      cap.lineTo(px + sr * 0.9, py - sr * 0.5);
+      cap.lineTo(px + sr * 0.2, py - sr * 0.35);
+      cap.lineTo(px, py - sr * 0.12);
+      cap.lineTo(px - sr * 0.3, py - sr * 0.4);
+      cap.closePath();
+      const capMesh = new THREE.Mesh(new THREE.ShapeGeometry(cap), makeBgMat(0xeef6ff, 0.88));
+      capMesh.position.set(0, 0, z + 0.2);
+      scene.add(capMesh);
+    });
+  }
+}
+
+// Pine tree silhouettes — layered star shape
+function addPineRow(cxs, baseY, h, z, color) {
+  const w = h * 0.58;
+  cxs.forEach(cx => {
+    const pine = new THREE.Shape();
+    pine.moveTo(cx - w * 0.50, baseY);
+    pine.lineTo(cx + w * 0.50, baseY);
+    pine.lineTo(cx + w * 0.32, baseY + h * 0.34);
+    pine.lineTo(cx + w * 0.46, baseY + h * 0.34);
+    pine.lineTo(cx + w * 0.27, baseY + h * 0.64);
+    pine.lineTo(cx + w * 0.38, baseY + h * 0.64);
+    pine.lineTo(cx,             baseY + h);
+    pine.lineTo(cx - w * 0.38, baseY + h * 0.64);
+    pine.lineTo(cx - w * 0.27, baseY + h * 0.64);
+    pine.lineTo(cx - w * 0.46, baseY + h * 0.34);
+    pine.lineTo(cx - w * 0.32, baseY + h * 0.34);
+    pine.closePath();
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(pine), makeBgMat(color, 0.93));
+    m.position.set(0, 0, z);
+    scene.add(m);
   });
 }
 
-// Layer 0 — farthest, hazy blue-violet atmosphere (z=-35)
-makeMountainRange([[-44,38],[-28,52],[-10,44],[8,58],[24,46],[40,54]], 0x8898cc, -35, 0.18);
-// Layer 1 — far, blue-purple haze (z=-28)
-makeMountainRange([[-38,32],[-20,48],[0,54],[18,42],[36,50]], 0x6a82b8, -28, 0.20);
-// Layer 2 — mid, muted blue-teal (z=-22)
-makeMountainRange([[-30,28],[-12,40],[6,34],[22,44],[38,30]], 0x4a6a8a, -22, 0.22);
-// Layer 3 — near-mid, teal-green (z=-16)
-makeMountainRange([[-26,20],[-8,32],[10,26],[26,36]], 0x3a6060, -16, 0.24);
-// Layer 4 — nearest bg, dark green hills (z=-10)
-makeMountainRange([[-22,14],[-6,20],[8,16],[22,22],[36,12]], 0x2a5040, -10, 0.0);
+// Atmospheric mist strip between layers
+function addMistBand(y0, y1, z, color, op) {
+  const sh = new THREE.Shape();
+  sh.moveTo(-65, y0); sh.lineTo(65, y0); sh.lineTo(65, y1); sh.lineTo(-65, y1); sh.closePath();
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), makeBgMat(color, op));
+  m.position.set(0, 0, z);
+  scene.add(m);
+}
+
+// Layer 0 — farthest, pale hazy lavender-blue (z=-35)
+makeMountainRange([[-44,38],[-28,52],[-10,44],[8,58],[24,46],[40,54]], 0xb0bedd, -35, 0.14, undefined);
+// Layer 1 — far, soft indigo-blue (z=-28)
+makeMountainRange([[-38,32],[-20,48],[0,54],[18,42],[36,50]], 0x7e98c8, -28, 0.18, 0x283868);
+// Layer 2 — mid, rich blue-slate (z=-22)
+makeMountainRange([[-30,28],[-12,40],[6,34],[22,44],[38,30]], 0x4c7098, -22, 0.22, 0x1c3860);
+// Layer 3 — near-mid, deep teal (z=-16)
+makeMountainRange([[-26,20],[-8,32],[10,26],[26,36]], 0x2e5870, -16, 0.26, 0x0e2838);
+// Layer 4 — nearest bg, dark blue-forest (z=-10)
+makeMountainRange([[-22,14],[-6,20],[8,16],[22,22],[36,12]], 0x1c3c4c, -10, 0.0, 0x0a1c28);
+
+// Pine forests on near layers
+addPineRow([-20,-14,-9,-4, 1, 6,11,16,21,27,33], -3, 8,   -12, 0x152a1e);
+addPineRow([-25,-19,-14,-9,-4, 1, 7,13,19,25,31], -3, 5.5, -15, 0x1c3848);
+
+// Mist wisps between mountain layers
+addMistBand(1.5, 4.0, -19, 0xa0cce0, 0.12);
+addMistBand(0.5, 2.5, -13, 0x88b8d0, 0.09);
 
 /* ── Clouds ───────────────────────────────────────────────────────────────── */
 const clouds = [];
@@ -1667,7 +1741,7 @@ function devPlaceObject(pt) {
   obj.scale.setScalar(devPlacementScale);
   obj.position.copy(pt);
   scene.add(obj);
-  const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale };
+  const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale, trigger: 'none' };
   devPlacedObjs.push(ref);
   devEditObjects.push(ref);
   devSelectRef(ref);
@@ -1805,10 +1879,11 @@ function devPrintAllPositions() {
   console.log('============================');
 
   console.log('\n// === STAGE DEF FORMAT (paste into STAGE_DEFS[n]) ===');
-  console.log('[\n' + devEditObjects.map(({ key, obj, scale, motion }) => {
+  console.log('[\n' + devEditObjects.map(({ key, obj, scale, motion, trigger }) => {
     const p = obj.position;
     const m = motion ? `,motion:{axis:'${motion.axis}',amp:${motion.amp.toFixed(1)},spd:${motion.spd.toFixed(1)}}` : '';
-    return `  {key:'${key||'?'}',scale:${scale||1},x:${p.x.toFixed(3)},y:${p.y.toFixed(3)},z:${p.z.toFixed(3)}${m}}`;
+    const trig = (trigger && trigger !== 'none') ? `,trigger:'${trigger}'` : '';
+    return `  {key:'${key||'?'}',scale:${scale||1},x:${p.x.toFixed(3)},y:${p.y.toFixed(3)},z:${p.z.toFixed(3)}${m}${trig}}`;
   }).join(',\n') + '\n]');
 
   showToast('📋 콘솔 출력됨 (F12)');
@@ -2000,6 +2075,48 @@ document.addEventListener('mousemove', e => {
     if (pt) devGhostMesh.position.copy(pt);
   }
 });
+
+// Touch rotation for dev camera (mobile — no pointer lock)
+let _devTouchId = null, _devTouchLX = 0, _devTouchLY = 0;
+renderer.domElement.addEventListener('touchstart', e => {
+  if (!devMode || devEditActive) return;
+  const t = e.touches[0];
+  _devTouchId = t.identifier;
+  _devTouchLX = t.clientX; _devTouchLY = t.clientY;
+}, { passive: true });
+renderer.domElement.addEventListener('touchmove', e => {
+  if (!devMode || devEditActive || _devTouchId === null) return;
+  const t = [...e.touches].find(x => x.identifier === _devTouchId);
+  if (!t) return;
+  const dx = t.clientX - _devTouchLX, dy = t.clientY - _devTouchLY;
+  devYaw   -= dx * 0.005;
+  devPitch -= dy * 0.005;
+  devPitch = Math.max(-Math.PI/2+0.05, Math.min(Math.PI/2-0.05, devPitch));
+  _devTouchLX = t.clientX; _devTouchLY = t.clientY;
+  // Move camera forward/back with two-finger pinch not needed, just pan
+}, { passive: true });
+renderer.domElement.addEventListener('touchend', e => {
+  if ([...e.touches].every(t => t.identifier !== _devTouchId)) _devTouchId = null;
+}, { passive: true });
+
+let _devTwoLX, _devTwoLY;
+renderer.domElement.addEventListener('touchmove', e => {
+  if (!devMode || e.touches.length !== 2) return;
+  // Two fingers: move camera up/down/left/right
+  const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+  const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+  if (_devTwoLX !== undefined) {
+    const dx = cx - _devTwoLX, dy = cy - _devTwoLY;
+    const cosP = Math.cos(devPitch);
+    const right = new THREE.Vector3(Math.cos(devYaw), 0, -Math.sin(devYaw));
+    devCamPos.addScaledVector(right, -dx * 0.05);
+    devCamPos.y += dy * 0.05;
+  }
+  _devTwoLX = cx; _devTwoLY = cy;
+}, { passive: true });
+renderer.domElement.addEventListener('touchend', e => {
+  if (e.touches.length < 2) { _devTwoLX = undefined; _devTwoLY = undefined; }
+}, { passive: true });
 
 function updateDevCamera(dt){
   const spd = devKeys['shift'] ? 80 : 16;
@@ -2213,6 +2330,24 @@ function frame(now){
       }
     }
     updateClouds(dtRaw);
+
+    // Dev-placed object triggers
+    if (gameRunning && !gameOver && !gameWon) {
+      for (const ref of devEditObjects) {
+        if (!ref.trigger || ref.trigger === 'none') continue;
+        if (!ref.aabb || ref.aabb.disabled) continue;
+        const col = sphereVsAABB(playerPos, PLAYER_RADIUS, ref.aabb);
+        if (col) {
+          if (ref.trigger === 'death') {
+            triggerGameOver();
+            break;
+          } else if (ref.trigger === 'vanish') {
+            ref.obj.visible = false;
+            ref.aabb.disabled = true;
+          }
+        }
+      }
+    }
 
     updateTimer(dtRaw);
 
