@@ -202,6 +202,14 @@ canvas{display:block}
       <button id="dev-mot-amp-up" style="flex:1;background:#222;color:#fff;border:1px solid #555;padding:1px;cursor:pointer;font-size:11px;">+</button>
     </div>
   </div>
+  <div id="dev-trigger-panel" style="display:none;border-top:1px solid #ff44ff44;padding-top:6px;margin-bottom:6px;">
+    <div style="color:#ff88ff;font-size:9px;font-weight:bold;margin-bottom:4px;">충돌 설정</div>
+    <div style="display:flex;gap:3px;">
+      <button id="dev-trig-none"   style="flex:1;background:#440;color:#aaa;border:1px solid #666;padding:2px;cursor:pointer;font-size:9px;font-family:monospace;">없음</button>
+      <button id="dev-trig-death"  style="flex:1;background:#111;color:#aaa;border:1px solid #444;padding:2px;cursor:pointer;font-size:9px;font-family:monospace;">💀죽음</button>
+      <button id="dev-trig-vanish" style="flex:1;background:#111;color:#aaa;border:1px solid #444;padding:2px;cursor:pointer;font-size:9px;font-family:monospace;">💨사라짐</button>
+    </div>
+  </div>
   <button id="dev-export-btn" style="width:100%;background:#003300;color:#44ff88;border:1px solid #44ff44;padding:3px;cursor:pointer;font-size:10px;margin-bottom:4px;">📋 좌표출력 (P)</button>
   <div style="color:#666;font-size:9px;line-height:1.4;margin-top:4px;">←→↑↓ = X/Z이동<br>PgUp/Dn = Y이동<br>TAB = 다음오브젝트<br>Esc = 선택해제</div>
 </div>
@@ -299,40 +307,87 @@ if (HQ) scene.add(playerLight);
 const _dracoLoader = new THREE.DRACOLoader();
 _dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
-/* ── Background mountains — 3 parallax layers ─────────────────────────────── */
-function makeMountain(cx, cy, w, h, color, z){
+/* ── Background mountains — high-quality layered panorama ────────────────── */
+function makeMountainRange(peaks, color, z, snowRatio = 0.22) {
+  // peaks: array of [x, y] world coords for the mountain ridge
+  // Build a closed shape from peak points with irregular jagged edge
   const shape = new THREE.Shape();
-  shape.moveTo(-w/2, 0);
-  // Slightly irregular silhouette
-  shape.lineTo(-w*0.15, h*0.55);
-  shape.lineTo(0, h);
-  shape.lineTo(w*0.18, h*0.6);
-  shape.lineTo(w/2, 0);
+  const floorY = -4;
+  const xs = peaks.map(p => p[0]);
+  const minX = Math.min(...xs) - 8;
+  const maxX = Math.max(...xs) + 8;
+
+  shape.moveTo(minX, floorY);
+  // Left base to first peak area
+  shape.lineTo(peaks[0][0] - (peaks[0][0]-minX)*0.5, floorY + (peaks[0][1]-floorY)*0.1);
+
+  // Trace all peaks with jagged intermediate points
+  for (let i = 0; i < peaks.length; i++) {
+    const [px, py] = peaks[i];
+    if (i === 0) {
+      shape.lineTo(px - 2, py * 0.6);
+      shape.lineTo(px - 0.8, py * 0.88);
+      shape.lineTo(px, py);
+    } else {
+      const [ppx, ppy] = peaks[i-1];
+      const midX = (ppx + px) / 2;
+      const midY = Math.min(ppy, py) * 0.55 + Math.max(ppy, py) * 0.1;
+      // Valley between peaks
+      shape.lineTo(midX + 1, midY);
+      shape.lineTo(midX + 3, midY * 0.85);
+      // Approach next peak
+      shape.lineTo(px - 1.5, py * 0.75);
+      shape.lineTo(px + 0.5, py * 0.92);
+      shape.lineTo(px, py);
+    }
+    // Right side of peak
+    if (i < peaks.length - 1) {
+      shape.lineTo(px + 1.2, py * 0.82);
+    }
+  }
+  // Right slope down to base
+  const lp = peaks[peaks.length-1];
+  shape.lineTo(lp[0] + 3, lp[1] * 0.5);
+  shape.lineTo(maxX, floorY);
   shape.closePath();
-  const geo = new THREE.ShapeGeometry(shape);
-  const mat = new THREE.MeshLambertMaterial({ color, side:THREE.DoubleSide });
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(cx, cy, z);
-  scene.add(m);
-  // Snow cap
-  const cap = new THREE.Shape();
-  cap.moveTo(-w*0.08, h*0.78);
-  cap.lineTo(0, h);
-  cap.lineTo(w*0.09, h*0.8);
-  cap.closePath();
-  const capMesh = new THREE.Mesh(
-    new THREE.ShapeGeometry(cap),
-    new THREE.MeshLambertMaterial({ color:0xeef6ff, side:THREE.DoubleSide })
-  );
-  capMesh.position.set(cx, cy, z + 0.1);
-  scene.add(capMesh);
+
+  const mat = new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.96 });
+  const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), mat);
+  mesh.position.set(0, 0, z);
+  scene.add(mesh);
+
+  // Snow caps on each peak
+  peaks.forEach(([px, py]) => {
+    const sh = py * snowRatio;
+    const cap = new THREE.Shape();
+    cap.moveTo(px - sh*1.1, py - sh*0.6);
+    cap.lineTo(px - sh*0.4, py - sh*0.15);
+    cap.lineTo(px, py);
+    cap.lineTo(px + sh*0.5, py - sh*0.18);
+    cap.lineTo(px + sh*0.9, py - sh*0.5);
+    cap.lineTo(px + sh*0.2, py - sh*0.35);
+    cap.lineTo(px, py - sh*0.12);
+    cap.lineTo(px - sh*0.3, py - sh*0.4);
+    cap.closePath();
+    const capMesh = new THREE.Mesh(
+      new THREE.ShapeGeometry(cap),
+      new THREE.MeshLambertMaterial({ color: 0xf0f8ff, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
+    );
+    capMesh.position.set(0, 0, z + 0.2);
+    scene.add(capMesh);
+  });
 }
+
+// Layer 0 — farthest, hazy blue-violet atmosphere (z=-35)
+makeMountainRange([[-44,38],[-28,52],[-10,44],[8,58],[24,46],[40,54]], 0x8898cc, -35, 0.18);
 // Layer 1 — far, blue-purple haze (z=-28)
-[[-32,-2,48,36], [-8,-2,52,44], [14,-2,44,32], [34,-2,40,28]].forEach(([x,y,w,h]) => makeMountain(x,y,w,h,0x7090c8,-28));
-// Layer 2 — mid, muted blue-green (z=-22)
-[[-24,-2,42,30], [0,-2,50,38], [22,-2,38,26], [-42,-2,36,22]].forEach(([x,y,w,h]) => makeMountain(x,y,w,h,0x4a7a5a,-22));
-// Layer 3 — near, deep teal-green (z=-16)
-[[-18,-2,34,22], [8,-2,38,28], [28,-2,30,18], [-36,-2,28,16]].forEach(([x,y,w,h]) => makeMountain(x,y,w,h,0x2d6b44,-16));
+makeMountainRange([[-38,32],[-20,48],[0,54],[18,42],[36,50]], 0x6a82b8, -28, 0.20);
+// Layer 2 — mid, muted blue-teal (z=-22)
+makeMountainRange([[-30,28],[-12,40],[6,34],[22,44],[38,30]], 0x4a6a8a, -22, 0.22);
+// Layer 3 — near-mid, teal-green (z=-16)
+makeMountainRange([[-26,20],[-8,32],[10,26],[26,36]], 0x3a6060, -16, 0.24);
+// Layer 4 — nearest bg, dark green hills (z=-10)
+makeMountainRange([[-22,14],[-6,20],[8,16],[22,22],[36,12]], 0x2a5040, -10, 0.0);
 
 /* ── Clouds ───────────────────────────────────────────────────────────────── */
 const clouds = [];
@@ -1581,11 +1636,13 @@ function devSelectRef(ref) {
   if (devSelHelper) { scene.remove(devSelHelper); devSelHelper = null; }
   devSelectedRef = ref;
   devDelBtn.style.display = ref ? 'block' : 'none';
-  if (!ref) { devMotRefreshPanel(); return; }
+  if (!ref) { devMotRefreshPanel(); if (_devTrigPanel) _devTrigPanel.style.display = 'none'; return; }
   devSelHelper = new THREE.BoxHelper(ref.obj, 0xff44ff);
   scene.add(devSelHelper);
   devRefreshInfo();
   devMotRefreshPanel();
+  if (_devTrigPanel) _devTrigPanel.style.display = 'block';
+  _devSetTrigger(ref.trigger || 'none');
 }
 
 function devClearSelection() {
@@ -1702,6 +1759,27 @@ function devMotRefreshPanel() {
     _devMotAmpEl.textContent = (m.amp || 2.0).toFixed(1);
   }
 }
+
+/* ── Trigger panel ──────────────────────────────────────────────────────── */
+const _devTrigPanel = document.getElementById('dev-trigger-panel');
+const _devTrigBtns = {
+  none:   document.getElementById('dev-trig-none'),
+  death:  document.getElementById('dev-trig-death'),
+  vanish: document.getElementById('dev-trig-vanish'),
+};
+function _devSetTrigger(type) {
+  if (!devSelectedRef) return;
+  devSelectedRef.trigger = type;
+  Object.entries(_devTrigBtns).forEach(([k,b]) => {
+    const active = k === type;
+    b.style.background = active ? '#440' : '#111';
+    b.style.color = active ? '#ffcc44' : '#aaa';
+    b.style.border = active ? '1px solid #666' : '1px solid #444';
+  });
+}
+Object.entries(_devTrigBtns).forEach(([k,b]) => {
+  b?.addEventListener('click', e => { e.stopPropagation(); _devSetTrigger(k); });
+});
 
 /* ── Move selected ──────────────────────────────────────────────────────── */
 function devMoveSelected(dx, dy, dz) {
