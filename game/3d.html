@@ -1142,7 +1142,7 @@ function setupGLBVisuals() {
     cannon-es here if desired — the AnimationState / sync logic does not care.)
    ═══════════════════════════════════════════════════════════════════════════ */
 let GRAVITY          = -42;
-let MAX_LAUNCH_FORCE = 96;
+let MAX_LAUNCH_FORCE = 82;
 const BOUNCE           = 0.28;
 const FRICTION_GROUND  = 0.82;
 const AIR_DRAG         = 0.992;
@@ -1204,7 +1204,8 @@ function physicsStep(dt){
   }
 
   // World bounds
-  if (playerPos.y < -20) { playerPos.set(0, 3, 0); playerVel.set(0,0,0); }
+  if (playerPos.y < -20 && gameRunning && !gameOver && !gameWon) { triggerGameOver(); }
+  else if (playerPos.y < -20) { playerPos.set(0, 3, 0); playerVel.set(0,0,0); }
   playerPos.x = Math.max(-22, Math.min(22, playerPos.x));
   playerPos.z = Math.max(-20, Math.min(20, playerPos.z));
 
