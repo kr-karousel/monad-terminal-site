@@ -2135,11 +2135,10 @@ function frame(now){
   updateMovingTiles(t);
 
   // Animate dev-placed objects with motion
-  const _mt = clock.getElapsedTime ? clock.getElapsedTime() : t;
   devEditObjects.forEach(ref => {
     if (!ref.motion || !ref._motBase) return;
     const { axis, spd, amp, phase } = ref.motion;
-    const offset = Math.sin(_mt * spd + (phase || 0)) * amp;
+    const offset = Math.sin(t * spd + (phase || 0)) * amp;
     if (axis === 'x') ref.obj.position.x = ref._motBase.x + offset;
     else if (axis === 'y') ref.obj.position.y = ref._motBase.y + offset;
     if (devSelHelper) devSelHelper.update();
