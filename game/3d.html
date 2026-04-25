@@ -43,9 +43,6 @@ canvas{display:block}
 /* Death — "You got rugged" screen */
 #rugged-overlay{position:fixed;inset:0;z-index:60;background:#000;opacity:0;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
 #rugged-text{font-family:'Courier New',monospace;font-size:clamp(32px,8vw,68px);font-weight:bold;color:#ff1a1a;letter-spacing:4px;text-align:center;opacity:0;text-shadow:0 0 28px #ff0000,0 0 55px #ff000055;line-height:1.3}
-#rugged-retry{margin-top:40px;background:#110000;border:2px solid #ff2222;color:#ff5555;padding:14px 52px;font-size:15px;font-family:'Courier New',monospace;cursor:pointer;border-radius:8px;letter-spacing:3px;font-weight:bold;opacity:0;transform:translateY(14px);transition:opacity .5s,transform .5s,background .2s;pointer-events:none}
-#rugged-retry.show{opacity:1;transform:translateY(0);pointer-events:auto}
-#rugged-retry:hover{background:#280000}
 @keyframes ruggedIn{0%{opacity:0;transform:scale(0.25) rotate(-12deg);filter:blur(16px)}60%{opacity:1;transform:scale(1.12) rotate(2deg);filter:blur(0)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
 @keyframes ruggedGlitch{0%{text-shadow:4px 1px 0 #00eeff,-4px -1px 0 #ff00cc,0 0 40px #ff2200;letter-spacing:12px}25%{text-shadow:-4px 2px 0 #00eeff,4px -2px 0 #ff00cc,0 0 30px #ff0000;letter-spacing:1px}50%{text-shadow:3px -1px 0 #00eeff,-3px 1px 0 #ff00cc,0 0 36px #ff1100;letter-spacing:7px}80%,100%{text-shadow:0 0 28px #ff0000,0 0 55px #ff000055;letter-spacing:4px}}
 @keyframes ruggedPulse{0%,100%{text-shadow:0 0 28px #ff0000,0 0 55px #ff000055}50%{text-shadow:0 0 50px #ff2200,0 0 90px #ff220040,0 0 8px #ff9999}}
@@ -125,7 +122,6 @@ canvas{display:block}
 </div>
 <div id="rugged-overlay">
   <div id="rugged-text">You got rugged</div>
-  <button id="rugged-retry">TRY AGAIN</button>
 </div>
 <div id="hud">
   <div class="row"><div class="label">HEIGHT</div><div class="val"><span id="h-val">0</span><span class="unit">m</span></div></div>
@@ -320,183 +316,9 @@ if (HQ) scene.add(playerLight);
 const _dracoLoader = new THREE.DRACOLoader();
 _dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
-/* ── Background mountains — atmospheric layered panorama ─────────────────── */
-function makeBgMat(col, op) {
-  return new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: true, opacity: op != null ? op : 0.97 });
-}
+/* ── Background mountains removed ──────────────────────────────────────── */
 
-// Moon glow — soft luminous orb top-right
-(function() {
-  function addCircle(r, col, op, z, cx, cy) {
-    const sh = new THREE.Shape();
-    sh.absarc(0, 0, r, 0, Math.PI * 2, false);
-    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh, 32), makeBgMat(col, op));
-    m.position.set(cx, cy, z);
-    scene.add(m);
-  }
-  addCircle(16, 0xffe8a0, 0.06, -37, 26, 50);
-  addCircle(10, 0xfff2c0, 0.13, -37, 26, 50);
-  addCircle(6.5, 0xfffadc, 0.25, -36.5, 26, 50);
-  addCircle(4,   0xfffef6, 0.90, -36, 26, 50);
-})();
-
-// Warm atmospheric glow band at horizon
-(function() {
-  const sh = new THREE.Shape();
-  sh.moveTo(-70, -6); sh.lineTo(70, -6); sh.lineTo(70, 16); sh.lineTo(-70, 16); sh.closePath();
-  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), makeBgMat(0xc09050, 0.15));
-  m.position.set(0, 0, -38);
-  scene.add(m);
-})();
-
-function makeMountainRange(peaks, color, z, snowRatio, shadowCol) {
-  if (snowRatio == null) snowRatio = 0.22;
-  const shape = new THREE.Shape();
-  const floorY = -4;
-  const xs = peaks.map(p => p[0]);
-  const minX = Math.min(...xs) - 8;
-  const maxX = Math.max(...xs) + 8;
-
-  shape.moveTo(minX, floorY);
-  shape.lineTo(peaks[0][0] - (peaks[0][0] - minX) * 0.5, floorY + (peaks[0][1] - floorY) * 0.1);
-  for (let i = 0; i < peaks.length; i++) {
-    const [px, py] = peaks[i];
-    if (i === 0) {
-      shape.lineTo(px - 2, py * 0.6);
-      shape.lineTo(px - 0.8, py * 0.88);
-      shape.lineTo(px, py);
-    } else {
-      const [ppx, ppy] = peaks[i - 1];
-      const midX = (ppx + px) / 2;
-      const midY = Math.min(ppy, py) * 0.55 + Math.max(ppy, py) * 0.1;
-      shape.lineTo(midX + 1, midY);
-      shape.lineTo(midX + 3, midY * 0.85);
-      shape.lineTo(px - 1.5, py * 0.75);
-      shape.lineTo(px + 0.5, py * 0.92);
-      shape.lineTo(px, py);
-    }
-    if (i < peaks.length - 1) shape.lineTo(px + 1.2, py * 0.82);
-  }
-  const lp = peaks[peaks.length - 1];
-  shape.lineTo(lp[0] + 3, lp[1] * 0.5);
-  shape.lineTo(maxX, floorY);
-  shape.closePath();
-
-  const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), makeBgMat(color));
-  mesh.position.set(0, 0, z);
-  scene.add(mesh);
-
-  // Shadow faces — darker right-side slope on each peak
-  if (shadowCol != null) {
-    peaks.forEach(([px, py], i) => {
-      const nx = i < peaks.length - 1 ? peaks[i + 1][0] : px + 7;
-      const ny = i < peaks.length - 1 ? peaks[i + 1][1] : floorY;
-      const midX = (px + nx) / 2 + 1;
-      const midY = Math.min(py, ny) * 0.55 + Math.max(py, ny) * 0.1;
-      const shadow = new THREE.Shape();
-      shadow.moveTo(px, py);
-      shadow.lineTo(px + 1.2, py * 0.82);
-      shadow.lineTo(midX, midY);
-      shadow.closePath();
-      const sm = new THREE.Mesh(new THREE.ShapeGeometry(shadow), makeBgMat(shadowCol, 0.40));
-      sm.position.set(0, 0, z + 0.15);
-      scene.add(sm);
-    });
-  }
-
-  // Snow caps
-  if (snowRatio > 0) {
-    peaks.forEach(([px, py]) => {
-      const sr = py * snowRatio;
-      const cap = new THREE.Shape();
-      cap.moveTo(px - sr * 1.1, py - sr * 0.6);
-      cap.lineTo(px - sr * 0.4, py - sr * 0.15);
-      cap.lineTo(px, py);
-      cap.lineTo(px + sr * 0.5, py - sr * 0.18);
-      cap.lineTo(px + sr * 0.9, py - sr * 0.5);
-      cap.lineTo(px + sr * 0.2, py - sr * 0.35);
-      cap.lineTo(px, py - sr * 0.12);
-      cap.lineTo(px - sr * 0.3, py - sr * 0.4);
-      cap.closePath();
-      const capMesh = new THREE.Mesh(new THREE.ShapeGeometry(cap), makeBgMat(0xeef6ff, 0.88));
-      capMesh.position.set(0, 0, z + 0.2);
-      scene.add(capMesh);
-    });
-  }
-}
-
-// Pine tree silhouettes — layered star shape
-function addPineRow(cxs, baseY, h, z, color) {
-  const w = h * 0.58;
-  cxs.forEach(cx => {
-    const pine = new THREE.Shape();
-    pine.moveTo(cx - w * 0.50, baseY);
-    pine.lineTo(cx + w * 0.50, baseY);
-    pine.lineTo(cx + w * 0.32, baseY + h * 0.34);
-    pine.lineTo(cx + w * 0.46, baseY + h * 0.34);
-    pine.lineTo(cx + w * 0.27, baseY + h * 0.64);
-    pine.lineTo(cx + w * 0.38, baseY + h * 0.64);
-    pine.lineTo(cx,             baseY + h);
-    pine.lineTo(cx - w * 0.38, baseY + h * 0.64);
-    pine.lineTo(cx - w * 0.27, baseY + h * 0.64);
-    pine.lineTo(cx - w * 0.46, baseY + h * 0.34);
-    pine.lineTo(cx - w * 0.32, baseY + h * 0.34);
-    pine.closePath();
-    const m = new THREE.Mesh(new THREE.ShapeGeometry(pine), makeBgMat(color, 0.93));
-    m.position.set(0, 0, z);
-    scene.add(m);
-  });
-}
-
-// Atmospheric mist strip between layers
-function addMistBand(y0, y1, z, color, op) {
-  const sh = new THREE.Shape();
-  sh.moveTo(-65, y0); sh.lineTo(65, y0); sh.lineTo(65, y1); sh.lineTo(-65, y1); sh.closePath();
-  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), makeBgMat(color, op));
-  m.position.set(0, 0, z);
-  scene.add(m);
-}
-
-// Layer 0 — farthest, pale hazy lavender-blue (z=-35)
-makeMountainRange([[-44,38],[-28,52],[-10,44],[8,58],[24,46],[40,54]], 0xb0bedd, -35, 0.14, undefined);
-// Layer 1 — far, soft indigo-blue (z=-28)
-makeMountainRange([[-38,32],[-20,48],[0,54],[18,42],[36,50]], 0x7e98c8, -28, 0.18, 0x283868);
-// Layer 2 — mid, rich blue-slate (z=-22)
-makeMountainRange([[-30,28],[-12,40],[6,34],[22,44],[38,30]], 0x4c7098, -22, 0.22, 0x1c3860);
-// Layer 3 — near-mid, deep teal (z=-16)
-makeMountainRange([[-26,20],[-8,32],[10,26],[26,36]], 0x2e5870, -16, 0.26, 0x0e2838);
-// Layer 4 — nearest bg, dark blue-forest (z=-10)
-makeMountainRange([[-22,14],[-6,20],[8,16],[22,22],[36,12]], 0x1c3c4c, -10, 0.0, 0x0a1c28);
-
-// Pine forests on near layers
-addPineRow([-20,-14,-9,-4, 1, 6,11,16,21,27,33], -3, 8,   -12, 0x152a1e);
-addPineRow([-25,-19,-14,-9,-4, 1, 7,13,19,25,31], -3, 5.5, -15, 0x1c3848);
-
-// Mist wisps between mountain layers
-addMistBand(1.5, 4.0, -19, 0xa0cce0, 0.12);
-addMistBand(0.5, 2.5, -13, 0x88b8d0, 0.09);
-
-/* ── Clouds ───────────────────────────────────────────────────────────────── */
-const clouds = [];
-function addCloud(x, y, z){
-  const g = new THREE.Group();
-  const mat = new THREE.MeshLambertMaterial({ color:0xffffff, transparent:true, opacity:0.92 });
-  [[0,0,3,1.4,3], [-2.2,0,2,1,2.5], [2.2,0,2,1,2.5], [0,0.8,2.5,1.2,2]].forEach(([ox,oy,rx,ry,rz]) => {
-    const puff = new THREE.Mesh(new THREE.SphereGeometry(1, 7, 5), mat);
-    puff.scale.set(rx, ry, rz);
-    puff.position.set(ox, oy, 0);
-    g.add(puff);
-  });
-  g.position.set(x, y, z);
-  scene.add(g);
-  clouds.push(g);
-}
-addCloud(-18, 22, -12);
-addCloud(14,  30, -14);
-addCloud(-8,  40, -13);
-addCloud(20,  18, -10);
-addCloud(-22, 50, -15);
-addCloud(8,   55, -12);
+const clouds = []; // decorative clouds removed
 
 window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1170,12 +992,12 @@ function setupGLBVisuals() {
     cannon-es here if desired — the AnimationState / sync logic does not care.)
    ═══════════════════════════════════════════════════════════════════════════ */
 let GRAVITY          = -16;
-let MAX_LAUNCH_FORCE = 48;
+let MAX_LAUNCH_FORCE = 96;
 const BOUNCE           = 0.28;
 const FRICTION_GROUND  = 0.82;
 const AIR_DRAG         = 0.992;
 const PLAYER_RADIUS    = 0.78;
-const MAX_SPEED        = 60;
+const MAX_SPEED        = 120;
 
 const playerPos = new THREE.Vector3(0, 1.5, 0);
 const playerVel = new THREE.Vector3(0, 0, 0);
@@ -1595,11 +1417,6 @@ function updateTimer(dt){
 
 document.getElementById('btn-gameover-retry').addEventListener('click', () => {
   document.getElementById('gameover-overlay').classList.add('hidden');
-  resetGame();
-  gameRunning = true;
-  showToast('GO! DRAG FROM CHOG TO LAUNCH');
-});
-document.getElementById('rugged-retry').addEventListener('click', () => {
   resetGame();
   gameRunning = true;
   showToast('GO! DRAG FROM CHOG TO LAUNCH');
@@ -2195,33 +2012,23 @@ function advanceStage(){
 function showRuggedScreen() {
   const ov  = document.getElementById('rugged-overlay');
   const txt = document.getElementById('rugged-text');
-  const btn = document.getElementById('rugged-retry');
   txt.style.animation = '';
   txt.style.opacity = '0';
-  btn.classList.remove('show');
   ov.style.opacity = '0';
   ov.style.display = 'flex';
-  // Fade screen to black over 0.75s
   ov.style.transition = 'opacity 0.75s ease';
   requestAnimationFrame(() => requestAnimationFrame(() => { ov.style.opacity = '1'; }));
-  // Text entrance at 0.7s
   setTimeout(() => {
     txt.style.animation = 'ruggedIn 0.55s cubic-bezier(0.18,1.2,0.35,1) forwards';
     txt.style.opacity = '1';
   }, 700);
-  // Glitch burst at 1.3s
+  setTimeout(() => { txt.style.animation = 'ruggedGlitch 0.55s steps(1) forwards'; }, 1300);
+  setTimeout(() => { txt.style.animation = 'ruggedPulse 2.2s ease-in-out infinite'; }, 1900);
+  // Auto-restart after 3s
   setTimeout(() => {
-    txt.style.animation = 'ruggedGlitch 0.55s steps(1) forwards';
-  }, 1300);
-  // Settle to pulse at 1.9s
-  setTimeout(() => {
-    txt.style.animation = 'ruggedPulse 2.2s ease-in-out infinite';
-  }, 1900);
-  // Show retry button at 2.3s
-  setTimeout(() => {
-    btn.classList.add('show');
-    ov.style.pointerEvents = 'auto';
-  }, 2300);
+    resetGame();
+    gameRunning = true;
+  }, 3000);
 }
 
 function triggerGameOver(){
@@ -2506,8 +2313,6 @@ function frame(now){
     }
   }
 
-  // Cloud drift
-  clouds.forEach((c, i) => { c.position.x += 0.008 * (i%2===0 ? 1 : -1); if (c.position.x > 30) c.position.x = -30; if (c.position.x < -30) c.position.x = 30; });
 
   // FPS counter (update every 30 frames)
   _fpsCount++;
