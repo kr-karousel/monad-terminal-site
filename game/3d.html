@@ -1145,7 +1145,6 @@ let GRAVITY          = -65;
 let MAX_LAUNCH_FORCE = 58;
 const BOUNCE           = 0.28;
 const FRICTION_GROUND  = 0.82;
-const AIR_DRAG         = 0.998;
 const PLAYER_RADIUS    = 0.78;
 const MAX_SPEED        = 120;
 
@@ -1169,7 +1168,7 @@ function sphereVsAABB(p, r, b){
 function physicsStep(dt){
   // Integrate
   playerVel.y += GRAVITY * dt;
-  playerVel.x *= AIR_DRAG;
+  // No air drag on X — pure projectile physics gives proper parabolic arc
   playerVel.z *= 0.75;  // strong Z damping — game plays as 2.5D side view
   const sp = playerVel.length();
   if (sp > MAX_SPEED) playerVel.multiplyScalar(MAX_SPEED / sp);
