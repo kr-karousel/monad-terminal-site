@@ -210,6 +210,11 @@ canvas{display:block}
     <button id="dev-y-dn" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:11px;flex:1;">↓</button>
     <button id="dev-y-up" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:11px;flex:1;">↑</button>
   </div>
+  <div style="color:#888;font-size:9px;margin-bottom:3px;">회전 Y°: <span id="dev-ry-val" style="color:#ffcc44;">0</span> <span style="color:#555;font-size:8px;">(Q/E)</span></div>
+  <div style="display:flex;gap:3px;margin-bottom:8px;">
+    <button id="dev-ry-dn" style="background:#222;color:#fff;border:1px solid #555;padding:1px 5px;cursor:pointer;font-size:10px;flex:1;">↺ −15</button>
+    <button id="dev-ry-up" style="background:#222;color:#fff;border:1px solid #555;padding:1px 5px;cursor:pointer;font-size:10px;flex:1;">↻ +15</button>
+  </div>
   <div id="dev-obj-info" style="color:#ffcc44;font-size:10px;line-height:1.5;word-break:break-all;min-height:48px;border-top:1px solid #ff44ff33;padding-top:6px;margin-bottom:6px;"></div>
   <button id="dev-del-btn" style="display:none;width:100%;background:#440000;color:#ff6666;border:1px solid #ff3333;padding:3px;cursor:pointer;font-size:10px;margin-bottom:4px;">🗑 삭제 (Del)</button>
   <div id="dev-motion-panel" style="display:none;border-top:1px solid #ff44ff44;padding-top:6px;margin-bottom:6px;">
@@ -239,7 +244,7 @@ canvas{display:block}
     </div>
   </div>
   <button id="dev-export-btn" style="width:100%;background:#003300;color:#44ff88;border:1px solid #44ff44;padding:3px;cursor:pointer;font-size:10px;margin-bottom:4px;">📋 좌표출력 (P)</button>
-  <div style="color:#666;font-size:9px;line-height:1.4;margin-top:4px;">←→↑↓ = X/Z이동<br>PgUp/Dn = Y이동<br>TAB = 다음오브젝트<br>Esc = 선택해제</div>
+  <div style="color:#666;font-size:9px;line-height:1.4;margin-top:4px;">←→↑↓ = X/Z이동<br>PgUp/Dn = Y이동<br>Q/E = 회전 ±15°<br>[/] = 높이 Y±1<br>TAB = 다음오브젝트<br>Esc = 선택해제</div>
 </div>
 <script src="https://unpkg.com/three@0.134.0/build/three.min.js"></script>
 <script src="https://unpkg.com/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -1541,6 +1546,7 @@ let devSelHelper   = null;
 let devGhostMesh   = null;
 let devPlacementKey   = null; // GLB key selected in palette
 let devPlacementScale = 1.0;
+let devPlacementRY    = 0;   // Y-rotation for placement (degrees)
 let devPlaceY         = 0;   // horizontal placement plane height
 const devPlacedObjs   = [];  // objects placed via palette [{key,label,obj,scale}]
 const _editStep       = 0.25;
@@ -1552,6 +1558,7 @@ const devDelBtn       = document.getElementById('dev-del-btn');
 const devExportBtn    = document.getElementById('dev-export-btn');
 const devScaleValEl   = document.getElementById('dev-scale-val');
 const devPlaceYEl     = document.getElementById('dev-place-y-val');
+const devRYEl         = document.getElementById('dev-ry-val');
 const _devRay         = new THREE.Raycaster();
 const _devMouse2      = new THREE.Vector2();
 const _devPlane       = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
@@ -1608,6 +1615,7 @@ function devRebuildGhost() {
   if (!devPlacementKey || !glbAssets[devPlacementKey]) return;
   devGhostMesh = glbAssets[devPlacementKey].clone();
   devGhostMesh.scale.setScalar(devPlacementScale);
+  devGhostMesh.rotation.y = THREE.MathUtils.degToRad(devPlacementRY);
   devGhostMesh.traverse(c => {
     if (c.isMesh) {
       const m = Array.isArray(c.material) ? c.material.map(x=>x.clone()) : c.material.clone();
@@ -1677,9 +1685,11 @@ function devPlaceObject(pt) {
   if (!devPlacementKey || !glbAssets[devPlacementKey]) return;
   const obj = glbAssets[devPlacementKey].clone();
   obj.scale.setScalar(devPlacementScale);
+  obj.rotation.y = THREE.MathUtils.degToRad(devPlacementRY);
   obj.position.copy(pt);
   scene.add(obj);
-  const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale, trigger: 'none' };
+  const ryRad = parseFloat((devPlacementRY * Math.PI / 180).toFixed(4));
+  const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale, ry: ryRad, trigger: 'none' };
   devPlacedObjs.push(ref);
   devEditObjects.push(ref);
   devSelectRef(ref);
@@ -1817,11 +1827,12 @@ function devPrintAllPositions() {
   console.log('============================');
 
   console.log('\n// === STAGE DEF FORMAT (paste into STAGE_DEFS[n]) ===');
-  console.log('[\n' + devEditObjects.map(({ key, obj, scale, motion, trigger }) => {
+  console.log('[\n' + devEditObjects.map(({ key, obj, scale, ry, motion, trigger }) => {
     const p = obj.position;
+    const ryStr = (ry && Math.abs(ry) > 0.0001) ? `,ry:${ry}` : '';
     const m = motion ? `,motion:{axis:'${motion.axis}',amp:${motion.amp.toFixed(1)},spd:${motion.spd.toFixed(1)}}` : '';
     const trig = (trigger && trigger !== 'none') ? `,trigger:'${trigger}'` : '';
-    return `  {key:'${key||'?'}',scale:${scale||1},x:${p.x.toFixed(3)},y:${p.y.toFixed(3)},z:${p.z.toFixed(3)}${m}${trig}}`;
+    return `  {key:'${key||'?'}',scale:${scale||1},x:${p.x.toFixed(3)},y:${p.y.toFixed(3)},z:${p.z.toFixed(3)}${ryStr}${m}${trig}}`;
   }).join(',\n') + '\n]');
 
   showToast('📋 콘솔 출력됨 (F12)');
@@ -1935,6 +1946,8 @@ document.addEventListener('keydown', e => {
     if (k === 'p') { devPrintAllPositions(); e.preventDefault(); return; }
     if (e.key === '[') { devPlaceY -= 1; devPlaceYEl.textContent = devPlaceY; e.preventDefault(); return; }
     if (e.key === ']') { devPlaceY += 1; devPlaceYEl.textContent = devPlaceY; e.preventDefault(); return; }
+    if (k === 'q') { devPlacementRY -= 15; devRYEl.textContent = devPlacementRY; if(devGhostMesh) devGhostMesh.rotation.y = THREE.MathUtils.degToRad(devPlacementRY); e.preventDefault(); return; }
+    if (k === 'e') { devPlacementRY += 15; devRYEl.textContent = devPlacementRY; if(devGhostMesh) devGhostMesh.rotation.y = THREE.MathUtils.degToRad(devPlacementRY); e.preventDefault(); return; }
   }
 
   devKeys[k] = true;
@@ -1967,6 +1980,18 @@ document.getElementById('dev-y-dn').addEventListener('mousedown', e => {
 });
 document.getElementById('dev-y-up').addEventListener('mousedown', e => {
   e.stopPropagation(); devPlaceY += 1; devPlaceYEl.textContent = devPlaceY;
+});
+document.getElementById('dev-ry-dn').addEventListener('mousedown', e => {
+  e.stopPropagation();
+  devPlacementRY -= 15;
+  devRYEl.textContent = devPlacementRY;
+  if (devGhostMesh) devGhostMesh.rotation.y = THREE.MathUtils.degToRad(devPlacementRY);
+});
+document.getElementById('dev-ry-up').addEventListener('mousedown', e => {
+  e.stopPropagation();
+  devPlacementRY += 15;
+  devRYEl.textContent = devPlacementRY;
+  if (devGhostMesh) devGhostMesh.rotation.y = THREE.MathUtils.degToRad(devPlacementRY);
 });
 devDelBtn.addEventListener('mousedown', e => { e.stopPropagation(); devDeleteSelected(); });
 devExportBtn.addEventListener('mousedown', e => { e.stopPropagation(); devPrintAllPositions(); });
