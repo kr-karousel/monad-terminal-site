@@ -159,7 +159,7 @@ canvas{display:block}
     <span style="display:flex;align-items:center;gap:3px;pointer-events:all;">
       <span style="color:#ff9966;font-size:9px;">발사력:</span>
       <button id="dev-force-dn" style="background:#222;color:#fff;border:1px solid #555;padding:0 5px;cursor:pointer;font-size:11px;line-height:1.4;">−</button>
-      <span id="dev-force-val" style="color:#ffcc44;font-size:10px;min-width:24px;text-align:center;">24</span>
+      <span id="dev-force-val" style="color:#ffcc44;font-size:10px;min-width:24px;text-align:center;">48</span>
       <button id="dev-force-up" style="background:#222;color:#fff;border:1px solid #555;padding:0 5px;cursor:pointer;font-size:11px;line-height:1.4;">+</button>
     </span>
   </div>
@@ -998,7 +998,7 @@ function setupGLBVisuals() {
     cannon-es here if desired — the AnimationState / sync logic does not care.)
    ═══════════════════════════════════════════════════════════════════════════ */
 let GRAVITY          = -16;
-let MAX_LAUNCH_FORCE = 24;
+let MAX_LAUNCH_FORCE = 48;
 const BOUNCE           = 0.28;
 const FRICTION_GROUND  = 0.82;
 const AIR_DRAG         = 0.992;
