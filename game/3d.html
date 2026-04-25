@@ -130,15 +130,15 @@ canvas{display:block}
 <div class="toast" id="toast"></div>
 
 <!-- Quality selector + FPS counter (collapsible) -->
-<div id="quality-hud" style="position:fixed;bottom:12px;right:12px;z-index:50;display:flex;align-items:center;gap:0;font-family:'Courier New',monospace;font-size:11px;background:rgba(0,0,0,0.5);border-radius:4px;border:1px solid #333;overflow:hidden;">
-  <div id="quality-panel" style="display:flex;align-items:center;gap:5px;padding:4px 8px;transition:max-width .25s,opacity .25s,padding .25s;max-width:200px;opacity:1;">
-    <span id="fps-display" style="color:#44ff88;min-width:32px;">-- fps</span>
+<div id="quality-hud" style="position:fixed;bottom:12px;right:12px;z-index:50;display:flex;align-items:center;gap:0;font-family:'Courier New',monospace;font-size:11px;background:rgba(0,0,0,0.7);border-radius:6px;border:1px solid #444;overflow:hidden;">
+  <div id="quality-panel" style="display:flex;align-items:center;gap:6px;padding:6px 10px;overflow:hidden;transition:max-width .25s,opacity .25s,padding .25s;max-width:240px;opacity:1;">
+    <span id="fps-display" style="color:#44ff88;min-width:36px;font-size:11px;">-- fps</span>
     <span style="color:#444;">|</span>
-    <button data-q="low"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">LOW</button>
-    <button data-q="med"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">MED</button>
-    <button data-q="high" style="background:#1a1a1a;color:#888;border:1px solid #333;padding:2px 6px;cursor:pointer;font-family:monospace;font-size:10px;border-radius:2px;">HIGH</button>
+    <button data-q="low"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:4px 10px;cursor:pointer;font-family:monospace;font-size:11px;border-radius:3px;">LOW</button>
+    <button data-q="med"  style="background:#1a1a1a;color:#888;border:1px solid #333;padding:4px 10px;cursor:pointer;font-family:monospace;font-size:11px;border-radius:3px;">MED</button>
+    <button data-q="high" style="background:#1a1a1a;color:#888;border:1px solid #333;padding:4px 10px;cursor:pointer;font-family:monospace;font-size:11px;border-radius:3px;">HIGH</button>
   </div>
-  <button id="quality-toggle" title="Show/hide quality panel" style="background:transparent;color:#666;border:none;border-left:1px solid #333;padding:4px 7px;cursor:pointer;font-size:12px;line-height:1;flex-shrink:0;">◀</button>
+  <button id="quality-toggle" title="Show/hide quality panel" style="background:transparent;color:#aaa;border:none;border-left:1px solid #444;padding:6px 10px;cursor:pointer;font-size:14px;line-height:1;flex-shrink:0;">◀</button>
 </div>
 
 <!-- Dev mode overlay -->
@@ -159,7 +159,7 @@ canvas{display:block}
     <span style="display:flex;align-items:center;gap:3px;pointer-events:all;">
       <span style="color:#ff9966;font-size:9px;">발사력:</span>
       <button id="dev-force-dn" style="background:#222;color:#fff;border:1px solid #555;padding:0 5px;cursor:pointer;font-size:11px;line-height:1.4;">−</button>
-      <span id="dev-force-val" style="color:#ffcc44;font-size:10px;min-width:24px;text-align:center;">120</span>
+      <span id="dev-force-val" style="color:#ffcc44;font-size:10px;min-width:24px;text-align:center;">48</span>
       <button id="dev-force-up" style="background:#222;color:#fff;border:1px solid #555;padding:0 5px;cursor:pointer;font-size:11px;line-height:1.4;">+</button>
     </span>
   </div>
@@ -854,7 +854,7 @@ const _QP = {
   med:  { pxR:1, shad:true,  sz:512,  sub:3 },
   high: { pxR:2, shad:true,  sz:1024, sub:4 },
 };
-let _qualLevel = HQ ? 'high' : 'low';
+let _qualLevel = 'high'; // always default high, user can lower if needed
 let _physSub   = HQ ? 4 : 2;
 
 function setQuality(level) {
@@ -886,27 +886,57 @@ document.querySelectorAll('#quality-hud button[data-q]').forEach(btn => {
 });
 setQuality(_qualLevel); // apply on load
 
+// Quality HUD: reposition on mobile
+if (_isMobile) {
+  const qhud = document.getElementById('quality-hud');
+  if (qhud) {
+    qhud.style.bottom = '70px';
+    qhud.style.right  = '10px';
+    qhud.style.left   = 'auto';
+  }
+}
+
 // Quality HUD collapse toggle
 (function() {
   const panel = document.getElementById('quality-panel');
   const btn   = document.getElementById('quality-toggle');
   let open = true;
   if (btn && panel) {
-    btn.addEventListener('click', () => {
-      open = !open;
+    function setOpen(v) {
+      open = v;
       if (open) {
-        panel.style.maxWidth = '200px';
-        panel.style.opacity  = '1';
-        panel.style.padding  = '4px 8px';
+        panel.style.maxWidth    = '240px';
+        panel.style.opacity     = '1';
+        panel.style.padding     = '6px 10px';
+        panel.style.pointerEvents = 'auto';
         btn.textContent = '◀';
       } else {
-        panel.style.maxWidth = '0';
-        panel.style.opacity  = '0';
-        panel.style.padding  = '4px 0';
+        panel.style.maxWidth    = '0';
+        panel.style.opacity     = '0';
+        panel.style.padding     = '0';
+        panel.style.pointerEvents = 'none';
         btn.textContent = '▶';
       }
-    });
+    }
+    btn.addEventListener('click', e => { e.stopPropagation(); setOpen(!open); });
   }
+})();
+
+// Dev mode: triple-tap quality-hud area to enter/exit (mobile-friendly secret trigger)
+(function() {
+  const hud = document.getElementById('quality-hud');
+  if (!hud) return;
+  let _tapN = 0, _tapT = 0;
+  hud.addEventListener('pointerdown', e => {
+    const now = Date.now();
+    if (now - _tapT > 700) _tapN = 0;
+    _tapT = now;
+    _tapN++;
+    if (_tapN >= 5) {
+      _tapN = 0;
+      devMode ? exitDevMode() : enterDevMode();
+    }
+  });
 })();
 
 
@@ -998,12 +1028,12 @@ function setupGLBVisuals() {
     cannon-es here if desired — the AnimationState / sync logic does not care.)
    ═══════════════════════════════════════════════════════════════════════════ */
 let GRAVITY          = -16;
-let MAX_LAUNCH_FORCE = 120;
+let MAX_LAUNCH_FORCE = 48;
 const BOUNCE           = 0.28;
 const FRICTION_GROUND  = 0.82;
 const AIR_DRAG         = 0.992;
 const PLAYER_RADIUS    = 0.78;
-const MAX_SPEED        = 130;
+const MAX_SPEED        = 60;
 
 const playerPos = new THREE.Vector3(0, 1.5, 0);
 const playerVel = new THREE.Vector3(0, 0, 0);
