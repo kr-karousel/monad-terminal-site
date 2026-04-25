@@ -2202,7 +2202,7 @@ function showRuggedScreen() {
   setTimeout(() => { txt.style.animation = 'ruggedPulse 2.2s ease-in-out infinite'; }, 1900);
   // Auto-restart after 3s
   setTimeout(() => {
-    resetGame();
+    loadStage(0);
     gameRunning = true;
   }, 3000);
 }
@@ -2273,7 +2273,7 @@ function resetGame(){
   }
   function startGame() {
     startOv.classList.add('hidden');
-    resetGame();
+    loadStage(0);
     gameRunning = true;
     showToast('GO! DRAG FROM CHOG TO LAUNCH');
     if (window._bgmStart) window._bgmStart();
@@ -2287,7 +2287,7 @@ function resetGame(){
 })();
 document.getElementById('btn-restart').addEventListener('click', () => {
   summitOv.classList.add('hidden');
-  resetGame();
+  loadStage(0);
   gameRunning = true;
   showToast('GO! DRAG FROM CHOG TO LAUNCH');
 });
