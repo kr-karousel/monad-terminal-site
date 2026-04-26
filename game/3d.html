@@ -916,12 +916,14 @@ function updateMovingTiles(t) {
 /* ── Stage loader ────────────────────────────────────────────────────────── */
 function loadStage(idx) {
   // Clear previous stage objects from scene
-  _stageObjs.forEach(({ obj, aabb }) => {
-    scene.remove(obj);
-    if (aabb) {
-      const i = platforms.indexOf(aabb);
+  _stageObjs.forEach(ref => {
+    scene.remove(ref.obj);
+    if (ref.aabb) {
+      const i = platforms.indexOf(ref.aabb);
       if (i >= 0) platforms.splice(i, 1);
     }
+    const ei = devEditObjects.indexOf(ref);
+    if (ei >= 0) devEditObjects.splice(ei, 1);
   });
   _stageObjs = [];
   // Clear stage-clear objects
@@ -993,7 +995,11 @@ function loadStage(idx) {
       _motPhase: phase,
     };
     if (aabb) ref.aabb = aabb;
+    ref.label = `${key}@(${x.toFixed(1)},${y.toFixed(1)},${z.toFixed(1)})`;
+    ref.ry = ry;
+    ref.trigger = 'none';
     _stageObjs.push(ref);
+    devEditObjects.push(ref);
   });
 
   // Auto-place stage-clear portal only if not manually placed in defs
@@ -1459,7 +1465,8 @@ function setupGLBVisuals() {
       const box3 = new THREE.Box3().setFromObject(obj);
       const bc = box3.getCenter(new THREE.Vector3());
       const bs = box3.getSize(new THREE.Vector3());
-      const ref = { key, obj, scale, motion: null, _motBase: null, _motPhase: 0 };
+      const ref = { key, obj, scale, motion: null, _motBase: null, _motPhase: 0,
+        label: `${key}@(${x.toFixed(1)},${y.toFixed(1)},${z.toFixed(1)})`, ry, trigger: 'none' };
       if (bs.x > 0.01 && bs.y > 0.01) {
         const aabb = {
           minX: bc.x-bs.x/2, maxX: bc.x+bs.x/2,
@@ -1471,6 +1478,7 @@ function setupGLBVisuals() {
         ref.aabb = aabb;
       }
       _stageObjs.push(ref);
+      devEditObjects.push(ref);
     });
   }
 }
@@ -2325,11 +2333,11 @@ function clearAABBHelpers(){
 function enterDevMode(){
   devMode = true;
   devCamPos.copy(camera.position);
-  // Derive yaw/pitch from current camera rotation
   const euler = new THREE.Euler().setFromQuaternion(camera.quaternion,'YXZ');
   devYaw   = euler.y;
   devPitch = euler.x;
   devHud.style.display = 'block';
+  devCollectRayMeshes();
 }
 function exitDevMode(){
   devMode = false;
