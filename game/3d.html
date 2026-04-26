@@ -966,6 +966,7 @@ function loadStage(idx) {
     scene.add(obj);
 
     let aabb = null;
+    const hasTrigger = entry.trigger && entry.trigger !== 'none';
     if (TILE_KEYS.has(key)) {
       const hw = TILE_DEFAULT_W / 2 * scale;
       const hh = TILE_DEFAULT_H / 2 * scale;
@@ -979,7 +980,7 @@ function loadStage(idx) {
         _hw: hw, _hh: hh,
         _motion: motion || null,
       };
-      platforms.push(aabb);
+      if (!hasTrigger) platforms.push(aabb);
     } else {
       // All other GLB objects also get an AABB computed from their bounding box
       const box3 = new THREE.Box3().setFromObject(obj);
@@ -993,7 +994,7 @@ function loadStage(idx) {
           disabled: false,
           _hw: bs.x/2, _hh: bs.y/2, _hd: bs.z/2,
         };
-        platforms.push(aabb);
+        if (!hasTrigger) platforms.push(aabb);
       }
     }
 
@@ -1007,7 +1008,7 @@ function loadStage(idx) {
     if (aabb) ref.aabb = aabb;
     ref.label = `${key}@(${x.toFixed(1)},${y.toFixed(1)},${z.toFixed(1)})`;
     ref.ry = ry;
-    ref.trigger = 'none';
+    ref.trigger = entry.trigger || 'none';
     _stageObjs.push(ref);
     devEditObjects.push(ref);
   });
@@ -2223,6 +2224,12 @@ const _devTrigBtns = {
 function _devSetTrigger(type) {
   if (!devSelectedRef) return;
   devSelectedRef.trigger = type;
+  // trigger 오브젝트는 physics에서 제외 — 몸통 전체로 감지 가능
+  if (devSelectedRef.aabb) {
+    const inPlatforms = platforms.indexOf(devSelectedRef.aabb);
+    if (type !== 'none' && inPlatforms >= 0) platforms.splice(inPlatforms, 1);
+    if (type === 'none' && inPlatforms < 0)  platforms.push(devSelectedRef.aabb);
+  }
   Object.entries(_devTrigBtns).forEach(([k,b]) => {
     const active = k === type;
     b.style.background = active ? '#440' : '#111';
