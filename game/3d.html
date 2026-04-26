@@ -669,17 +669,20 @@ const platforms = []; // physics AABBs
 const platformMeshes = []; // { mesh, def } for GLB tile overlay
 
 // BoxGeometry face order: +x, -x, +y(top), -y(bottom), +z, -z
-const MAT_GRASS  = new THREE.MeshLambertMaterial({ color:0x5db832 });
-const MAT_WOOD   = new THREE.MeshLambertMaterial({ color:0x9b5a2a });
-const MAT_WOOD_D = new THREE.MeshLambertMaterial({ color:0x7a4020 });
-const MAT_SUMMIT = new THREE.MeshLambertMaterial({ color:0xffd700 }); // golden summit top
+const MAT_GRASS      = new THREE.MeshLambertMaterial({ color:0x5db832 });
+const MAT_GRASS_SIDE = new THREE.MeshLambertMaterial({ color:0x3d8a1e });
+const MAT_WOOD       = new THREE.MeshLambertMaterial({ color:0x9b5a2a });
+const MAT_WOOD_D     = new THREE.MeshLambertMaterial({ color:0x7a4020 });
+const MAT_SUMMIT     = new THREE.MeshLambertMaterial({ color:0xffd700 });
 const PLATFORM_MATS      = [MAT_WOOD, MAT_WOOD, MAT_GRASS,  MAT_WOOD_D, MAT_WOOD, MAT_WOOD];
+const PLATFORM_MATS_GRASS= [MAT_GRASS_SIDE, MAT_GRASS_SIDE, MAT_GRASS, MAT_GRASS_SIDE, MAT_GRASS_SIDE, MAT_GRASS_SIDE];
 const PLATFORM_MATS_SUMM = [MAT_WOOD, MAT_WOOD, MAT_SUMMIT, MAT_WOOD_D, MAT_WOOD, MAT_WOOD];
 
 function addPlatform(def){
   const g = new THREE.BoxGeometry(def.w, def.h, def.d);
   const mats = def.big ? [MAT_WOOD_D,MAT_WOOD_D,MAT_WOOD_D,MAT_WOOD_D,MAT_WOOD_D,MAT_WOOD_D]
              : def.summit ? PLATFORM_MATS_SUMM
+             : def.flat   ? PLATFORM_MATS_GRASS
              : PLATFORM_MATS;
   const mesh = new THREE.Mesh(g, mats);
   mesh.position.set(def.x, def.y, def.z);
