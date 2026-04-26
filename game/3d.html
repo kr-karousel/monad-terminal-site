@@ -225,6 +225,7 @@ canvas{display:block}
     <span style="color:#ff6666;font-size:10px;">WASD=이동 QE=높이 SHIFT=빠름 H=AABB G=팔레트 `=종료</span>
     <span id="dev-aabb-label" style="color:#44ffaa;font-size:10px;"></span>
     <span id="dev-edit-label" style="color:#ff44ff;font-size:10px;"></span>
+    <button id="dev-save-btn" style="pointer-events:all;background:#003300;border:1px solid #44ff44;color:#44ff44;font-family:'Courier New',monospace;font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:1px;">💾 SAVE</button>
     <!-- Physics tweakers -->
     <span style="display:flex;align-items:center;gap:3px;pointer-events:all;">
       <span style="color:#ff9966;font-size:9px;">중력:</span>
@@ -660,7 +661,7 @@ const cliffDefs = [];
    Each stage entry: { key, scale, x, y, z, ry, motion? }
    tile1/tile2/tile3/stoneTile keys also create physics AABBs (w=4,h=1,d=4 default)
    ──────────────────────────────────────────────────────────────────────── */
-const STAGE_DEFS = [
+let STAGE_DEFS = [
   [ // stage 1
     {key:'benja',scale:1.6,x:-1.952,y:1.500,z:-2.272},
     {key:'toad',scale:1,x:2.714,y:1.000,z:-2.000},
@@ -691,6 +692,15 @@ const STAGE_DEFS = [
   [], // stage 4
   [], // stage 5
 ];
+// Load remote stage defs (overrides hardcoded on success)
+fetch('/api/stage-defs').then(r => r.ok ? r.json() : null).then(data => {
+  if (!data || typeof data !== 'object') return;
+  Object.keys(data).forEach(k => {
+    const idx = parseInt(k, 10);
+    if (!isNaN(idx) && Array.isArray(data[k])) STAGE_DEFS[idx] = data[k];
+  });
+}).catch(() => {});
+
 const TILE_KEYS = new Set(['tile1','tile2','tile3','stoneTile']);
 const TILE_DEFAULT_W = 4, TILE_DEFAULT_H = 1, TILE_DEFAULT_D = 4;
 
@@ -2269,6 +2279,46 @@ function devPrintAllPositions() {
 
   showToast('📋 콘솔 출력됨 (F12)');
 }
+
+/* ── Save current stage to server ──────────────────────────────────────── */
+async function devSaveStage() {
+  const entries = devEditObjects.map(({ key, obj, scale, ry, motion, trigger }) => {
+    const p = obj.position;
+    const entry = { key: key || '?', scale: scale || 1, x: parseFloat(p.x.toFixed(3)), y: parseFloat(p.y.toFixed(3)), z: parseFloat(p.z.toFixed(3)) };
+    if (ry && Math.abs(ry) > 0.0001) entry.ry = parseFloat(ry.toFixed(4));
+    if (motion) entry.motion = { axis: motion.axis, amp: parseFloat(motion.amp.toFixed(1)), spd: parseFloat(motion.spd.toFixed(1)) };
+    if (trigger && trigger !== 'none') entry.trigger = trigger;
+    return entry;
+  });
+  const btn = document.getElementById('dev-save-btn');
+  btn.textContent = '⏳ 저장중...';
+  btn.style.borderColor = '#ffcc44';
+  btn.style.color = '#ffcc44';
+  try {
+    const r = await fetch('/api/stage-defs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stageIdx: _stageIdx, entries }),
+    });
+    if (!r.ok) throw new Error('서버 오류');
+    STAGE_DEFS[_stageIdx] = entries; // update in-memory too
+    btn.textContent = '✅ 저장됨';
+    btn.style.borderColor = '#44ff44';
+    btn.style.color = '#44ff44';
+    showToast(`✅ STAGE ${_stageIdx + 1} 저장 완료`);
+  } catch(e) {
+    btn.textContent = '❌ 실패';
+    btn.style.borderColor = '#ff4444';
+    btn.style.color = '#ff4444';
+    showToast('❌ 저장 실패');
+  }
+  setTimeout(() => {
+    btn.textContent = '💾 SAVE';
+    btn.style.borderColor = '#44ff44';
+    btn.style.color = '#44ff44';
+  }, 2500);
+}
+document.getElementById('dev-save-btn').addEventListener('click', devSaveStage);
 
 /* ── Ray mesh collection ────────────────────────────────────────────────── */
 function devCollectRayMeshes() {
