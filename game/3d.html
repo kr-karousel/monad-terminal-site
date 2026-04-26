@@ -635,7 +635,7 @@ window.addEventListener('resize', () => {
 // Z is kept near 0 — game is effectively 2.5D (X/Y movement, Z decorative only)
 const platformDefs = [
   // Ground only — all other platforms removed for clean rebuild
-  { x:0, y:-1, z:0, w:28, h:2, d:8, flat:true },
+  { x:0, y:-1, z:0, w:60, h:2, d:8, flat:true },
 ];
 
 const cliffDefs = [];
@@ -1508,7 +1508,7 @@ function physicsStep(dt){
   // World bounds
   if (playerPos.y < -20 && gameRunning && !gameOver && !gameWon) { triggerGameOver(); }
   else if (playerPos.y < -20) { playerPos.set(0, 3, 0); playerVel.set(0,0,0); }
-  playerPos.x = Math.max(-22, Math.min(22, playerPos.x));
+  playerPos.x = Math.max(-40, Math.min(40, playerPos.x));
   playerPos.z = Math.max(-20, Math.min(20, playerPos.z));
 
   // Landing feedback
