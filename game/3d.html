@@ -41,9 +41,9 @@ canvas{display:block}
 #timer-val.danger{color:#ff4444;animation:pulse .5s infinite alternate}
 @keyframes pulse{from{opacity:1}to{opacity:.4}}
 /* BGM player — icon toggle */
-#bgm-icon{position:fixed;bottom:60px;right:14px;z-index:55;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.72);border:1px solid #555;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:border-color .2s;user-select:none;}
+#bgm-icon{position:fixed;bottom:90px;right:14px;z-index:55;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.72);border:1px solid #555;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:border-color .2s;user-select:none;}
 #bgm-icon:hover{border-color:#88ddff;}
-#bgm-panel{position:fixed;bottom:106px;right:14px;z-index:55;background:rgba(0,0,14,0.92);border:1px solid #444;border-radius:10px;padding:10px 12px;font-family:'Courier New',monospace;font-size:11px;display:none;min-width:160px;}
+#bgm-panel{position:fixed;bottom:136px;right:14px;z-index:55;background:rgba(0,0,14,0.92);border:1px solid #444;border-radius:10px;padding:10px 12px;font-family:'Courier New',monospace;font-size:11px;display:none;min-width:160px;}
 #bgm-panel.open{display:block;}
 #bgm-name{color:#88ddff;font-size:11px;letter-spacing:1px;margin-bottom:8px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #bgm-track-num{color:#555;font-size:9px;margin-right:4px;}
@@ -387,9 +387,11 @@ function makeBgMat(col, op) {
 }
 function bgFill(x1, y1, x2, y2, col, z, grp) {
   const sh = new THREE.Shape();
-  sh.moveTo(x1,y1); sh.lineTo(x2,y1); sh.lineTo(x2,y2); sh.lineTo(x1,y2); sh.closePath();
+  const highY = 100; // extend well above any reachable camera height
+  sh.moveTo(x1-10,y1); sh.lineTo(x2+10,y1); sh.lineTo(x2+10,highY); sh.lineTo(x1-10,highY); sh.closePath();
   const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), makeBgMat(col));
-  m.position.set(0, 0, z); (grp||scene).add(m);
+  m.position.set(0, 0, z - 0.3); // sit just behind domes at same z
+  (grp||scene).add(m);
 }
 function addDome(cx, peakY, hw, baseY, col, z, grp) {
   const sh = new THREE.Shape();
@@ -1339,6 +1341,38 @@ function setupGLBVisuals() {
   /* 5 (stage-clear GLBs below) */
 
   /* 6/7/8 ─ Stage-clear portals, rocket, EMO omitted during rebuild */
+
+  /* 9 — If loadStage(0) ran before GLBs were ready, repopulate now without resetting player */
+  if (_stageObjs.length === 0) {
+    const defs = STAGE_DEFS[_stageIdx] || [];
+    defs.forEach(entry => {
+      const { key, scale=1, x=0, y=0, z=0, ry=0 } = entry;
+      if (key === 'stageClear') return; // portal already placed
+      const tmpl = glbAssets[key];
+      if (!tmpl) return;
+      const obj = tmpl.clone();
+      obj.scale.setScalar(scale);
+      obj.position.set(x, y, z);
+      obj.rotation.y = ry;
+      obj.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+      scene.add(obj);
+      const box3 = new THREE.Box3().setFromObject(obj);
+      const bc = box3.getCenter(new THREE.Vector3());
+      const bs = box3.getSize(new THREE.Vector3());
+      const ref = { key, obj, scale, motion: null, _motBase: null, _motPhase: 0 };
+      if (bs.x > 0.01 && bs.y > 0.01) {
+        const aabb = {
+          minX: bc.x-bs.x/2, maxX: bc.x+bs.x/2,
+          minY: bc.y-bs.y/2, maxY: bc.y+bs.y/2,
+          minZ: bc.z-bs.z/2, maxZ: bc.z+bs.z/2,
+          disabled: false, _hw: bs.x/2, _hh: bs.y/2, _hd: bs.z/2,
+        };
+        platforms.push(aabb);
+        ref.aabb = aabb;
+      }
+      _stageObjs.push(ref);
+    });
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
