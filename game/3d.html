@@ -2411,7 +2411,7 @@ let currentStage = 0; // 0-indexed
 const bonusFlash  = document.getElementById('bonus-flash');
 const stageBanner = document.getElementById('stage-banner');
 const startOv  = document.getElementById('start-overlay');
-const summitOv = document.getElementById('summit-overlay');
+// summit-overlay removed — ending handled by #ending-overlay
 const gameoverOv = document.getElementById('gameover-overlay');
 
 function showStageBanner(txt){
@@ -2546,12 +2546,6 @@ function resetGame(){
   });
   goPanel(0);
 })();
-document.getElementById('btn-restart').addEventListener('click', () => {
-  summitOv.classList.add('hidden');
-  loadStage(0);
-  gameRunning = true;
-  showToast('GO! DRAG FROM CHOG TO LAUNCH');
-});
 document.getElementById('btn-play-again').addEventListener('click', () => {
   document.getElementById('ending-overlay').style.display = 'none';
   // reset credits opacity for next time
