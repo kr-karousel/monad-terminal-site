@@ -381,31 +381,67 @@ scene.add(playerLight);
 const _dracoLoader = new THREE.DRACOLoader();
 _dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
-/* ── Background — cartoon hills per stage ───────────────────────────────── */
+/* ── Background — layered 2D scenery per stage ────────────────────────────── */
 function makeBgMat(col, op) {
-  return new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: true, opacity: op != null ? op : 0.99 });
+  return new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: true, opacity: op != null ? op : 1.0 });
 }
-function bgFill(x1, y1, x2, y2, col, z, grp) {
+// Smooth hill silhouette: bezier curve along pts[], fills downward to -40
+function hillLine(pts, col, z, grp) {
   const sh = new THREE.Shape();
-  const highY = 100; // extend well above any reachable camera height
-  sh.moveTo(x1-10,y1); sh.lineTo(x2+10,y1); sh.lineTo(x2+10,highY); sh.lineTo(x1-10,highY); sh.closePath();
-  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), makeBgMat(col));
-  m.position.set(0, 0, z - 0.3); // sit just behind domes at same z
-  (grp||scene).add(m);
-}
-function addDome(cx, peakY, hw, baseY, col, z, grp) {
-  const sh = new THREE.Shape();
-  sh.moveTo(cx-hw, baseY-12); sh.lineTo(cx-hw, baseY);
-  sh.bezierCurveTo(cx-hw*.75, baseY, cx-hw*.08, peakY, cx, peakY);
-  sh.bezierCurveTo(cx+hw*.08, peakY, cx+hw*.75, baseY, cx+hw, baseY);
-  sh.lineTo(cx+hw, baseY-12); sh.closePath();
-  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh, 20), makeBgMat(col));
+  sh.moveTo(pts[0].x, -40); sh.lineTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const mx = (pts[i-1].x + pts[i].x) / 2;
+    sh.bezierCurveTo(mx, pts[i-1].y, mx, pts[i].y, pts[i].x, pts[i].y);
+  }
+  sh.lineTo(pts[pts.length-1].x, -40); sh.closePath();
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh, 32), makeBgMat(col));
   m.position.set(0, 0, z); (grp||scene).add(m);
 }
-function addDomeHL(cx, peakY, hw, baseY, col, hlCol, z, grp) {
-  addDome(cx, peakY, hw, baseY, col, z, grp);
-  const hlBase = baseY + (peakY - baseY) * 0.42;
-  addDome(cx, peakY, hw * 0.62, hlBase, hlCol, z + 0.05, grp);
+// Linear-interpolate hill height at given x (good enough for pine placement)
+function hillY(pts, x) {
+  if (x <= pts[0].x) return pts[0].y;
+  for (let i = 1; i < pts.length; i++) {
+    if (x <= pts[i].x) {
+      const t = (x - pts[i-1].x) / (pts[i].x - pts[i-1].x);
+      return pts[i-1].y * (1-t) + pts[i].y * t;
+    }
+  }
+  return pts[pts.length-1].y;
+}
+// Double-tier pine silhouette
+function addPineBg(cx, baseY, h, col, z, grp) {
+  const mat = makeBgMat(col);
+  // Lower wide tier
+  const s1 = new THREE.Shape();
+  s1.moveTo(cx, baseY+h); s1.lineTo(cx+h*0.44, baseY+h*0.30); s1.lineTo(cx-h*0.44, baseY+h*0.30); s1.closePath();
+  const m1 = new THREE.Mesh(new THREE.ShapeGeometry(s1), mat);
+  m1.position.set(0, 0, z); (grp||scene).add(m1);
+  // Upper narrow tier
+  const s2 = new THREE.Shape();
+  s2.moveTo(cx, baseY+h*1.12); s2.lineTo(cx+h*0.28, baseY+h*0.64); s2.lineTo(cx-h*0.28, baseY+h*0.64); s2.closePath();
+  const m2 = new THREE.Mesh(new THREE.ShapeGeometry(s2), mat);
+  m2.position.set(0, 0, z+0.01); (grp||scene).add(m2);
+  // Trunk
+  const ts = new THREE.Shape();
+  ts.moveTo(cx-h*0.055, baseY); ts.lineTo(cx+h*0.055, baseY);
+  ts.lineTo(cx+h*0.055, baseY+h*0.30); ts.lineTo(cx-h*0.055, baseY+h*0.30); ts.closePath();
+  const tm = new THREE.Mesh(new THREE.ShapeGeometry(ts), makeBgMat(0x503010));
+  tm.position.set(0, 0, z+0.005); (grp||scene).add(tm);
+}
+// Fluffy cloud (5 overlapping arcs)
+function addCloudBg(cx, cy, sc, z, grp) {
+  [[0,0,1],[-.62,-.16,.76],[.62,-.13,.72],[.30,.19,.64],[-.30,.21,.60]].forEach(([ox,oy,r]) => {
+    const sh = new THREE.Shape();
+    sh.absarc(cx+ox*sc, cy+oy*sc, r*sc, 0, Math.PI*2);
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh, 14), makeBgMat(0xf4feff, 0.94));
+    m.position.set(0, 0, z); (grp||scene).add(m);
+  });
+}
+// Filled circle (sun, glow, etc.)
+function addCircleBg(cx, cy, r, col, z, grp, op) {
+  const sh = new THREE.Shape(); sh.absarc(cx, cy, r, 0, Math.PI*2);
+  const m = new THREE.Mesh(new THREE.ShapeGeometry(sh, 24), makeBgMat(col, op));
+  m.position.set(0, 0, z); (grp||scene).add(m);
 }
 
 // Build all 5 stage backgrounds as hidden groups — toggled per stage
@@ -416,123 +452,148 @@ const _bgGroups = [];
     g.visible = false;
     g.userData.sky = skyCSS;
     g.userData.fog = fogHex;
-    scene.add(g);
-    _bgGroups[i] = g;
-    return g;
+    scene.add(g); _bgGroups[i] = g; return g;
   }
 
-  // ── Stage 1: Ground / Forest (bright Mario green) ────────────────────
-  const g0 = mkGrp(0, '#5bbfef', 0x9dd8f5);
-  bgFill(-65,-12,65,4,0xc8deb8,-36,g0);
-  addDomeHL(-52,30,26,4,0xc8deb8,0xdcedc8,-36,g0);
-  addDomeHL(-24,38,30,4,0xc8deb8,0xdcedc8,-36,g0);
-  addDomeHL(  8,32,28,4,0xc8deb8,0xdcedc8,-36,g0);
-  addDomeHL( 38,40,32,4,0xc8deb8,0xdcedc8,-36,g0);
-  addDomeHL( 62,26,22,4,0xc8deb8,0xdcedc8,-36,g0);
-  bgFill(-65,-12,65,3,0x90c860,-26,g0);
-  addDomeHL(-54,34,28,3,0x9cd468,0xbce890,-26,g0);
-  addDomeHL(-26,44,34,3,0x9cd468,0xbce890,-26,g0);
-  addDomeHL(  6,36,30,3,0x9cd468,0xbce890,-26,g0);
-  addDomeHL( 36,42,32,3,0x9cd468,0xbce890,-26,g0);
-  addDomeHL( 62,30,24,3,0x9cd468,0xbce890,-26,g0);
-  bgFill(-65,-12,65,2,0x58a838,-18,g0);
-  addDomeHL(-50,30,26,2,0x64b840,0x90d860,-18,g0);
-  addDomeHL(-22,40,30,2,0x64b840,0x90d860,-18,g0);
-  addDomeHL( 10,28,24,2,0x64b840,0x90d860,-18,g0);
-  addDomeHL( 38,36,28,2,0x64b840,0x90d860,-18,g0);
-  addDomeHL( 62,24,20,2,0x64b840,0x90d860,-18,g0);
+  // ── Stage 1: Ground / Forest ──────────────────────────────────────────
+  const g0 = mkGrp(0, '#4ec8f0', 0x92d4f5);
+  // Sky backdrop
+  addCircleBg(0, 30, 170, 0x7ad0f2, -50, g0);
+  // Sun: outer glow, mid glow, core
+  addCircleBg(52, 40, 12,  0xfff5b0, -47, g0, 0.5);
+  addCircleBg(52, 40, 9,   0xffe880, -46, g0, 0.8);
+  addCircleBg(52, 40, 6.5, 0xffd820, -45, g0);
+  // Far clouds (z=-42)
+  addCloudBg(-60, 28, 9,   -42, g0); addCloudBg(4,  34, 12, -42, g0);
+  addCloudBg( 62, 26, 8,   -42, g0); addCloudBg(-24, 31, 7, -42, g0);
+  addCloudBg( 34, 30, 6.5, -42, g0);
+  // Hill layer 1 — far pale sage (z=-38)
+  const h1 = [
+    {x:-110,y:2},{x:-88,y:11},{x:-66,y:5},{x:-44,y:18},{x:-20,y:9},
+    {x:4,y:22},{x:28,y:12},{x:52,y:20},{x:76,y:8},{x:98,y:17},{x:110,y:5}
+  ];
+  hillLine(h1, 0xbdd89c, -38, g0);
+  // Highlight on hill 1 tops (slightly lighter, z+0.05)
+  hillLine(h1.map(p=>({x:p.x, y:p.y*0.45-5})), 0xd2ecb4, -37, g0);
+  // Mid clouds (z=-32)
+  addCloudBg(-52, 18, 7,   -32, g0); addCloudBg(22, 21, 8.5, -32, g0);
+  addCloudBg( 66, 14, 5.5, -32, g0); addCloudBg(-12, 23, 5,  -32, g0);
+  // Hill layer 2 — lime green (z=-26) + small pines
+  const h2 = [
+    {x:-110,y:-1},{x:-86,y:9},{x:-64,y:3},{x:-44,y:15},{x:-22,y:6},
+    {x:0,y:19},{x:20,y:9},{x:40,y:17},{x:62,y:6},{x:82,y:15},{x:102,y:4},{x:110,y:8}
+  ];
+  hillLine(h2, 0x88c450, -26, g0);
+  hillLine(h2.map(p=>({x:p.x, y:p.y*0.4-4})), 0xa8dc6c, -25, g0);
+  [-96,-82,-70,-58,-48,-36,-24,-12,0,12,24,36,48,60,72,84,96,108].forEach((x,i)=>{
+    addPineBg(x, hillY(h2,x)-1.8, 4.5+(i%3)*0.65, 0x396818, -25, g0);
+  });
+  // Hill layer 3 — vivid green (z=-18) + medium pines
+  const h3 = [
+    {x:-110,y:-3},{x:-88,y:7},{x:-68,y:0},{x:-48,y:13},{x:-28,y:4},
+    {x:-8,y:16},{x:12,y:6},{x:32,y:15},{x:52,y:4},{x:72,y:13},{x:92,y:3},{x:110,y:9}
+  ];
+  hillLine(h3, 0x52a030, -18, g0);
+  hillLine(h3.map(p=>({x:p.x, y:p.y*0.35-5})), 0x72c048, -17, g0);
+  [-94,-78,-64,-50,-36,-22,-8,6,20,34,48,62,76,90,104].forEach((x,i)=>{
+    addPineBg(x, hillY(h3,x)-1.8, 6.5+(i%4)*0.8, 0x285810, -17, g0);
+  });
+  // Hill layer 4 — dark foreground (z=-12) + large pines
+  const h4 = [
+    {x:-110,y:-6},{x:-86,y:4},{x:-64,y:-2},{x:-42,y:8},{x:-20,y:0},
+    {x:2,y:10},{x:24,y:2},{x:46,y:10},{x:68,y:1},{x:90,y:8},{x:110,y:-1}
+  ];
+  hillLine(h4, 0x2c5e14, -12, g0);
+  [-94,-78,-62,-46,-30,-14,2,18,34,50,66,82,98].forEach((x,i)=>{
+    addPineBg(x, hillY(h4,x)-1.8, 9+(i%4)*1.4, 0x183a08, -11, g0);
+  });
+  // Dark ground strip
+  {const sh=new THREE.Shape(); sh.moveTo(-110,-40); sh.lineTo(110,-40); sh.lineTo(110,-3); sh.lineTo(-110,-3); sh.closePath();
+   const m=new THREE.Mesh(new THREE.ShapeGeometry(sh), makeBgMat(0x1c3e0e)); m.position.set(0,0,-8); g0.add(m);}
 
-  // ── Stage 2: Mid-mountain (dark forest + rocky hints) ────────────────
+  // ── Stage 2: Mid-mountain (dark forest→rocky transition) ─────────────
   const g1 = mkGrp(1, '#3f88b8', 0x6ea8c8);
-  bgFill(-65,-12,65,4,0x8aaa68,-36,g1);
-  addDomeHL(-52,32,28,4,0x8aaa68,0xaac880,-36,g1);
-  addDomeHL(-24,40,32,4,0x8aaa68,0xaac880,-36,g1);
-  addDomeHL(  8,34,28,4,0x8aaa68,0xaac880,-36,g1);
-  addDomeHL( 40,42,30,4,0x8aaa68,0xaac880,-36,g1);
-  bgFill(-65,-12,65,3,0x567840,-26,g1);
-  addDomeHL(-50,36,28,3,0x608848,0x80aa60,-26,g1);
-  addDomeHL(-22,46,32,3,0x608848,0x80aa60,-26,g1);
-  addDomeHL(  8,38,28,3,0x608848,0x80aa60,-26,g1);
-  addDomeHL( 38,44,30,3,0x608848,0x80aa60,-26,g1);
-  bgFill(-65,-12,65,2,0x3a5828,-18,g1);
-  addDomeHL(-48,32,26,2,0x406030,0x608848,-18,g1);
-  addDomeHL(-20,42,30,2,0x406030,0x608848,-18,g1);
-  addDomeHL( 10,30,24,2,0x406030,0x608848,-18,g1);
-  addDomeHL( 38,38,28,2,0x406030,0x608848,-18,g1);
-  bgFill(-65,-12,65,0,0x706858,-11,g1);
-  addDomeHL(-46,24,22,0,0x786e60,0x908880,-11,g1);
-  addDomeHL(-20,30,24,0,0x786e60,0x908880,-11,g1);
-  addDomeHL(  8,22,20,0,0x786e60,0x908880,-11,g1);
-  addDomeHL( 34,28,22,0,0x786e60,0x908880,-11,g1);
+  addCircleBg(0, 30, 170, 0x4880b8, -50, g1);
+  addCloudBg(-62, 22, 7, -36, g1); addCloudBg(20, 28, 9, -36, g1); addCloudBg(66, 20, 6, -36, g1);
+  const s2h1=[{x:-110,y:0},{x:-84,y:13},{x:-60,y:4},{x:-38,y:20},{x:-14,y:8},{x:10,y:24},{x:34,y:10},{x:58,y:22},{x:82,y:6},{x:104,y:18},{x:110,y:4}];
+  hillLine(s2h1, 0x8aaa68, -38, g1);
+  hillLine(s2h1.map(p=>({x:p.x,y:p.y*0.4-5})), 0xaac880, -37, g1);
+  const s2h2=[{x:-110,y:-2},{x:-84,y:11},{x:-62,y:2},{x:-42,y:17},{x:-20,y:5},{x:2,y:21},{x:22,y:8},{x:44,y:19},{x:66,y:4},{x:86,y:17},{x:110,y:2}];
+  hillLine(s2h2, 0x567840, -26, g1);
+  hillLine(s2h2.map(p=>({x:p.x,y:p.y*0.35-6})), 0x70924e, -25, g1);
+  [-90,-74,-60,-46,-32,-18,-4,10,24,38,52,66,80,94].forEach((x,i)=>{
+    addPineBg(x, hillY(s2h2,x)-1.8, 5+(i%3)*0.7, 0x2e4818, -25, g1);
+  });
+  const s2h3=[{x:-110,y:-4},{x:-86,y:7},{x:-64,y:-1},{x:-42,y:13},{x:-20,y:2},{x:2,y:17},{x:22,y:5},{x:44,y:15},{x:66,y:2},{x:88,y:13},{x:110,y:-1}];
+  hillLine(s2h3, 0x3a5828, -18, g1);
+  [-86,-70,-54,-38,-22,-6,10,26,42,58,74,90].forEach((x,i)=>{
+    addPineBg(x, hillY(s2h3,x)-1.8, 7+(i%3)*0.8, 0x1e3010, -17, g1);
+  });
+  const s2h4=[{x:-110,y:-7},{x:-84,y:3},{x:-60,y:-4},{x:-38,y:7},{x:-16,y:-2},{x:6,y:9},{x:28,y:0},{x:50,y:8},{x:72,y:-2},{x:94,y:7},{x:110,y:-3}];
+  hillLine(s2h4, 0x706858, -12, g1);
 
-  // ── Stage 3: Mountain peak (cold grey + snow) ─────────────────────────
+  // ── Stage 3: Mountain peak (cold grey + snow caps) ────────────────────
   const g2 = mkGrp(2, '#6aaad8', 0xa8c8dc);
-  bgFill(-65,-12,65,4,0xa8b8c8,-36,g2);
-  addDomeHL(-52,34,28,4,0xa8b8c8,0xc8d8e0,-36,g2);
-  addDomeHL(-22,44,32,4,0xa8b8c8,0xc8d8e0,-36,g2);
-  addDomeHL(  8,36,28,4,0xa8b8c8,0xc8d8e0,-36,g2);
-  addDomeHL( 40,46,32,4,0xa8b8c8,0xc8d8e0,-36,g2);
-  bgFill(-65,-12,65,3,0x7a8898,-26,g2);
-  addDomeHL(-50,38,28,3,0x808898,0xa8b8c0,-26,g2);
-  addDomeHL(-22,50,32,3,0x808898,0xa8b8c0,-26,g2);
-  addDomeHL(  8,40,28,3,0x808898,0xa8b8c0,-26,g2);
-  addDomeHL( 38,48,30,3,0x808898,0xa8b8c0,-26,g2);
-  bgFill(-65,-12,65,2,0x585868,-18,g2);
-  addDomeHL(-48,34,26,2,0x606070,0x9090a0,-18,g2);
-  addDomeHL(-20,46,30,2,0x606070,0x9090a0,-18,g2);
-  addDomeHL( 10,36,24,2,0x606070,0x9090a0,-18,g2);
-  addDomeHL( 36,42,28,2,0x606070,0x9090a0,-18,g2);
-  bgFill(-65,-12,65,0,0x404050,-11,g2);
-  addDomeHL(-44,26,22,0,0x484858,0xe0ecf4,-11,g2);  // snow caps
-  addDomeHL(-18,34,24,0,0x484858,0xe0ecf4,-11,g2);
-  addDomeHL(  8,26,20,0,0x484858,0xe0ecf4,-11,g2);
-  addDomeHL( 34,32,22,0,0x484858,0xe0ecf4,-11,g2);
+  addCircleBg(0, 30, 170, 0x7ab8d8, -50, g2);
+  addCloudBg(-58, 24, 7, -34, g2); addCloudBg(20, 30, 10, -34, g2); addCloudBg(70, 20, 7, -34, g2);
+  // Jagged far peaks
+  const s3h1=[{x:-110,y:0},{x:-88,y:22},{x:-68,y:5},{x:-46,y:32},{x:-22,y:8},{x:2,y:38},{x:28,y:6},{x:52,y:28},{x:76,y:4},{x:98,y:24},{x:110,y:8}];
+  hillLine(s3h1, 0x9ab0c0, -38, g2);
+  // Snow on peaks (lighter shape offset upward)
+  hillLine(s3h1.map(p=>({x:p.x,y:p.y*0.6+4})), 0xe4eff8, -37, g2);
+  const s3h2=[{x:-110,y:-3},{x:-84,y:16},{x:-60,y:1},{x:-38,y:24},{x:-14,y:5},{x:10,y:28},{x:34,y:3},{x:58,y:22},{x:82,y:0},{x:106,y:18},{x:110,y:4}];
+  hillLine(s3h2, 0x708090, -26, g2);
+  hillLine(s3h2.map(p=>({x:p.x,y:p.y*0.55+3})), 0xc4d8e8, -25, g2);
+  const s3h3=[{x:-110,y:-6},{x:-84,y:8},{x:-60,y:-3},{x:-38,y:14},{x:-16,y:0},{x:8,y:18},{x:30,y:2},{x:54,y:16},{x:76,y:0},{x:98,y:12},{x:110,y:-2}];
+  hillLine(s3h3, 0x505060, -18, g2);
+  hillLine(s3h3.map(p=>({x:p.x,y:p.y*0.5+2})), 0xd8e8f4, -17, g2);
+  const s3h4=[{x:-110,y:-9},{x:-82,y:3},{x:-58,y:-6},{x:-34,y:9},{x:-12,y:-2},{x:12,y:11},{x:36,y:-1},{x:60,y:9},{x:84,y:-3},{x:108,y:7},{x:110,y:-4}];
+  hillLine(s3h4, 0x383845, -12, g2);
 
-  // ── Stage 4: Sky / Above clouds (floating cloud domes) ───────────────
+  // ── Stage 4: Sky / Above clouds ───────────────────────────────────────
   const g3 = mkGrp(3, '#2a60c0', 0x90c0f0);
-  bgFill(-65,-12,65,4,0xc0d8f8,-36,g3);
-  addDomeHL(-52,20,32,4,0xeef6ff,0xffffff,-36,g3);
-  addDomeHL(-16,26,36,4,0xeef6ff,0xffffff,-36,g3);
-  addDomeHL( 20,18,30,4,0xeef6ff,0xffffff,-36,g3);
-  addDomeHL( 54,24,28,4,0xeef6ff,0xffffff,-36,g3);
-  bgFill(-65,-12,65,3,0xa8c8f0,-26,g3);
-  addDomeHL(-54,22,34,3,0xe0f0ff,0xfafeff,-26,g3);
-  addDomeHL(-20,30,38,3,0xe0f0ff,0xfafeff,-26,g3);
-  addDomeHL( 16,24,32,3,0xe0f0ff,0xfafeff,-26,g3);
-  addDomeHL( 52,20,26,3,0xe0f0ff,0xfafeff,-26,g3);
-  bgFill(-65,-12,65,2,0x88b0e8,-18,g3);
-  addDomeHL(-48,18,30,2,0xd0e8ff,0xf0f8ff,-18,g3);
-  addDomeHL(-18,26,34,2,0xd0e8ff,0xf0f8ff,-18,g3);
-  addDomeHL( 12,20,28,2,0xd0e8ff,0xf0f8ff,-18,g3);
-  addDomeHL( 44,22,26,2,0xd0e8ff,0xf0f8ff,-18,g3);
-  bgFill(-65,-12,65,0,0x6090d8,-11,g3);
-  addDomeHL(-44,14,28,0,0xb8d8f8,0xe8f4ff,-11,g3);
-  addDomeHL(-16,20,30,0,0xb8d8f8,0xe8f4ff,-11,g3);
-  addDomeHL( 14,16,26,0,0xb8d8f8,0xe8f4ff,-11,g3);
-  addDomeHL( 42,18,24,0,0xb8d8f8,0xe8f4ff,-11,g3);
+  addCircleBg(0, 30, 170, 0x3a70d8, -50, g3);
+  addCloudBg(-72, 18, 10, -36, g3); addCloudBg(-2, 26, 14, -36, g3);
+  addCloudBg( 65, 20, 11, -36, g3); addCloudBg(30, 14, 8, -36, g3);
+  const s4h1=[{x:-110,y:-2},{x:-82,y:18},{x:-54,y:6},{x:-28,y:24},{x:-2,y:10},{x:24,y:26},{x:50,y:8},{x:74,y:22},{x:98,y:6},{x:110,y:16}];
+  hillLine(s4h1, 0xc0d8f8, -38, g3);
+  hillLine(s4h1.map(p=>({x:p.x,y:p.y*0.5+4})), 0xeef6ff, -37, g3);
+  addCloudBg(-60, 12, 9, -32, g3); addCloudBg(10, 18, 11, -32, g3);
+  addCloudBg( 68, 10, 8, -32, g3); addCloudBg(-26, 8, 7, -32, g3);
+  const s4h2=[{x:-110,y:-4},{x:-80,y:14},{x:-52,y:2},{x:-26,y:20},{x:0,y:8},{x:26,y:22},{x:52,y:6},{x:76,y:18},{x:100,y:4},{x:110,y:14}];
+  hillLine(s4h2, 0x9ab8f0, -26, g3);
+  hillLine(s4h2.map(p=>({x:p.x,y:p.y*0.45+3})), 0xdcf0ff, -25, g3);
+  addCloudBg(-55, 6, 9, -22, g3); addCloudBg(18, 12, 12, -22, g3); addCloudBg(68, 8, 8, -22, g3);
+  const s4h3=[{x:-110,y:-7},{x:-80,y:12},{x:-50,y:-1},{x:-24,y:18},{x:2,y:4},{x:28,y:20},{x:54,y:2},{x:78,y:16},{x:102,y:0},{x:110,y:12}];
+  hillLine(s4h3, 0x7898e0, -18, g3);
+  hillLine(s4h3.map(p=>({x:p.x,y:p.y*0.4+2})), 0xc8e4ff, -17, g3);
+  const s4h4=[{x:-110,y:-9},{x:-78,y:8},{x:-50,y:-4},{x:-22,y:14},{x:4,y:0},{x:30,y:16},{x:56,y:0},{x:80,y:12},{x:104,y:-2},{x:110,y:10}];
+  hillLine(s4h4, 0x5080c8, -12, g3);
 
-  // ── Stage 5: Space (dark nebula) ──────────────────────────────────────
+  // ── Stage 5: Space (dark nebula + stars) ──────────────────────────────
   const g4 = mkGrp(4, '#020408', 0x06081a);
-  bgFill(-65,-12,65,6,0x0a0418,-36,g4);
-  addDomeHL(-52,36,30,6,0x180830,0x2c1458,-36,g4);
-  addDomeHL(-20,46,34,6,0x180830,0x2c1458,-36,g4);
-  addDomeHL( 10,38,28,6,0x180830,0x2c1458,-36,g4);
-  addDomeHL( 44,50,32,6,0x180830,0x2c1458,-36,g4);
-  bgFill(-65,-12,65,5,0x06101c,-26,g4);
-  addDomeHL(-50,40,30,5,0x0c1840,0x1c2860,-26,g4);
-  addDomeHL(-18,52,34,5,0x0c1840,0x1c2860,-26,g4);
-  addDomeHL( 12,42,28,5,0x0c1840,0x1c2860,-26,g4);
-  addDomeHL( 46,56,32,5,0x0c1840,0x1c2860,-26,g4);
-  bgFill(-65,-12,65,4,0x040810,-18,g4);
-  addDomeHL(-46,32,26,4,0x0a0c28,0x140e40,-18,g4);
-  addDomeHL(-16,44,30,4,0x0a0c28,0x140e40,-18,g4);
-  addDomeHL( 12,34,24,4,0x0a0c28,0x140e40,-18,g4);
-  addDomeHL( 40,40,26,4,0x0a0c28,0x140e40,-18,g4);
-  bgFill(-65,-12,65,2,0x020610,-11,g4);
-  addDomeHL(-42,22,22,2,0x080620,0x180c40,-11,g4);
-  addDomeHL(-14,30,24,2,0x080620,0x180c40,-11,g4);
-  addDomeHL( 10,24,20,2,0x080620,0x180c40,-11,g4);
-  addDomeHL( 36,28,22,2,0x080620,0x180c40,-11,g4);
+  addCircleBg(0, 30, 170, 0x030510, -50, g4);
+  // Nebula glows
+  addCircleBg(-60, 40, 22, 0x1a0640, -49, g4, 0.4);
+  addCircleBg( 20, 50, 28, 0x08034a, -49, g4, 0.35);
+  addCircleBg( 72, 34, 18, 0x1a0040, -49, g4, 0.4);
+  // Stars (deterministic scatter)
+  for (let i = 0; i < 48; i++) {
+    const sx = ((i * 137.508) % 220) - 110;
+    const sy = ((i * 97.31)  % 70) + 5;
+    const sr = 0.3 + (i % 4) * 0.15;
+    const sc = [0xffffff, 0xffeebb, 0xaaddff, 0xffd8ff][i % 4];
+    addCircleBg(sx, sy, sr, sc, -48 + (i%3)*0.5, g4, 0.6 + (i%3)*0.15);
+  }
+  const s5h1=[{x:-110,y:2},{x:-82,y:24},{x:-56,y:6},{x:-30,y:36},{x:-4,y:8},{x:22,y:42},{x:48,y:6},{x:74,y:30},{x:98,y:4},{x:110,y:20}];
+  hillLine(s5h1, 0x100430, -38, g4);
+  hillLine(s5h1.map(p=>({x:p.x,y:p.y*0.55+2})), 0x281060, -37, g4); // purple edge glow
+  const s5h2=[{x:-110,y:-2},{x:-82,y:16},{x:-58,y:0},{x:-34,y:24},{x:-10,y:4},{x:16,y:30},{x:42,y:2},{x:68,y:22},{x:92,y:0},{x:110,y:14}];
+  hillLine(s5h2, 0x080624, -26, g4);
+  const s5h3=[{x:-110,y:-5},{x:-82,y:10},{x:-58,y:-2},{x:-36,y:16},{x:-12,y:0},{x:10,y:20},{x:34,y:2},{x:58,y:16},{x:82,y:0},{x:106,y:12},{x:110,y:-1}];
+  hillLine(s5h3, 0x050410, -18, g4);
+  const s5h4=[{x:-110,y:-8},{x:-80,y:4},{x:-56,y:-5},{x:-32,y:10},{x:-8,y:-2},{x:16,y:12},{x:40,y:0},{x:64,y:10},{x:88,y:-2},{x:110,y:8}];
+  hillLine(s5h4, 0x03020c, -12, g4);
 })();
 
 // Show stage 1 background immediately (before game start)
