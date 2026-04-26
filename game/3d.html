@@ -712,7 +712,8 @@ fetch('/api/stage-defs').then(r => r.ok ? r.json() : null).then(data => {
   if (!data || typeof data !== 'object') return;
   Object.keys(data).forEach(k => {
     const idx = parseInt(k, 10);
-    if (!isNaN(idx) && Array.isArray(data[k])) STAGE_DEFS[idx] = data[k];
+    // 빈 배열이면 무시 — 하드코딩 유지
+    if (!isNaN(idx) && Array.isArray(data[k]) && data[k].length > 0) STAGE_DEFS[idx] = data[k];
   });
 }).catch(() => {});
 
