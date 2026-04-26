@@ -2,7 +2,6 @@
   "objects": [
     {"key": "tile1",      "file": "/game/floating_tile_opt.glb",  "scale": 1.0},
     {"key": "tile3",      "file": "/game/floating_tile3_opt.glb", "scale": 1.0},
-    {"key": "grass",      "file": "/game/grass_opt.glb",          "scale": 0.9},
     {"key": "lollipop",   "file": "/game/lollipop1_opt.glb",      "scale": 0.9},
     {"key": "candy",      "file": "/game/candy_opt.glb",          "scale": 0.8},
     {"key": "stone",      "file": "/game/stone1_opt.glb",         "scale": 1.0},
