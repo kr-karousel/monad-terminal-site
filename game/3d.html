@@ -712,8 +712,10 @@ fetch('/api/stage-defs').then(r => r.ok ? r.json() : null).then(data => {
   if (!data || typeof data !== 'object') return;
   Object.keys(data).forEach(k => {
     const idx = parseInt(k, 10);
-    // 빈 배열이면 무시 — 하드코딩 유지
-    if (!isNaN(idx) && Array.isArray(data[k]) && data[k].length > 0) STAGE_DEFS[idx] = data[k];
+    // 하드코딩에 데이터 있는 스테이지는 Supabase 무시
+    if (!isNaN(idx) && Array.isArray(data[k]) && data[k].length > 0 && STAGE_DEFS[idx] && STAGE_DEFS[idx].length === 0) {
+      STAGE_DEFS[idx] = data[k];
+    }
   });
 }).catch(() => {});
 
