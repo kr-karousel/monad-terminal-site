@@ -41,7 +41,7 @@ canvas{display:block}
 #timer-val.danger{color:#ff4444;animation:pulse .5s infinite alternate}
 @keyframes pulse{from{opacity:1}to{opacity:.4}}
 /* BGM player */
-#bgm-player{position:fixed;bottom:12px;left:12px;z-index:50;display:flex;align-items:center;gap:0;font-family:'Courier New',monospace;font-size:11px;background:rgba(0,0,0,0.70);border-radius:6px;border:1px solid #444;overflow:hidden;}
+#bgm-player{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:0;font-family:'Courier New',monospace;font-size:11px;background:rgba(0,0,0,0.70);border-radius:20px;border:1px solid #444;overflow:hidden;white-space:nowrap;}
 #bgm-info{display:flex;align-items:center;gap:6px;padding:6px 10px;min-width:0;}
 #bgm-name{color:#88ddff;font-size:10px;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;}
 #bgm-track-num{color:#666;font-size:9px;}
@@ -115,14 +115,32 @@ canvas{display:block}
     </div>
   </div>
 </div>
-<div id="summit-overlay" class="overlay hidden">
-  <h1>🚀 LAUNCHED!</h1>
-  <p>CHOG reached the spaceship and blasted off to the moon!<br/>Worth every tumble.</p>
-  <div style="margin:8px 0;text-align:center">
-    <div style="color:#ffe066;font-size:10px;letter-spacing:3px">CLEAR TIME</div>
-    <div id="clear-time-display" style="font-size:48px;font-weight:bold;text-shadow:2px 2px 0 #333">0:00</div>
+<div id="summit-overlay" class="overlay hidden" style="display:none!important"></div>
+<div id="ending-overlay" style="display:none;position:fixed;inset:0;z-index:82;background:#000;flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;font-family:'Courier New',monospace;color:#fff;padding:20px;box-sizing:border-box;">
+  <div id="ending-credits" style="text-align:center;opacity:0;transition:opacity 1s;margin-bottom:24px;">
+    <div style="font-size:clamp(10px,2.5vw,14px);color:#888;letter-spacing:4px;margin-bottom:6px;">CONGRATULATIONS</div>
+    <div style="font-size:clamp(22px,6vw,48px);font-weight:bold;color:#ffe066;letter-spacing:3px;text-shadow:0 0 30px #ff8800,0 0 60px #ff4400;margin-bottom:4px;">CHOG TO THE TOP</div>
+    <div style="font-size:clamp(14px,4vw,28px);color:#fff;letter-spacing:5px;margin-bottom:16px;">ALL CLEAR 🚀</div>
+    <div style="font-size:clamp(9px,2vw,12px);color:#555;letter-spacing:2px;">MONAD TERMINAL</div>
   </div>
-  <button id="btn-restart" class="btn">CLIMB AGAIN</button>
+  <div id="ending-times" style="opacity:0;transition:opacity 0.8s;margin-bottom:20px;min-width:220px;">
+    <div style="border:1px solid #333;border-radius:8px;padding:14px 20px;background:rgba(255,255,255,0.04);">
+      <div id="ending-times-rows" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+      <div style="border-top:1px solid #444;padding-top:8px;display:flex;justify-content:space-between;font-size:clamp(13px,3.5vw,18px);color:#ffe066;font-weight:bold;">
+        <span>TOTAL</span><span id="ending-total-time">-</span>
+      </div>
+    </div>
+  </div>
+  <div id="ending-input" style="opacity:0;transition:opacity 0.8s;text-align:center;">
+    <div style="font-size:10px;color:#666;letter-spacing:3px;margin-bottom:8px;">YOUR NAME</div>
+    <input id="player-name-input" type="text" maxlength="12" placeholder="PLAYER" style="background:#111;border:1px solid #555;color:#fff;font-family:'Courier New',monospace;font-size:16px;padding:8px 14px;border-radius:4px;text-align:center;width:160px;letter-spacing:2px;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto;">
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+      <button id="btn-twitter-share" style="background:#1a1a1a;border:1px solid #1d9bf0;color:#1d9bf0;font-family:'Courier New',monospace;font-size:12px;padding:8px 16px;border-radius:4px;cursor:pointer;letter-spacing:1px;">𝕏 SHARE</button>
+      <button id="btn-save-card" style="background:#1a1a1a;border:1px solid #44ff88;color:#44ff88;font-family:'Courier New',monospace;font-size:12px;padding:8px 16px;border-radius:4px;cursor:pointer;letter-spacing:1px;">💾 SAVE CARD</button>
+      <button id="btn-play-again" style="background:#1a1a1a;border:1px solid #aaa;color:#aaa;font-family:'Courier New',monospace;font-size:12px;padding:8px 16px;border-radius:4px;cursor:pointer;letter-spacing:1px;">🔄 PLAY AGAIN</button>
+    </div>
+  </div>
+  <canvas id="result-card-canvas" style="display:none;" width="640" height="380"></canvas>
 </div>
 <div id="gameover-overlay" class="overlay hidden">
   <h1 style="color:#ff4444">☠️ GAME OVER</h1>
@@ -355,74 +373,160 @@ scene.add(playerLight);
 const _dracoLoader = new THREE.DRACOLoader();
 _dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
 
-/* ── Background — cartoon hills (Mario style) ───────────────────────────── */
+/* ── Background — cartoon hills per stage ───────────────────────────────── */
 function makeBgMat(col, op) {
   return new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide, transparent: true, opacity: op != null ? op : 0.99 });
 }
-
-// Horizontal fill strip (layer base)
-function bgFill(x1, y1, x2, y2, col, z) {
+function bgFill(x1, y1, x2, y2, col, z, grp) {
   const sh = new THREE.Shape();
   sh.moveTo(x1,y1); sh.lineTo(x2,y1); sh.lineTo(x2,y2); sh.lineTo(x1,y2); sh.closePath();
   const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), makeBgMat(col));
-  m.position.set(0, 0, z);
-  scene.add(m);
+  m.position.set(0, 0, z); (grp||scene).add(m);
 }
-
-// Smooth rounded dome hill (Mario style)
-function addDome(cx, peakY, hw, baseY, col, z) {
+function addDome(cx, peakY, hw, baseY, col, z, grp) {
   const sh = new THREE.Shape();
-  sh.moveTo(cx - hw, baseY - 12);
-  sh.lineTo(cx - hw, baseY);
-  sh.bezierCurveTo(cx - hw * 0.75, baseY, cx - hw * 0.08, peakY, cx, peakY);
-  sh.bezierCurveTo(cx + hw * 0.08, peakY, cx + hw * 0.75, baseY, cx + hw, baseY);
-  sh.lineTo(cx + hw, baseY - 12);
-  sh.closePath();
+  sh.moveTo(cx-hw, baseY-12); sh.lineTo(cx-hw, baseY);
+  sh.bezierCurveTo(cx-hw*.75, baseY, cx-hw*.08, peakY, cx, peakY);
+  sh.bezierCurveTo(cx+hw*.08, peakY, cx+hw*.75, baseY, cx+hw, baseY);
+  sh.lineTo(cx+hw, baseY-12); sh.closePath();
   const m = new THREE.Mesh(new THREE.ShapeGeometry(sh, 20), makeBgMat(col));
-  m.position.set(0, 0, z);
-  scene.add(m);
+  m.position.set(0, 0, z); (grp||scene).add(m);
 }
-
-// Dome with lighter highlight on top (signature Mario look)
-function addDomeHL(cx, peakY, hw, baseY, col, hlCol, z) {
-  addDome(cx, peakY, hw, baseY, col, z);
-  // Highlight: smaller dome shifted up
+function addDomeHL(cx, peakY, hw, baseY, col, hlCol, z, grp) {
+  addDome(cx, peakY, hw, baseY, col, z, grp);
   const hlBase = baseY + (peakY - baseY) * 0.42;
-  addDome(cx, peakY, hw * 0.62, hlBase, hlCol, z + 0.05);
+  addDome(cx, peakY, hw * 0.62, hlBase, hlCol, z + 0.05, grp);
 }
 
-// ── Layer 0: farthest — pale misty sage  (z=-36) ─────────────────────────
-bgFill(-65, -12, 65, 4, 0xc8deb8, -36);
-addDomeHL(-52, 30, 26, 4, 0xc8deb8, 0xdcedc8, -36);
-addDomeHL(-24, 38, 30, 4, 0xc8deb8, 0xdcedc8, -36);
-addDomeHL(  8, 32, 28, 4, 0xc8deb8, 0xdcedc8, -36);
-addDomeHL( 38, 40, 32, 4, 0xc8deb8, 0xdcedc8, -36);
-addDomeHL( 62, 26, 22, 4, 0xc8deb8, 0xdcedc8, -36);
+// Build all 5 stage backgrounds as hidden groups — toggled per stage
+const _bgGroups = [];
+(function buildAllStageBgs(){
+  function mkGrp(i, skyCSS, fogHex) {
+    const g = new THREE.Group();
+    g.visible = false;
+    g.userData.sky = skyCSS;
+    g.userData.fog = fogHex;
+    scene.add(g);
+    _bgGroups[i] = g;
+    return g;
+  }
 
-// ── Layer 1: far — light lime-green  (z=-26) ─────────────────────────────
-bgFill(-65, -12, 65, 3, 0x90c860, -26);
-addDomeHL(-54, 34, 28, 3, 0x9cd468, 0xbce890, -26);
-addDomeHL(-26, 44, 34, 3, 0x9cd468, 0xbce890, -26);
-addDomeHL(  6, 36, 30, 3, 0x9cd468, 0xbce890, -26);
-addDomeHL( 36, 42, 32, 3, 0x9cd468, 0xbce890, -26);
-addDomeHL( 62, 30, 24, 3, 0x9cd468, 0xbce890, -26);
+  // ── Stage 1: Ground / Forest (bright Mario green) ────────────────────
+  const g0 = mkGrp(0, '#5bbfef', 0x9dd8f5);
+  bgFill(-65,-12,65,4,0xc8deb8,-36,g0);
+  addDomeHL(-52,30,26,4,0xc8deb8,0xdcedc8,-36,g0);
+  addDomeHL(-24,38,30,4,0xc8deb8,0xdcedc8,-36,g0);
+  addDomeHL(  8,32,28,4,0xc8deb8,0xdcedc8,-36,g0);
+  addDomeHL( 38,40,32,4,0xc8deb8,0xdcedc8,-36,g0);
+  addDomeHL( 62,26,22,4,0xc8deb8,0xdcedc8,-36,g0);
+  bgFill(-65,-12,65,3,0x90c860,-26,g0);
+  addDomeHL(-54,34,28,3,0x9cd468,0xbce890,-26,g0);
+  addDomeHL(-26,44,34,3,0x9cd468,0xbce890,-26,g0);
+  addDomeHL(  6,36,30,3,0x9cd468,0xbce890,-26,g0);
+  addDomeHL( 36,42,32,3,0x9cd468,0xbce890,-26,g0);
+  addDomeHL( 62,30,24,3,0x9cd468,0xbce890,-26,g0);
+  bgFill(-65,-12,65,2,0x58a838,-18,g0);
+  addDomeHL(-50,30,26,2,0x64b840,0x90d860,-18,g0);
+  addDomeHL(-22,40,30,2,0x64b840,0x90d860,-18,g0);
+  addDomeHL( 10,28,24,2,0x64b840,0x90d860,-18,g0);
+  addDomeHL( 38,36,28,2,0x64b840,0x90d860,-18,g0);
+  addDomeHL( 62,24,20,2,0x64b840,0x90d860,-18,g0);
 
-// ── Layer 2: mid — vivid Mario green  (z=-18) ────────────────────────────
-bgFill(-65, -12, 65, 2, 0x58a838, -18);
-addDomeHL(-50, 30, 26, 2, 0x64b840, 0x90d860, -18);
-addDomeHL(-22, 40, 30, 2, 0x64b840, 0x90d860, -18);
-addDomeHL( 10, 28, 24, 2, 0x64b840, 0x90d860, -18);
-addDomeHL( 38, 36, 28, 2, 0x64b840, 0x90d860, -18);
-addDomeHL( 62, 24, 20, 2, 0x64b840, 0x90d860, -18);
+  // ── Stage 2: Mid-mountain (dark forest + rocky hints) ────────────────
+  const g1 = mkGrp(1, '#3f88b8', 0x6ea8c8);
+  bgFill(-65,-12,65,4,0x8aaa68,-36,g1);
+  addDomeHL(-52,32,28,4,0x8aaa68,0xaac880,-36,g1);
+  addDomeHL(-24,40,32,4,0x8aaa68,0xaac880,-36,g1);
+  addDomeHL(  8,34,28,4,0x8aaa68,0xaac880,-36,g1);
+  addDomeHL( 40,42,30,4,0x8aaa68,0xaac880,-36,g1);
+  bgFill(-65,-12,65,3,0x567840,-26,g1);
+  addDomeHL(-50,36,28,3,0x608848,0x80aa60,-26,g1);
+  addDomeHL(-22,46,32,3,0x608848,0x80aa60,-26,g1);
+  addDomeHL(  8,38,28,3,0x608848,0x80aa60,-26,g1);
+  addDomeHL( 38,44,30,3,0x608848,0x80aa60,-26,g1);
+  bgFill(-65,-12,65,2,0x3a5828,-18,g1);
+  addDomeHL(-48,32,26,2,0x406030,0x608848,-18,g1);
+  addDomeHL(-20,42,30,2,0x406030,0x608848,-18,g1);
+  addDomeHL( 10,30,24,2,0x406030,0x608848,-18,g1);
+  addDomeHL( 38,38,28,2,0x406030,0x608848,-18,g1);
+  bgFill(-65,-12,65,0,0x706858,-11,g1);
+  addDomeHL(-46,24,22,0,0x786e60,0x908880,-11,g1);
+  addDomeHL(-20,30,24,0,0x786e60,0x908880,-11,g1);
+  addDomeHL(  8,22,20,0,0x786e60,0x908880,-11,g1);
+  addDomeHL( 34,28,22,0,0x786e60,0x908880,-11,g1);
+
+  // ── Stage 3: Mountain peak (cold grey + snow) ─────────────────────────
+  const g2 = mkGrp(2, '#6aaad8', 0xa8c8dc);
+  bgFill(-65,-12,65,4,0xa8b8c8,-36,g2);
+  addDomeHL(-52,34,28,4,0xa8b8c8,0xc8d8e0,-36,g2);
+  addDomeHL(-22,44,32,4,0xa8b8c8,0xc8d8e0,-36,g2);
+  addDomeHL(  8,36,28,4,0xa8b8c8,0xc8d8e0,-36,g2);
+  addDomeHL( 40,46,32,4,0xa8b8c8,0xc8d8e0,-36,g2);
+  bgFill(-65,-12,65,3,0x7a8898,-26,g2);
+  addDomeHL(-50,38,28,3,0x808898,0xa8b8c0,-26,g2);
+  addDomeHL(-22,50,32,3,0x808898,0xa8b8c0,-26,g2);
+  addDomeHL(  8,40,28,3,0x808898,0xa8b8c0,-26,g2);
+  addDomeHL( 38,48,30,3,0x808898,0xa8b8c0,-26,g2);
+  bgFill(-65,-12,65,2,0x585868,-18,g2);
+  addDomeHL(-48,34,26,2,0x606070,0x9090a0,-18,g2);
+  addDomeHL(-20,46,30,2,0x606070,0x9090a0,-18,g2);
+  addDomeHL( 10,36,24,2,0x606070,0x9090a0,-18,g2);
+  addDomeHL( 36,42,28,2,0x606070,0x9090a0,-18,g2);
+  bgFill(-65,-12,65,0,0x404050,-11,g2);
+  addDomeHL(-44,26,22,0,0x484858,0xe0ecf4,-11,g2);  // snow caps
+  addDomeHL(-18,34,24,0,0x484858,0xe0ecf4,-11,g2);
+  addDomeHL(  8,26,20,0,0x484858,0xe0ecf4,-11,g2);
+  addDomeHL( 34,32,22,0,0x484858,0xe0ecf4,-11,g2);
+
+  // ── Stage 4: Sky / Above clouds (floating cloud domes) ───────────────
+  const g3 = mkGrp(3, '#2a60c0', 0x90c0f0);
+  bgFill(-65,-12,65,4,0xc0d8f8,-36,g3);
+  addDomeHL(-52,20,32,4,0xeef6ff,0xffffff,-36,g3);
+  addDomeHL(-16,26,36,4,0xeef6ff,0xffffff,-36,g3);
+  addDomeHL( 20,18,30,4,0xeef6ff,0xffffff,-36,g3);
+  addDomeHL( 54,24,28,4,0xeef6ff,0xffffff,-36,g3);
+  bgFill(-65,-12,65,3,0xa8c8f0,-26,g3);
+  addDomeHL(-54,22,34,3,0xe0f0ff,0xfafeff,-26,g3);
+  addDomeHL(-20,30,38,3,0xe0f0ff,0xfafeff,-26,g3);
+  addDomeHL( 16,24,32,3,0xe0f0ff,0xfafeff,-26,g3);
+  addDomeHL( 52,20,26,3,0xe0f0ff,0xfafeff,-26,g3);
+  bgFill(-65,-12,65,2,0x88b0e8,-18,g3);
+  addDomeHL(-48,18,30,2,0xd0e8ff,0xf0f8ff,-18,g3);
+  addDomeHL(-18,26,34,2,0xd0e8ff,0xf0f8ff,-18,g3);
+  addDomeHL( 12,20,28,2,0xd0e8ff,0xf0f8ff,-18,g3);
+  addDomeHL( 44,22,26,2,0xd0e8ff,0xf0f8ff,-18,g3);
+  bgFill(-65,-12,65,0,0x6090d8,-11,g3);
+  addDomeHL(-44,14,28,0,0xb8d8f8,0xe8f4ff,-11,g3);
+  addDomeHL(-16,20,30,0,0xb8d8f8,0xe8f4ff,-11,g3);
+  addDomeHL( 14,16,26,0,0xb8d8f8,0xe8f4ff,-11,g3);
+  addDomeHL( 42,18,24,0,0xb8d8f8,0xe8f4ff,-11,g3);
+
+  // ── Stage 5: Space (dark nebula) ──────────────────────────────────────
+  const g4 = mkGrp(4, '#020408', 0x06081a);
+  bgFill(-65,-12,65,6,0x0a0418,-36,g4);
+  addDomeHL(-52,36,30,6,0x180830,0x2c1458,-36,g4);
+  addDomeHL(-20,46,34,6,0x180830,0x2c1458,-36,g4);
+  addDomeHL( 10,38,28,6,0x180830,0x2c1458,-36,g4);
+  addDomeHL( 44,50,32,6,0x180830,0x2c1458,-36,g4);
+  bgFill(-65,-12,65,5,0x06101c,-26,g4);
+  addDomeHL(-50,40,30,5,0x0c1840,0x1c2860,-26,g4);
+  addDomeHL(-18,52,34,5,0x0c1840,0x1c2860,-26,g4);
+  addDomeHL( 12,42,28,5,0x0c1840,0x1c2860,-26,g4);
+  addDomeHL( 46,56,32,5,0x0c1840,0x1c2860,-26,g4);
+  bgFill(-65,-12,65,4,0x040810,-18,g4);
+  addDomeHL(-46,32,26,4,0x0a0c28,0x140e40,-18,g4);
+  addDomeHL(-16,44,30,4,0x0a0c28,0x140e40,-18,g4);
+  addDomeHL( 12,34,24,4,0x0a0c28,0x140e40,-18,g4);
+  addDomeHL( 40,40,26,4,0x0a0c28,0x140e40,-18,g4);
+  bgFill(-65,-12,65,2,0x020610,-11,g4);
+  addDomeHL(-42,22,22,2,0x080620,0x180c40,-11,g4);
+  addDomeHL(-14,30,24,2,0x080620,0x180c40,-11,g4);
+  addDomeHL( 10,24,20,2,0x080620,0x180c40,-11,g4);
+  addDomeHL( 36,28,22,2,0x080620,0x180c40,-11,g4);
+})();
 
 // ── Layer 3: near — rich deep green  (z=-11) ─────────────────────────────
 bgFill(-65, -12, 65, 0, 0x308828, -11);
-addDomeHL(-48, 22, 22, 0, 0x3a9830, 0x60c050, -11);
-addDomeHL(-22, 28, 24, 0, 0x3a9830, 0x60c050, -11);
-addDomeHL(  6, 20, 20, 0, 0x3a9830, 0x60c050, -11);
-addDomeHL( 32, 26, 22, 0, 0x3a9830, 0x60c050, -11);
-addDomeHL( 58, 18, 18, 0, 0x3a9830, 0x60c050, -11);
-
 /* ── Decorative clouds ────────────────────────────────────────────────────── */
 const clouds = [];
 function addCloud(x, y, z){
@@ -717,7 +821,16 @@ function loadStage(idx) {
   stageClearObjects.forEach(sc => { scene.remove(sc.group); if(sc.light) scene.remove(sc.light); });
   stageClearObjects.length = 0;
 
+  if (idx === 0) stageTimes.length = 0; // fresh start — clear per-stage records
   _stageIdx = idx;
+  // Switch stage background
+  _bgGroups.forEach((g, i) => { g.visible = (i === idx); });
+  const _bgD = _bgGroups[idx];
+  if (_bgD) {
+    FOG_COL.set(_bgD.userData.fog || 0x9dd8f5);
+    scene.fog.color.copy(FOG_COL);
+    document.body.style.background = _bgD.userData.sky || '#5bbfef';
+  }
   const defs = STAGE_DEFS[idx] || [];
 
   defs.forEach(entry => {
@@ -801,7 +914,87 @@ function fadeTransition(cb) {
 }
 
 function showWinScreen() {
-  summitOv.classList.remove('hidden');
+  gameRunning = false;
+  const ov = document.getElementById('ending-overlay');
+  ov.style.display = 'flex';
+  // Credits fade-in
+  const credits = document.getElementById('ending-credits');
+  setTimeout(() => { credits.style.opacity = '1'; }, 200);
+  // Times reveal
+  const timesEl = document.getElementById('ending-times');
+  const rowsEl  = document.getElementById('ending-times-rows');
+  rowsEl.innerHTML = '';
+  let total = 0;
+  stageTimes.forEach((t, i) => {
+    total += t;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;font-size:clamp(11px,3vw,15px);color:#ccc;';
+    row.innerHTML = `<span>STAGE ${i+1}</span><span style="color:#88eeff;">${formatTime(t)}</span>`;
+    rowsEl.appendChild(row);
+  });
+  document.getElementById('ending-total-time').textContent = formatTime(total);
+  setTimeout(() => { timesEl.style.opacity = '1'; }, 1800);
+  // Input + buttons reveal
+  setTimeout(() => { document.getElementById('ending-input').style.opacity = '1'; }, 3000);
+}
+
+function _generateResultCard() {
+  const canvas = document.getElementById('result-card-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const name = (document.getElementById('player-name-input').value || 'PLAYER').toUpperCase();
+  // Background
+  const grd = ctx.createLinearGradient(0, 0, 0, H);
+  grd.addColorStop(0, '#050918'); grd.addColorStop(1, '#0d1530');
+  ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
+  // Stars
+  ctx.fillStyle = '#fff';
+  for (let i = 0; i < 80; i++) {
+    ctx.globalAlpha = 0.2 + Math.random() * 0.6;
+    ctx.fillRect(Math.random()*W, Math.random()*H*0.7, 1.5, 1.5);
+  }
+  ctx.globalAlpha = 1;
+  // Border
+  ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2;
+  ctx.strokeRect(8, 8, W-16, H-16);
+  // Title
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 28px "Courier New",monospace';
+  ctx.fillStyle = '#ffe066';
+  ctx.shadowColor = '#ff8800'; ctx.shadowBlur = 18;
+  ctx.fillText('CHOG TO THE TOP', W/2, 52);
+  ctx.shadowBlur = 0;
+  // Sub-title
+  ctx.font = '14px "Courier New",monospace';
+  ctx.fillStyle = '#88ccff';
+  ctx.fillText('ALL STAGES CLEAR  🚀', W/2, 76);
+  // Player name
+  ctx.font = 'bold 22px "Courier New",monospace';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(name, W/2, 108);
+  // Divider
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(40, 120); ctx.lineTo(W-40, 120); ctx.stroke();
+  // Stage times
+  ctx.textAlign = 'left'; ctx.font = '13px "Courier New",monospace';
+  let yy = 148, total = 0;
+  stageTimes.forEach((t, i) => {
+    total += t;
+    ctx.fillStyle = '#aaa'; ctx.fillText(`STAGE ${i+1}`, 60, yy);
+    ctx.fillStyle = '#88eeff'; ctx.textAlign = 'right'; ctx.fillText(formatTime(t), W-60, yy);
+    ctx.textAlign = 'left'; yy += 26;
+  });
+  // Total
+  ctx.strokeStyle = '#555'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(40, yy); ctx.lineTo(W-40, yy); ctx.stroke();
+  yy += 22;
+  ctx.font = 'bold 16px "Courier New",monospace';
+  ctx.fillStyle = '#ffe066'; ctx.fillText('TOTAL', 60, yy);
+  ctx.textAlign = 'right'; ctx.fillText(formatTime(total), W-60, yy);
+  // Footer
+  ctx.textAlign = 'center'; ctx.font = '11px "Courier New",monospace';
+  ctx.fillStyle = '#444'; ctx.fillText('monad-terminal', W/2, H-16);
+  return canvas;
 }
 
 /* ── Mushroom + flower tracking ─────────────────────────────────────────── */
@@ -1552,6 +1745,7 @@ function showToast(msg, ms=1800){
 
 /* ── Timer (count UP — clear time) ───────────────────────────────────────── */
 let clearTime = 0;
+const stageTimes = []; // per-stage clear times (seconds)
 const timerEl = document.getElementById('timer-val');
 
 function formatTime(t){
@@ -2349,6 +2543,33 @@ document.getElementById('btn-restart').addEventListener('click', () => {
   gameRunning = true;
   showToast('GO! DRAG FROM CHOG TO LAUNCH');
 });
+document.getElementById('btn-play-again').addEventListener('click', () => {
+  document.getElementById('ending-overlay').style.display = 'none';
+  // reset credits opacity for next time
+  document.getElementById('ending-credits').style.opacity = '0';
+  document.getElementById('ending-times').style.opacity = '0';
+  document.getElementById('ending-input').style.opacity = '0';
+  loadStage(0);
+  gameRunning = true;
+  showToast('GO! DRAG FROM CHOG TO LAUNCH');
+});
+document.getElementById('btn-twitter-share').addEventListener('click', () => {
+  const name = (document.getElementById('player-name-input').value || 'PLAYER').toUpperCase();
+  let total = stageTimes.reduce((a,b) => a+b, 0);
+  const best = stageTimes.map((t,i) => `S${i+1}:${formatTime(t)}`).join(' ');
+  const text = `🚀 ${name} CHOG TO THE TOP ALL CLEAR! ${best} TOTAL:${formatTime(total)} #ChogToTheTop #MonadTerminal`;
+  window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank');
+});
+document.getElementById('btn-save-card').addEventListener('click', () => {
+  const canvas = _generateResultCard();
+  canvas.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'chog-clear-card.png';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+});
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MAIN LOOP
@@ -2382,6 +2603,7 @@ function frame(now){
         if (sc.light) sc.light.intensity = 0;
         spawnParticles(sc.pos.clone(), 0xffd700, 30);
         spawnParticles(sc.pos.clone(), 0xffffff, 15);
+        stageTimes[_stageIdx] = clearTime; // save this stage's clear time
         const nextIdx = _stageIdx + 1;
         if (nextIdx >= STAGE_DEFS.length) {
           // Game won — show win screen
@@ -2409,7 +2631,8 @@ function frame(now){
       spawnParticles(rocketPos.clone(), 0xff8833, 40);
       spawnParticles(rocketPos.clone(), 0xffffff, 30);
       shake.trigger(0.3);
-      document.getElementById('clear-time-display').textContent = formatTime(clearTime);
+      const _ctd = document.getElementById('clear-time-display');
+      if (_ctd) _ctd.textContent = formatTime(clearTime);
     }
 
     // Cloud touch detection (player standing on cloud → start fade)
@@ -2545,7 +2768,7 @@ function frame(now){
     }
     if (shipLaunchTimer > 3.0 && !gameWon) {
       gameWon = true;
-      setTimeout(() => summitOv.classList.remove('hidden'), 400);
+      setTimeout(() => showWinScreen(), 400);
     }
   }
 
