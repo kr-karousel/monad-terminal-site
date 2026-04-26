@@ -40,14 +40,19 @@ canvas{display:block}
 #timer-val.warn{color:#ffdd44}
 #timer-val.danger{color:#ff4444;animation:pulse .5s infinite alternate}
 @keyframes pulse{from{opacity:1}to{opacity:.4}}
-/* BGM player */
-#bgm-player{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:50;display:flex;align-items:center;gap:0;font-family:'Courier New',monospace;font-size:11px;background:rgba(0,0,0,0.70);border-radius:20px;border:1px solid #444;overflow:hidden;white-space:nowrap;}
-#bgm-info{display:flex;align-items:center;gap:6px;padding:6px 10px;min-width:0;}
-#bgm-name{color:#88ddff;font-size:10px;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;}
-#bgm-track-num{color:#666;font-size:9px;}
-.bgm-btn{background:none;border:none;color:#ccc;cursor:pointer;font-size:13px;padding:6px 8px;line-height:1;transition:color .15s;}
-.bgm-btn:hover{color:#fff;}
-#bgm-vol{-webkit-appearance:none;width:52px;height:3px;border-radius:2px;background:#444;outline:none;cursor:pointer;}
+/* BGM player — icon toggle */
+#bgm-icon{position:fixed;bottom:60px;right:14px;z-index:55;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,0.72);border:1px solid #555;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:border-color .2s;user-select:none;}
+#bgm-icon:hover{border-color:#88ddff;}
+#bgm-panel{position:fixed;bottom:106px;right:14px;z-index:55;background:rgba(0,0,14,0.92);border:1px solid #444;border-radius:10px;padding:10px 12px;font-family:'Courier New',monospace;font-size:11px;display:none;min-width:160px;}
+#bgm-panel.open{display:block;}
+#bgm-name{color:#88ddff;font-size:11px;letter-spacing:1px;margin-bottom:8px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#bgm-track-num{color:#555;font-size:9px;margin-right:4px;}
+#bgm-controls{display:flex;align-items:center;gap:4px;justify-content:center;margin-bottom:8px;}
+.bgm-btn{background:#1a1a1a;border:1px solid #444;color:#ccc;cursor:pointer;font-size:14px;padding:5px 10px;border-radius:5px;line-height:1;transition:color .15s,border-color .15s;}
+.bgm-btn:hover{color:#fff;border-color:#88ddff;}
+#bgm-vol-row{display:flex;align-items:center;gap:6px;}
+#bgm-vol-row span{color:#666;font-size:9px;}
+#bgm-vol{-webkit-appearance:none;flex:1;height:3px;border-radius:2px;background:#444;outline:none;cursor:pointer;}
 #bgm-vol::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:50%;background:#88ddff;cursor:pointer;}
 /* Death — "You got rugged" screen */
 #rugged-overlay{position:fixed;inset:0;z-index:60;background:#000;opacity:0;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
@@ -161,15 +166,18 @@ canvas{display:block}
 <div id="power-bar"><div id="power-fill"></div></div>
 <div id="hint">CLICK &amp; DRAG NEAR CHOG TO LAUNCH</div>
 <canvas id="arrow-canvas"></canvas>
-<!-- BGM Player -->
-<div id="bgm-player">
-  <div id="bgm-info">
-    <span id="bgm-track-num">01/04</span>
-    <span id="bgm-name">MAIN</span>
+<!-- BGM Player — icon + collapsible panel -->
+<div id="bgm-icon" title="BGM">♪</div>
+<div id="bgm-panel">
+  <div id="bgm-name"><span id="bgm-track-num">01/04</span> MAIN</div>
+  <div id="bgm-controls">
+    <button class="bgm-btn" id="bgm-play">▶</button>
+    <button class="bgm-btn" id="bgm-next">⏭</button>
   </div>
-  <button class="bgm-btn" id="bgm-play" title="재생/일시정지">▶</button>
-  <button class="bgm-btn" id="bgm-next" title="다음 곡">⏭</button>
-  <input type="range" id="bgm-vol" min="0" max="1" step="0.05" value="0.45" title="볼륨">
+  <div id="bgm-vol-row">
+    <span>VOL</span>
+    <input type="range" id="bgm-vol" min="0" max="1" step="0.05" value="0.45">
+  </div>
 </div>
 <div id="bonus-flash" style="position:fixed;inset:0;background:rgba(255,240,80,.75);pointer-events:none;z-index:45;opacity:0;transition:opacity .08s"></div>
 <div id="stage-clear-screen" style="display:none;position:fixed;inset:0;z-index:55;background:rgba(0,0,0,0.78);flex-direction:column;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity 0.4s;">
@@ -525,8 +533,9 @@ const _bgGroups = [];
   addDomeHL( 36,28,22,2,0x080620,0x180c40,-11,g4);
 })();
 
-// ── Layer 3: near — rich deep green  (z=-11) ─────────────────────────────
-bgFill(-65, -12, 65, 0, 0x308828, -11);
+// Show stage 1 background immediately (before game start)
+if (_bgGroups[0]) _bgGroups[0].visible = true;
+
 /* ── Decorative clouds ────────────────────────────────────────────────────── */
 const clouds = [];
 function addCloud(x, y, z){
@@ -2821,8 +2830,8 @@ requestAnimationFrame(frame);
   function load(i) {
     idx = ((i % TRACKS.length) + TRACKS.length) % TRACKS.length;
     audio.src = TRACKS[idx].src;
-    nameEl.textContent = TRACKS[idx].name;
-    numEl.textContent  = pad(idx + 1) + '/' + pad(TRACKS.length);
+    nameEl.textContent = pad(idx + 1) + '/' + pad(TRACKS.length) + ' ' + TRACKS[idx].name;
+    numEl.textContent  = '';
   }
 
   function play() {
@@ -2854,11 +2863,20 @@ requestAnimationFrame(frame);
   // 게임 시작 시 자동 재생 (브라우저 autoplay 정책 충족)
   window._bgmStart = function() { if (!active) play(); };
 
-  // 모바일 위치 조정
-  if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1) {
-    const p = document.getElementById('bgm-player');
-    if (p) { p.style.bottom = '70px'; p.style.left = '10px'; }
-  }
+  // BGM icon toggle
+  const bgmIcon  = document.getElementById('bgm-icon');
+  const bgmPanel = document.getElementById('bgm-panel');
+  bgmIcon.addEventListener('click', e => {
+    e.stopPropagation();
+    bgmPanel.classList.toggle('open');
+    bgmIcon.style.borderColor = bgmPanel.classList.contains('open') ? '#88ddff' : '#555';
+  });
+  document.addEventListener('click', e => {
+    if (!bgmPanel.contains(e.target) && e.target !== bgmIcon) {
+      bgmPanel.classList.remove('open');
+      bgmIcon.style.borderColor = '#555';
+    }
+  });
 })();
 </script>
 </body>
