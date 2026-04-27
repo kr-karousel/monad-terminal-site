@@ -1229,7 +1229,7 @@ loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
   loadDiv.textContent = 'MODEL LOAD FAILED — using fallback';
   modelLoaded = true; // continue with empty group
 });
-  Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
+  window._glbsReady = Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
 }); // end _meshoptPromise.then
 
 /* ── GLB Asset Preloader ──────────────────────────────────────────────────── */
@@ -2925,10 +2925,27 @@ function resetGame(){
   }
   function startGame() {
     startOv.classList.add('hidden');
-    // Show nickname screen
     const nickOv = document.getElementById('nick-overlay');
     nickOv.style.display = 'flex';
     setTimeout(() => document.getElementById('nick-input').focus(), 50);
+    // If GLBs still loading, disable button until ready
+    const btn = document.getElementById('nick-start-btn');
+    if (window._glbsReady) {
+      window._glbsReady.then(v => {
+        if (btn.textContent === 'LOADING... ⏳') {
+          btn.textContent = 'START GAME ▶';
+          btn.disabled = false;
+          btn.style.opacity = '1';
+        }
+      });
+      Promise.race([window._glbsReady, new Promise(r => setTimeout(r, 100))]).then(v => {
+        if (v === undefined) { // still loading after 100ms
+          btn.textContent = 'LOADING... ⏳';
+          btn.disabled = true;
+          btn.style.opacity = '0.6';
+        }
+      });
+    }
   }
 
   if (viewport) viewport.addEventListener('click', () => {
@@ -2944,9 +2961,16 @@ function resetGame(){
   const nickInput = document.getElementById('nick-input');
   const nickBtn = document.getElementById('nick-start-btn');
 
-  function beginGame() {
+  async function beginGame() {
     const val = nickInput.value.trim().replace(/[^A-Z0-9_]/gi, '').toUpperCase();
     playerNick = val || 'PLAYER';
+    // Wait for GLB assets if still loading
+    if (window._glbsReady) {
+      nickBtn.disabled = true;
+      nickBtn.textContent = 'LOADING...';
+      nickBtn.style.opacity = '0.6';
+      await window._glbsReady;
+    }
     nickOv.style.display = 'none';
     loadStage(0);
     gameRunning = true;
