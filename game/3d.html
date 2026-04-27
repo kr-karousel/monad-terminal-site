@@ -1028,6 +1028,7 @@ function loadStage(idx) {
       objR.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
       scene.add(objR);
       rocketGroup = objR;
+      rocketBasePos.set(x, y, z);
       const refR = { key, obj: objR, scale, motion: null, _motBase: null, label: `rocket@(${x.toFixed(1)},${y.toFixed(1)},${z.toFixed(1)})`, ry, trigger: 'none' };
       _stageObjs.push(refR);
       devEditObjects.push(refR);
@@ -1464,8 +1465,9 @@ function placeMushroom(x, y, z) {
 
 /* ── Rocket + EMO variables kept for render-loop references ─────────────── */
 const ROCKET_Y = 321;
-let rocketGroup = null;
-let emoGroup    = null;
+let rocketGroup   = null;
+let rocketBasePos = new THREE.Vector3(0, ROCKET_Y, 0);
+let emoGroup      = null;
 let shipLaunching  = false;
 let shipLaunchTimer = 0;
 const rocketGlow = null; // not in scene during rebuild
@@ -3282,10 +3284,10 @@ function resetGame(){
   for(const c of cloudObjects){ c.state='active'; c.timer=0; c.aabb.disabled=false; c.group.visible=true; c.baseMat.opacity=0.85; c.puffMat.opacity=0.9; }
   // Reset stage-clear objects
   for(const sc of stageClearObjects){ sc.collected=false; if(sc.group) sc.group.visible=true; }
-  // Reset rocket
-  if(rocketGroup){ rocketGroup.visible=true; rocketGroup.position.set(0,ROCKET_Y,0); rocketGroup.rotation.y=0; }
-  if(emoGroup){ emoGroup.visible=true; emoGroup.position.set(3.0,ROCKET_Y-1.5,0); }
-  if (rocketGlow) rocketGlow.position.set(0,ROCKET_Y-2.5,0);
+  // Reset rocket to its STAGE_DEFS position
+  if(rocketGroup){ rocketGroup.visible=true; rocketGroup.position.copy(rocketBasePos); rocketGroup.rotation.y=0; }
+  if(emoGroup){ emoGroup.visible=true; emoGroup.position.set(rocketBasePos.x+3.0, rocketBasePos.y-1.5, rocketBasePos.z); }
+  if (rocketGlow) rocketGlow.position.set(rocketBasePos.x, rocketBasePos.y-2.5, rocketBasePos.z);
   shipLaunching=false; shipLaunchTimer=0;
   // Re-init moving tiles
   for(const tile of movingTiles){ tile.visual.position.x=tile.baseX; if(tile.glbVisual)tile.glbVisual.position.x=tile.baseX; tile.aabb.minX=tile.baseX-tile.w/2; tile.aabb.maxX=tile.baseX+tile.w/2; }
@@ -3632,7 +3634,7 @@ function frame(now){
   // Rocket idle float + glow
   if (rocketGroup && !shipLaunching) {
     rocketGroup.rotation.y = t * 0.4;
-    rocketGroup.position.y = ROCKET_Y + Math.sin(t*1.4) * 0.35;
+    rocketGroup.position.y = rocketBasePos.y + Math.sin(t*1.4) * 0.35;
     if (rocketGlow) { rocketGlow.position.y = rocketGroup.position.y - 2.5; rocketGlow.intensity = 2.0 + Math.sin(t*3.0) * 0.8; }
   }
 
