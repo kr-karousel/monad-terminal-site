@@ -2254,7 +2254,7 @@ function updateHUD(){
   const h = Math.max(0, Math.round(playerPos.y * 1.5));
   hEl.textContent = h;
   if (h > bestHeight) bestHeight = h;
-  document.getElementById('stage-val').textContent = currentStage + 1;
+  document.getElementById('stage-val').textContent = _stageIdx + 1;
 }
 
 function showToast(msg, ms=1800){
@@ -3462,7 +3462,7 @@ function frame(now){
     // Rocket — stage 5 win (currentStage >= 4 after clearing stage 4)
     const rocketPos = rocketGroup ? rocketGroup.position
                     : new THREE.Vector3(0, ROCKET_Y, 0);
-    if (!gameOver && !shipLaunching && currentStage >= 4 &&
+    if (!gameOver && !shipLaunching && _stageIdx >= 4 &&
         playerPos.distanceTo(rocketPos) < 2.8) {
       shipLaunching = true;
       gameRunning = false;
