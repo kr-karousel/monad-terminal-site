@@ -3176,6 +3176,15 @@ function frame(now){
   lastT = now;
   const t = now / 1000;
 
+  // Stage 5 physics applied every frame — never gets overridden
+  if (_stageIdx === 4) {
+    GRAVITY = -3;
+    MAX_LAUNCH_FORCE = 38;
+  } else if (GRAVITY !== DEFAULT_GRAVITY) {
+    GRAVITY = DEFAULT_GRAVITY;
+    MAX_LAUNCH_FORCE = DEFAULT_LAUNCH_FORCE;
+  }
+
   if (gameRunning && !gameWon && !gameOver && !devMode) {
     const SUB = _physSub;
     const dt = dtRaw / SUB;
