@@ -226,6 +226,7 @@ canvas{display:block}
     <span id="dev-aabb-label" style="color:#44ffaa;font-size:10px;"></span>
     <span id="dev-edit-label" style="color:#ff44ff;font-size:10px;"></span>
     <button id="dev-save-btn" style="pointer-events:all;background:#003300;border:1px solid #44ff44;color:#44ff44;font-family:'Courier New',monospace;font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:1px;">💾 SAVE</button>
+    <button id="dev-zlock-btn" style="pointer-events:all;background:#111;border:1px solid #555;color:#888;font-family:'Courier New',monospace;font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:1px;" title="Z키로 토글">Z축 고정: OFF</button>
     <!-- Physics tweakers -->
     <span style="display:flex;align-items:center;gap:3px;pointer-events:all;">
       <span style="color:#ff9966;font-size:9px;">중력:</span>
@@ -1947,6 +1948,7 @@ let devPlacementKey   = null; // GLB key selected in palette
 let devPlacementScale = 1.0;
 let devPlacementRY    = 0;   // Y-rotation for placement (degrees)
 let devPlaceY         = 0;   // horizontal placement plane height
+let devLockZ          = false; // Z lock toggle
 const devPlacedObjs   = [];  // objects placed via palette [{key,label,obj,scale}]
 const _editStep       = 0.25;
 const devEditLabelEl  = document.getElementById('dev-edit-label');
@@ -2032,9 +2034,11 @@ function devGetPoint(mx, my) {
   const ghostIds = new Set(); if (devGhostMesh) devGhostMesh.traverse(c=>ghostIds.add(c.id));
   const targets = _devRayMeshes.filter(m => m.visible && !ghostIds.has(m.id));
   const hits = _devRay.intersectObjects(targets, false);
-  if (hits.length) return hits[0].point.clone();
-  _devPlane.constant = -devPlaceY;
-  return _devRay.ray.intersectPlane(_devPlane, _devHit) ? _devHit.clone() : null;
+  const pt = hits.length
+    ? hits[0].point.clone()
+    : (_devPlane.constant = -devPlaceY, _devRay.ray.intersectPlane(_devPlane, _devHit) ? _devHit.clone() : null);
+  if (pt && devLockZ) pt.z = playerPos.z;
+  return pt;
 }
 
 function devRaycastSelect(mx, my) {
@@ -2288,6 +2292,17 @@ function devPrintAllPositions() {
 }
 
 /* ── Save current stage to server ──────────────────────────────────────── */
+function devToggleZLock() {
+  devLockZ = !devLockZ;
+  const btn = document.getElementById('dev-zlock-btn');
+  const z = playerPos.z.toFixed(2);
+  btn.textContent = devLockZ ? `Z축 고정: ${z}` : 'Z축 고정: OFF';
+  btn.style.background  = devLockZ ? '#002244' : '#111';
+  btn.style.borderColor = devLockZ ? '#44aaff' : '#555';
+  btn.style.color       = devLockZ ? '#44aaff' : '#888';
+}
+document.getElementById('dev-zlock-btn').addEventListener('click', devToggleZLock);
+
 async function devSaveStage() {
   const entries = devEditObjects.map(({ key, obj, scale, ry, motion, trigger }) => {
     const p = obj.position;
@@ -2435,6 +2450,7 @@ document.addEventListener('keydown', e => {
     if (k === 'p') { devPrintAllPositions(); e.preventDefault(); return; }
     if (e.key === '[') { devPlaceY -= 1; devPlaceYEl.textContent = devPlaceY; e.preventDefault(); return; }
     if (e.key === ']') { devPlaceY += 1; devPlaceYEl.textContent = devPlaceY; e.preventDefault(); return; }
+    if (k === 'z') { devToggleZLock(); e.preventDefault(); return; }
     if (k === 'q') { devPlacementRY -= 15; devRYEl.textContent = devPlacementRY; if(devGhostMesh) devGhostMesh.rotation.y = THREE.MathUtils.degToRad(devPlacementRY); e.preventDefault(); return; }
     if (k === 'e') { devPlacementRY += 15; devRYEl.textContent = devPlacementRY; if(devGhostMesh) devGhostMesh.rotation.y = THREE.MathUtils.degToRad(devPlacementRY); e.preventDefault(); return; }
   }
