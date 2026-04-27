@@ -3288,7 +3288,7 @@ function resetGame(){
   if(rocketGroup){ rocketGroup.visible=true; rocketGroup.position.copy(rocketBasePos); rocketGroup.rotation.y=0; }
   if(emoGroup){ emoGroup.visible=true; emoGroup.position.set(rocketBasePos.x+3.0, rocketBasePos.y-1.5, rocketBasePos.z); }
   if (rocketGlow) rocketGlow.position.set(rocketBasePos.x, rocketBasePos.y-2.5, rocketBasePos.z);
-  shipLaunching=false; shipLaunchTimer=0;
+  shipLaunching=false; shipLaunchTimer=0; characterGroup.visible=true;
   // Re-init moving tiles
   for(const tile of movingTiles){ tile.visual.position.x=tile.baseX; if(tile.glbVisual)tile.glbVisual.position.x=tile.baseX; tile.aabb.minX=tile.baseX-tile.w/2; tile.aabb.maxX=tile.baseX+tile.w/2; }
   setState('idle');
@@ -3484,6 +3484,7 @@ function frame(now){
         playerPos.distanceTo(rocketPos) < 5.5) {
       shipLaunching = true;
       gameRunning = false;
+      characterGroup.visible = false;
       spawnParticles(rocketPos.clone(), 0xff8833, 40);
       spawnParticles(rocketPos.clone(), 0xffffff, 30);
       shake.trigger(0.3);
