@@ -704,6 +704,8 @@ fetch('/api/stage-defs').then(r => r.ok ? r.json() : null).then(data => {
 
 const TILE_KEYS = new Set(['tile1','tile2','tile3','stoneTile']);
 const TILE_DEFAULT_W = 4, TILE_DEFAULT_H = 1, TILE_DEFAULT_D = 4;
+// Background-only objects — never get collision boxes
+const DECO_KEYS = new Set(['tree1','tree2','tree3','chogWall']);
 
 let _stageObjs  = [];  // { obj, aabb? } for current stage — cleared on transition
 let _stageIdx   = 0;
@@ -968,9 +970,8 @@ function loadStage(idx) {
 
     let aabb = null;
     const hasTrigger = entry.trigger && entry.trigger !== 'none';
-    const needsPhysics = TILE_KEYS.has(key) || PLATFORM_KEYS.has(key) || hasTrigger;
-
-    if (needsPhysics) {
+    // Purely decorative background objects get no collision box
+    if (!DECO_KEYS.has(key)) {
       const box3 = visibleBox3(obj);
       const bc = box3.getCenter(new THREE.Vector3());
       const bs = box3.getSize(new THREE.Vector3());
@@ -2092,10 +2093,9 @@ function devPlaceObject(pt) {
   obj.rotation.y = THREE.MathUtils.degToRad(devPlacementRY);
   obj.position.copy(pt);
   scene.add(obj);
-  // Only physics objects (tiles + platforms) get AABBs; decorative objects get none
+  // Background deco objects (trees etc.) get no AABB; everything else gets visibleBox3
   let aabb;
-  const needsPhysics = TILE_KEYS.has(devPlacementKey) || PLATFORM_KEYS.has(devPlacementKey);
-  if (needsPhysics) {
+  if (!DECO_KEYS.has(devPlacementKey)) {
     const box3 = visibleBox3(obj);
     const bc = box3.getCenter(new THREE.Vector3());
     const bs = box3.getSize(new THREE.Vector3());
