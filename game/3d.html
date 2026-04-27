@@ -1229,44 +1229,48 @@ loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
   loadDiv.textContent = 'MODEL LOAD FAILED — using fallback';
   modelLoaded = true; // continue with empty group
 });
-  window._glbsReady = Promise.all(glbQueue.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
+  // Critical assets gate game start; deferred load silently in background
+  window._glbsReady = Promise.all(glbQueueCritical.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
+  window._glbsReady.then(() => Promise.all(glbQueueDeferred.map(([n,u]) => loadGLBAsset(n,u))));
 }); // end _meshoptPromise.then
 
 /* ── GLB Asset Preloader ──────────────────────────────────────────────────── */
 const glbAssets = {};
-const glbQueue = [
-  // Platform tiles
+// Critical = needed for Stage 1. Deferred loads in background after game starts.
+const glbQueueCritical = [
   ['tile1',        '/game/floating tile_final.glb'],
-  ['tile2',        '/game/floating tile2_final.glb'],
   ['tile3',        '/game/floating tile3_final.glb'],
   ['stoneTile',    '/game/long_stone_tile1_final.glb'],
-  // Decorations
-  ['candy',        '/game/candy_final.glb'],
-  ['lollipop',     '/game/lollipop1_final.glb'],
-  ['stone',        '/game/stone1_final.glb'],
   ['spherical',    '/game/spherical_floating_final.glb'],
+  ['stone',        '/game/stone1_final.glb'],
+  ['benja',        '/game/benja_final.glb'],
+  ['toad',         '/game/toad_final.glb'],
+  ['chogOrigin',   '/game/CHOG_origin_final.glb'],
+  ['chogWall',     '/game/chog_wall_final.glb'],
+  ['cworock',      '/game/CWOROCK_final.glb'],
   ['tree1',        '/game/tree1_final.glb'],
   ['tree2',        '/game/tree2_final.glb'],
   ['tree3',        '/game/tree3_final.glb'],
-  // NPC / characters
-  ['benja',        '/game/benja_final.glb'],
+];
+const glbQueueDeferred = [
+  ['tile2',        '/game/floating tile2_final.glb'],
+  ['candy',        '/game/candy_final.glb'],
+  ['lollipop',     '/game/lollipop1_final.glb'],
   ['boatBoy',      '/game/boat_boy_final.glb'],
-  ['chogOrigin',   '/game/CHOG_origin_final.glb'],
-  ['chogWall',     '/game/chog_wall_final.glb'],
   ['chogTop',      '/game/chog_tothetop_final.glb'],
   ['floatingChog', '/game/floating_chog_final.glb'],
   ['claud',        '/game/claud_final.glb'],
-  ['cworock',      '/game/CWOROCK_final.glb'],
   ['emo',          '/game/EMO_final.glb'],
   ['moncock',      '/game/moncock_final.glb'],
   ['monadog1',     '/game/monadog1_final.glb'],
   ['monadog2',     '/game/monadog2_final.glb'],
   ['shramp',       '/game/shramp_final.glb'],
-  ['toad',         '/game/toad_final.glb'],
-  // Special
   ['rocket',       '/game/rocket_final.glb'],
   ['stageClear',   '/game/stage clear_final.glb'],
 ];
+const glbQueue = [...glbQueueCritical, ...glbQueueDeferred];
+
+let _glbLoadedCount = 0;
 function loadGLBAsset(name, url) {
   return new Promise(resolve => {
     const l = new THREE.GLTFLoader();
@@ -1276,7 +1280,6 @@ function loadGLBAsset(name, url) {
       gltf.scene.traverse(c => {
         if (c.isMesh) {
           c.castShadow = true; c.receiveShadow = true;
-          // chogWall brightness boost
           if (name === 'chogWall' && c.material) {
             const mats = Array.isArray(c.material) ? c.material : [c.material];
             mats.forEach(m => {
@@ -1287,8 +1290,15 @@ function loadGLBAsset(name, url) {
         }
       });
       glbAssets[name] = gltf.scene;
+      _glbLoadedCount++;
+      if (window._glbProgressCb) window._glbProgressCb(_glbLoadedCount, glbQueueCritical.length);
       resolve();
-    }, undefined, err => { console.warn('GLB load failed:', name, err); resolve(); });
+    }, undefined, err => {
+      console.warn('GLB load failed:', name, err);
+      _glbLoadedCount++;
+      if (window._glbProgressCb) window._glbProgressCb(_glbLoadedCount, glbQueueCritical.length);
+      resolve();
+    });
   });
 }
 
@@ -2928,22 +2938,23 @@ function resetGame(){
     const nickOv = document.getElementById('nick-overlay');
     nickOv.style.display = 'flex';
     setTimeout(() => document.getElementById('nick-input').focus(), 50);
-    // If GLBs still loading, disable button until ready
+    // Show loading progress on button until critical assets ready
     const btn = document.getElementById('nick-start-btn');
-    if (window._glbsReady) {
-      window._glbsReady.then(v => {
-        if (btn.textContent === 'LOADING... ⏳') {
-          btn.textContent = 'START GAME ▶';
-          btn.disabled = false;
-          btn.style.opacity = '1';
+    const total = glbQueueCritical.length;
+    if (window._glbsReady && _glbLoadedCount < total) {
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+      btn.textContent = `LOADING  ${_glbLoadedCount} / ${total}`;
+      window._glbProgressCb = (loaded, tot) => {
+        if (loaded < tot) {
+          btn.textContent = `LOADING  ${loaded} / ${tot}`;
         }
-      });
-      Promise.race([window._glbsReady, new Promise(r => setTimeout(r, 100))]).then(v => {
-        if (v === undefined) { // still loading after 100ms
-          btn.textContent = 'LOADING... ⏳';
-          btn.disabled = true;
-          btn.style.opacity = '0.6';
-        }
+      };
+      window._glbsReady.then(() => {
+        window._glbProgressCb = null;
+        btn.textContent = 'START GAME ▶';
+        btn.disabled = false;
+        btn.style.opacity = '1';
       });
     }
   }
@@ -2964,13 +2975,7 @@ function resetGame(){
   async function beginGame() {
     const val = nickInput.value.trim().replace(/[^A-Z0-9_]/gi, '').toUpperCase();
     playerNick = val || 'PLAYER';
-    // Wait for GLB assets if still loading
-    if (window._glbsReady) {
-      nickBtn.disabled = true;
-      nickBtn.textContent = 'LOADING...';
-      nickBtn.style.opacity = '0.6';
-      await window._glbsReady;
-    }
+    if (window._glbsReady) await window._glbsReady;
     nickOv.style.display = 'none';
     loadStage(0);
     gameRunning = true;
