@@ -984,6 +984,7 @@ function loadStage(idx) {
       if (!hasTrigger) platforms.push(aabb);
     } else {
       // All other GLB objects also get an AABB computed from their bounding box
+      obj.updateMatrixWorld(true);
       const box3 = new THREE.Box3().setFromObject(obj);
       const bc = box3.getCenter(new THREE.Vector3());
       const bs = box3.getSize(new THREE.Vector3());
@@ -2103,17 +2104,31 @@ function devPlaceObject(pt) {
   obj.rotation.y = THREE.MathUtils.degToRad(devPlacementRY);
   obj.position.copy(pt);
   scene.add(obj);
-  // Build AABB from world-space bounding box of the placed object
-  const box3 = new THREE.Box3().setFromObject(obj);
-  const bc = box3.getCenter(new THREE.Vector3());
-  const bs = box3.getSize(new THREE.Vector3());
-  const aabb = {
-    minX: bc.x - bs.x/2, maxX: bc.x + bs.x/2,
-    minY: bc.y - bs.y/2, maxY: bc.y + bs.y/2,
-    minZ: bc.z - bs.z/2, maxZ: bc.z + bs.z/2,
-    disabled: false,
-    _hw: bs.x/2, _hh: bs.y/2, _hd: bs.z/2,
-  };
+  // Build AABB matching actual visual size
+  let aabb;
+  if (TILE_KEYS.has(devPlacementKey)) {
+    // Use same fixed formula as loadStage for consistency
+    const hw = TILE_DEFAULT_W / 2 * devPlacementScale;
+    const hh = TILE_DEFAULT_H / 2 * devPlacementScale;
+    const hd = TILE_DEFAULT_D / 2 * devPlacementScale;
+    aabb = {
+      minX: pt.x - hw, maxX: pt.x + hw,
+      minY: pt.y - hh, maxY: pt.y + hh,
+      minZ: pt.z - hd, maxZ: pt.z + hd,
+      disabled: false, _hw: hw, _hh: hh, _hd: hd,
+    };
+  } else {
+    obj.updateMatrixWorld(true); // flush local scale/pos into matrixWorld
+    const box3 = new THREE.Box3().setFromObject(obj);
+    const bc = box3.getCenter(new THREE.Vector3());
+    const bs = box3.getSize(new THREE.Vector3());
+    aabb = {
+      minX: bc.x - bs.x/2, maxX: bc.x + bs.x/2,
+      minY: bc.y - bs.y/2, maxY: bc.y + bs.y/2,
+      minZ: bc.z - bs.z/2, maxZ: bc.z + bs.z/2,
+      disabled: false, _hw: bs.x/2, _hh: bs.y/2, _hd: bs.z/2,
+    };
+  }
   platforms.push(aabb);
   const ryRad = parseFloat((devPlacementRY * Math.PI / 180).toFixed(4));
   const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale, ry: ryRad, trigger: 'none', aabb };
