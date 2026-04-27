@@ -2351,7 +2351,14 @@ function visibleBox3(obj) {
   const box = new THREE.Box3();
   obj.updateMatrixWorld(true);
   obj.traverse(child => {
-    if (!child.isMesh || !child.visible || !child.geometry) return;
+    if (!child.isMesh || !child.geometry) return;
+    // Check the full ancestor chain up to obj — Three.js traverse visits
+    // children of invisible parents too, so we must walk up manually
+    let node = child;
+    while (node !== obj) {
+      if (!node.visible) return;
+      node = node.parent;
+    }
     const attr = child.geometry.attributes.position;
     if (!attr) return;
     const v = new THREE.Vector3();
