@@ -983,9 +983,8 @@ function loadStage(idx) {
       };
       if (!hasTrigger) platforms.push(aabb);
     } else {
-      // All other GLB objects also get an AABB computed from their bounding box
-      obj.updateMatrixWorld(true);
-      const box3 = new THREE.Box3().setFromObject(obj);
+      // All other GLB objects — compute AABB from visible meshes only
+      const box3 = visibleBox3(obj);
       const bc = box3.getCenter(new THREE.Vector3());
       const bs = box3.getSize(new THREE.Vector3());
       if (bs.x > 0.01 && bs.y > 0.01) {
@@ -2118,8 +2117,7 @@ function devPlaceObject(pt) {
       disabled: false, _hw: hw, _hh: hh, _hd: hd,
     };
   } else {
-    obj.updateMatrixWorld(true); // flush local scale/pos into matrixWorld
-    const box3 = new THREE.Box3().setFromObject(obj);
+    const box3 = visibleBox3(obj);
     const bc = box3.getCenter(new THREE.Vector3());
     const bs = box3.getSize(new THREE.Vector3());
     aabb = {
@@ -2154,8 +2152,12 @@ function devDeleteSelected() {
   }
   const i1 = devEditObjects.indexOf(devSelectedRef); if(i1>=0) devEditObjects.splice(i1,1);
   const i2 = devPlacedObjs.indexOf(devSelectedRef); if(i2>=0) devPlacedObjs.splice(i2,1);
+  // also remove from _stageObjs so it doesn't linger
+  const i3 = _stageObjs.indexOf(devSelectedRef); if(i3>=0) _stageObjs.splice(i3,1);
   devSelectRef(null);
   devCollectRayMeshes();
+  // refresh AABB helper visuals immediately
+  if (devShowAABB) { clearAABBHelpers(); buildAABBHelpers(); }
 }
 
 /* ── Dev editor: per-object motion ──────────────────────────────────────── */
@@ -2361,6 +2363,23 @@ document.getElementById('dev-save-btn').addEventListener('click', devSaveStage);
 function devCollectRayMeshes() {
   _devRayMeshes = [];
   scene.traverse(c => { if (c.isMesh && c.visible) _devRayMeshes.push(c); });
+}
+
+/* ── Compute AABB from visible meshes only (ignores hidden/offset geometry) */
+function visibleBox3(obj) {
+  const box = new THREE.Box3();
+  obj.updateMatrixWorld(true);
+  obj.traverse(child => {
+    if (!child.isMesh || !child.visible || !child.geometry) return;
+    const attr = child.geometry.attributes.position;
+    if (!attr) return;
+    const v = new THREE.Vector3();
+    for (let i = 0; i < attr.count; i++) {
+      v.fromBufferAttribute(attr, i).applyMatrix4(child.matrixWorld);
+      box.expandByPoint(v);
+    }
+  });
+  return box;
 }
 
 /* ── Open / close palette ───────────────────────────────────────────────── */
