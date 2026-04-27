@@ -1599,9 +1599,12 @@ function physicsStep(dt){
         playerOnGround = true;
         playerVel.x *= FRICTION_GROUND;
         playerVel.z *= FRICTION_GROUND;
-        // Carry player horizontally with moving platform
+        // Carry player horizontally with moving platform (movingTiles system)
         const mt = movingTiles.find(m => m.aabb === b);
         if (mt && mt.velX) playerPos.x += mt.velX * dt;
+        // Carry player with stage-loaded tiles that have motion (_velX/_velY set each frame)
+        if (b._velX) playerPos.x += b._velX * dt;
+        if (b._velY) playerPos.y += b._velY * dt;
       }
     }
   }
@@ -3251,17 +3254,20 @@ function frame(now){
     if (!ref.motion || !ref._motBase) return;
     const { axis, spd, amp, phase } = ref.motion;
     const offset = Math.sin(t * spd + (phase || 0)) * amp;
+    const vel = Math.cos(t * spd + (phase || 0)) * amp * spd;
     if (axis === 'x') {
       ref.obj.position.x = ref._motBase.x + offset;
       if (ref.aabb) {
         ref.aabb.minX = ref._motBase.x + offset - ref.aabb._hw;
         ref.aabb.maxX = ref._motBase.x + offset + ref.aabb._hw;
+        ref.aabb._velX = vel;
       }
     } else if (axis === 'y') {
       ref.obj.position.y = ref._motBase.y + offset;
       if (ref.aabb) {
         ref.aabb.minY = ref._motBase.y + offset - ref.aabb._hh;
         ref.aabb.maxY = ref._motBase.y + offset + ref.aabb._hh;
+        ref.aabb._velY = vel;
       }
     }
   });
