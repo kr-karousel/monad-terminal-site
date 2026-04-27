@@ -79,6 +79,13 @@ canvas{display:block}
   opacity:0;transform:translateY(-18px);pointer-events:none;
   transition:opacity .55s ease .38s, transform .55s ease .38s}
 .pcap.show{opacity:1;transform:translateY(0)}
+/* Ending sequence layout */
+#ending-overlay{flex-direction:row}
+@media(max-width:600px){
+  #ending-overlay{flex-direction:column}
+  #ending-anim-canvas{width:100%!important;flex:0 0 35vh!important;height:35vh!important}
+  #ending-right-panel{width:100%!important;flex:1!important;border-left:none!important;border-top:2px solid #1d4ed8}
+}
 </style>
 </head>
 <body>
@@ -129,28 +136,68 @@ canvas{display:block}
   <button id="nick-start-btn" style="background:#1a1a1a;border:2px solid #ffe066;color:#ffe066;font-family:'Courier New',monospace;font-size:clamp(12px,3vw,16px);padding:12px 40px;border-radius:4px;cursor:pointer;letter-spacing:3px;font-weight:bold;transition:background .2s;">START GAME ▶</button>
 </div>
 <div id="summit-overlay" class="overlay hidden" style="display:none!important"></div>
-<div id="ending-overlay" style="display:none;position:fixed;inset:0;z-index:82;background:#000;flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;font-family:'Courier New',monospace;color:#fff;padding:20px;box-sizing:border-box;">
-  <div id="ending-credits" style="text-align:center;opacity:0;transition:opacity 1s;margin-bottom:24px;">
-    <div style="font-size:clamp(10px,2.5vw,14px);color:#888;letter-spacing:4px;margin-bottom:6px;">CONGRATULATIONS</div>
-    <div style="font-size:clamp(22px,6vw,48px);font-weight:bold;color:#ffe066;letter-spacing:3px;text-shadow:0 0 30px #ff8800,0 0 60px #ff4400;margin-bottom:4px;">CHOG TO THE TOP</div>
-    <div style="font-size:clamp(14px,4vw,28px);color:#fff;letter-spacing:5px;margin-bottom:16px;">ALL CLEAR 🚀</div>
-    <div style="font-size:clamp(9px,2vw,12px);color:#555;letter-spacing:2px;">MONAD TERMINAL</div>
-  </div>
-  <div id="ending-times" style="opacity:0;transition:opacity 0.8s;margin-bottom:20px;min-width:220px;">
-    <div style="border:1px solid #333;border-radius:8px;padding:14px 20px;background:rgba(255,255,255,0.04);">
-      <div id="ending-times-rows" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
-      <div style="border-top:1px solid #444;padding-top:8px;display:flex;justify-content:space-between;font-size:clamp(13px,3.5vw,18px);color:#ffe066;font-weight:bold;">
-        <span>TOTAL</span><span id="ending-total-time">-</span>
+<div id="ending-overlay" style="display:none;position:fixed;inset:0;z-index:82;background:rgba(0,0,0,0);transition:background 1.4s ease;font-family:'Courier New',monospace;color:#fff;overflow:hidden;">
+  <!-- Left: rocket animation canvas -->
+  <canvas id="ending-anim-canvas" style="flex:0 0 62%;width:62%;height:100%;display:block;"></canvas>
+  <!-- Right: blue-bordered panel -->
+  <div id="ending-right-panel" style="flex:0 0 38%;width:38%;height:100%;border-left:2px solid #1d4ed8;background:rgba(2,4,22,0.97);display:flex;flex-direction:column;overflow:hidden;">
+    <!-- Credits phase -->
+    <div id="ending-credits-phase" style="display:flex;flex-direction:column;flex:1;min-height:0;">
+      <div style="padding:14px 18px 6px;font-size:8px;letter-spacing:5px;color:#3b82f6;text-align:center;flex-shrink:0;border-bottom:1px solid #1e3a8a;">— ENDING CREDITS —</div>
+      <div id="ending-credits-scroll-wrap" style="flex:1;overflow:hidden;position:relative;min-height:0;">
+        <div id="ending-credits-content" style="position:absolute;left:0;width:100%;padding:10px 22px 60px;box-sizing:border-box;font-size:clamp(10px,1.25vw,13px);line-height:1.8;">
+          <div style="text-align:center;margin-bottom:28px;color:#3b82f6;letter-spacing:3px;font-size:11px;">✦ ✦ ✦</div>
+          <div style="text-align:center;margin-bottom:24px;">
+            <div style="font-size:8px;letter-spacing:5px;color:#3b82f6;margin-bottom:10px;">GAME PRODUCTION</div>
+            <div style="font-size:16px;font-weight:bold;color:#fff;letter-spacing:2px;">Karousel</div>
+            <div style="font-size:11px;color:#93c5fd;letter-spacing:1px;margin-top:3px;">($.nad) @K_carousel</div>
+          </div>
+          <div style="border-top:1px solid #1e3a8a;margin:22px 0;"></div>
+          <div style="margin-bottom:24px;">
+            <div style="font-size:8px;letter-spacing:5px;color:#3b82f6;margin-bottom:10px;">CREATOR'S MESSAGE</div>
+            <div style="color:#cbd5e1;">Hello, I'm Karousel.<br><br>I'm a Korean game developer who absolutely loves Monad's official mascot, CHOG.<br><br>I made this game to capture the fun, chaos, and pure vibes of the CHOG World Order.<br><br>I hope it brings a little joy and laughs to every CHOG holder and the entire community!</div>
+          </div>
+          <div style="border-top:1px solid #1e3a8a;margin:22px 0;"></div>
+          <div style="margin-bottom:30px;">
+            <div style="font-size:8px;letter-spacing:5px;color:#3b82f6;margin-bottom:10px;">SPECIAL THANKS</div>
+            <div style="color:#cbd5e1;margin-bottom:16px;">A huge thank you to the CHOG team and the entire CHOG World Order community.<br><br>Because of you, CHOG became a legend on Monad — and this game was able to come to life.</div>
+            <div style="margin-bottom:10px;">
+              <div style="font-size:13px;color:#fff;font-weight:bold;">Benja (@1stBenjaNAD)</div>
+              <div style="font-size:10px;color:#93c5fd;letter-spacing:1px;">Project Leader &amp; Monad Top KOL</div>
+            </div>
+            <div style="margin-bottom:14px;">
+              <div style="font-size:13px;color:#fff;font-weight:bold;">Toadster69 (@Toadster69)</div>
+              <div style="font-size:10px;color:#93c5fd;letter-spacing:1px;">Co-Founder</div>
+            </div>
+            <div style="color:#cbd5e1;">And to every CHOG holder, OG, and member of the Chog Army who spreads the chaos —<br>thank you from the bottom of my heart!</div>
+          </div>
+          <div style="border-top:1px solid #1e3a8a;margin:22px 0;"></div>
+          <div style="text-align:center;padding-bottom:20px;">
+            <div style="font-size:13px;font-weight:bold;color:#ffe066;letter-spacing:3px;margin-bottom:8px;text-shadow:0 0 14px #ff8800;">CHOG WORLD ORDER FOREVER</div>
+            <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:12px;">Made with full Chog energy on Monad</div>
+            <div style="font-size:20px;">🚀 🐸</div>
+          </div>
+        </div>
+      </div>
+      <div id="ending-credits-btn-wrap" style="display:none;padding:12px 18px;text-align:center;border-top:1px solid #1e3a8a;flex-shrink:0;">
+        <button id="btn-credits-continue" style="background:#0a1840;border:2px solid #2563eb;color:#93c5fd;font-family:'Courier New',monospace;font-size:12px;padding:9px 28px;border-radius:4px;cursor:pointer;letter-spacing:3px;font-weight:bold;">CONTINUE →</button>
       </div>
     </div>
-  </div>
-  <div id="ending-input" style="opacity:0;transition:opacity 0.8s;text-align:center;">
-    <div style="font-size:10px;color:#666;letter-spacing:3px;margin-bottom:8px;">YOUR NAME</div>
-    <input id="player-name-input" type="text" maxlength="12" placeholder="PLAYER" style="background:#111;border:1px solid #555;color:#fff;font-family:'Courier New',monospace;font-size:16px;padding:8px 14px;border-radius:4px;text-align:center;width:160px;letter-spacing:2px;margin-bottom:14px;display:block;margin-left:auto;margin-right:auto;">
-    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-      <button id="btn-twitter-share" style="background:#1a1a1a;border:1px solid #1d9bf0;color:#1d9bf0;font-family:'Courier New',monospace;font-size:12px;padding:8px 16px;border-radius:4px;cursor:pointer;letter-spacing:1px;">𝕏 SHARE</button>
-      <button id="btn-save-card" style="background:#1a1a1a;border:1px solid #44ff88;color:#44ff88;font-family:'Courier New',monospace;font-size:12px;padding:8px 16px;border-radius:4px;cursor:pointer;letter-spacing:1px;">💾 SAVE CARD</button>
-      <button id="btn-play-again" style="background:#1a1a1a;border:1px solid #aaa;color:#aaa;font-family:'Courier New',monospace;font-size:12px;padding:8px 16px;border-radius:4px;cursor:pointer;letter-spacing:1px;">🔄 PLAY AGAIN</button>
+    <!-- Results phase (shown after CONTINUE) -->
+    <div id="ending-results-phase" style="display:none;flex-direction:column;flex:1;padding:18px 16px 16px;overflow-y:auto;min-height:0;">
+      <div style="font-size:8px;color:#3b82f6;letter-spacing:5px;text-align:center;margin-bottom:4px;">ALL CLEAR</div>
+      <div style="font-size:24px;text-align:center;margin-bottom:14px;">🚀</div>
+      <div id="ending-times-rows" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+      <div style="border-top:1px solid #1e3a8a;padding-top:8px;display:flex;justify-content:space-between;font-size:clamp(12px,1.6vw,16px);color:#ffe066;font-weight:bold;margin-bottom:16px;">
+        <span>TOTAL</span><span id="ending-total-time">—</span>
+      </div>
+      <div style="font-size:8px;color:#475569;letter-spacing:3px;margin-bottom:5px;text-align:center;">YOUR NAME</div>
+      <input id="player-name-input" type="text" maxlength="12" placeholder="PLAYER" style="background:#080c1a;border:1px solid #1e3a8a;color:#fff;font-family:'Courier New',monospace;font-size:14px;padding:7px 12px;border-radius:4px;text-align:center;width:100%;letter-spacing:2px;margin-bottom:12px;box-sizing:border-box;outline:none;text-transform:uppercase;">
+      <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap;">
+        <button id="btn-twitter-share" style="background:#0a0a1a;border:1px solid #1d9bf0;color:#1d9bf0;font-family:'Courier New',monospace;font-size:10px;padding:8px 10px;border-radius:4px;cursor:pointer;letter-spacing:1px;flex:1;min-width:0;">𝕏 SHARE</button>
+        <button id="btn-save-card" style="background:#0a0a1a;border:1px solid #44ff88;color:#44ff88;font-family:'Courier New',monospace;font-size:10px;padding:8px 10px;border-radius:4px;cursor:pointer;letter-spacing:1px;flex:1;min-width:0;">💾 SAVE CARD</button>
+        <button id="btn-play-again" style="background:#0a0a1a;border:1px solid #888;color:#888;font-family:'Courier New',monospace;font-size:10px;padding:8px 10px;border-radius:4px;cursor:pointer;letter-spacing:1px;flex:1;min-width:0;">🔄 PLAY</button>
+      </div>
     </div>
   </div>
   <canvas id="result-card-canvas" style="display:none;" width="640" height="380"></canvas>
@@ -1118,33 +1165,215 @@ function fadeTransition(cb) {
   }, 550);
 }
 
+let _endingAnimRAF = null;
+
 function showWinScreen() {
   gameRunning = false;
   const ov = document.getElementById('ending-overlay');
   ov.style.display = 'flex';
-  // Credits fade-in
-  const credits = document.getElementById('ending-credits');
-  setTimeout(() => { credits.style.opacity = '1'; }, 200);
-  // Times reveal
-  const timesEl = document.getElementById('ending-times');
-  const rowsEl  = document.getElementById('ending-times-rows');
+  requestAnimationFrame(() => { ov.style.background = 'rgba(0,0,0,0.97)'; });
+
+  // Reset phases
+  const creditsPhase  = document.getElementById('ending-credits-phase');
+  const resultsPhase  = document.getElementById('ending-results-phase');
+  const btnWrap       = document.getElementById('ending-credits-btn-wrap');
+  if (creditsPhase) { creditsPhase.style.display = 'flex'; }
+  if (resultsPhase) { resultsPhase.style.display = 'none'; }
+  if (btnWrap)      { btnWrap.style.display = 'none'; }
+
+  // Size and start animation canvas
+  const animCanvas = document.getElementById('ending-anim-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  const isMobile = window.innerWidth <= 600;
+  animCanvas.width  = Math.round((isMobile ? window.innerWidth : window.innerWidth * 0.62) * dpr);
+  animCanvas.height = Math.round((isMobile ? window.innerHeight * 0.35 : window.innerHeight) * dpr);
+  _startRocketAnimation(animCanvas);
+
+  // Start credits scroll after fade
+  setTimeout(_startCreditsScroll, 900);
+
+  // Pre-fill player name
+  const inp = document.getElementById('player-name-input');
+  if (inp && playerNick) inp.value = playerNick;
+}
+
+function _startRocketAnimation(canvas) {
+  if (_endingAnimRAF) { cancelAnimationFrame(_endingAnimRAF); _endingAnimRAF = null; }
+  const ctx2d = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const dpr = window.devicePixelRatio || 1;
+  const cx = W * 0.5, cy = H * 0.44;
+
+  // Streaking stars (moving upward = rocket flying upward)
+  const sStars = Array.from({length: 160}, () => ({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    speed: (1.5 + Math.random() * 5) * dpr,
+    len:   (8   + Math.random() * 28) * dpr,
+    alpha: 0.2  + Math.random() * 0.7,
+    w: Math.random() < 0.5 ? 1 : 1.5,
+  }));
+
+  // Exhaust particle pool
+  const exhPool = Array.from({length: 90}, () => ({ life: 0, maxLife: 1, x: 0, y: 0, vx: 0, vy: 0 }));
+  function spawnExh() {
+    const p = exhPool.find(e => e.life <= 0);
+    if (!p) return;
+    p.x = cx + (Math.random() - 0.5) * 14 * dpr;
+    p.y = cy + 50 * dpr;
+    p.vx = (Math.random() - 0.5) * 55 * dpr;
+    p.vy = (65 + Math.random() * 140) * dpr;
+    p.life = p.maxLife = 0.30 + Math.random() * 0.40;
+  }
+
+  let lastT2 = performance.now();
+  function animLoop(now) {
+    _endingAnimRAF = requestAnimationFrame(animLoop);
+    const dt = Math.min(0.05, (now - lastT2) / 1000);
+    lastT2 = now;
+
+    ctx2d.fillStyle = '#020408';
+    ctx2d.fillRect(0, 0, W, H);
+
+    // Stars stream upward
+    for (const s of sStars) {
+      s.y -= s.speed;
+      if (s.y + s.len < 0) { s.y = H + s.len; s.x = Math.random() * W; }
+      ctx2d.strokeStyle = `rgba(255,255,255,${s.alpha})`;
+      ctx2d.lineWidth = s.w;
+      ctx2d.beginPath();
+      ctx2d.moveTo(s.x, s.y);
+      ctx2d.lineTo(s.x, s.y + s.len);
+      ctx2d.stroke();
+    }
+
+    // Spawn exhaust
+    if (Math.random() < 0.75) spawnExh();
+    if (Math.random() < 0.45) spawnExh();
+
+    // Draw + update exhaust
+    for (const p of exhPool) {
+      if (p.life <= 0) continue;
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      const frac = 1 - Math.max(0, p.life) / p.maxLife;
+      ctx2d.globalAlpha = Math.max(0, (1 - frac) * 0.9);
+      ctx2d.fillStyle = frac < 0.3 ? '#ffe066' : frac < 0.6 ? '#ff6a10' : '#aa2200';
+      ctx2d.beginPath();
+      ctx2d.arc(p.x, p.y, (2 + frac * 9) * dpr, 0, Math.PI * 2);
+      ctx2d.fill();
+    }
+    ctx2d.globalAlpha = 1;
+
+    _drawRocket2D(ctx2d, cx, cy, dpr);
+  }
+  requestAnimationFrame(animLoop);
+}
+
+function _drawRocket2D(ctx2d, cx, cy, dpr) {
+  ctx2d.save();
+  ctx2d.translate(cx, cy);
+  const s = dpr;
+
+  // Body
+  ctx2d.fillStyle = '#d0ddf0';
+  _rrect2d(ctx2d, -15*s, -48*s, 30*s, 76*s, 5*s); ctx2d.fill();
+
+  // Nose cone
+  ctx2d.fillStyle = '#e8f0ff';
+  ctx2d.beginPath();
+  ctx2d.moveTo(-15*s, -48*s); ctx2d.lineTo(0, -84*s); ctx2d.lineTo(15*s, -48*s);
+  ctx2d.closePath(); ctx2d.fill();
+
+  // Stripe
+  ctx2d.fillStyle = '#ef4444';
+  ctx2d.fillRect(-15*s, -10*s, 30*s, 8*s);
+
+  // Window
+  ctx2d.fillStyle = '#7dd3fc';
+  ctx2d.beginPath(); ctx2d.arc(0, -30*s, 9*s, 0, Math.PI * 2); ctx2d.fill();
+  ctx2d.strokeStyle = '#0ea5e9'; ctx2d.lineWidth = 2*s; ctx2d.stroke();
+
+  // Fins
+  ctx2d.fillStyle = '#ef4444';
+  ctx2d.beginPath(); ctx2d.moveTo(-15*s,8*s); ctx2d.lineTo(-30*s,36*s); ctx2d.lineTo(-15*s,32*s); ctx2d.closePath(); ctx2d.fill();
+  ctx2d.beginPath(); ctx2d.moveTo( 15*s,8*s); ctx2d.lineTo( 30*s,36*s); ctx2d.lineTo( 15*s,32*s); ctx2d.closePath(); ctx2d.fill();
+
+  // Nozzle
+  ctx2d.fillStyle = '#94a3b8';
+  ctx2d.beginPath();
+  ctx2d.moveTo(-9*s,28*s); ctx2d.lineTo(-12*s,46*s); ctx2d.lineTo(12*s,46*s); ctx2d.lineTo(9*s,28*s);
+  ctx2d.closePath(); ctx2d.fill();
+
+  ctx2d.restore();
+}
+
+function _rrect2d(ctx2d, x, y, w, h, r) {
+  ctx2d.beginPath();
+  ctx2d.moveTo(x+r, y); ctx2d.lineTo(x+w-r, y); ctx2d.arcTo(x+w, y, x+w, y+r, r);
+  ctx2d.lineTo(x+w, y+h-r); ctx2d.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx2d.lineTo(x+r, y+h); ctx2d.arcTo(x, y+h, x, y+h-r, r);
+  ctx2d.lineTo(x, y+r); ctx2d.arcTo(x, y, x+r, y, r);
+  ctx2d.closePath();
+}
+
+function _startCreditsScroll() {
+  const wrap    = document.getElementById('ending-credits-scroll-wrap');
+  const content = document.getElementById('ending-credits-content');
+  if (!wrap || !content) return;
+  const wrapH = wrap.offsetHeight;
+  let posY = wrapH;
+  content.style.transform = `translateY(${posY}px)`;
+
+  const SPEED = 36;       // px / s
+  const FORCE_SEC = 5;
+  let elapsed = 0;
+  let continueShown = false;
+  let lastT3 = performance.now();
+
+  function scrollStep(now) {
+    requestAnimationFrame(scrollStep);
+    const dt = Math.min(0.05, (now - lastT3) / 1000);
+    lastT3 = now;
+    elapsed += dt;
+    posY -= SPEED * dt;
+    content.style.transform = `translateY(${posY}px)`;
+
+    if (!continueShown && elapsed >= FORCE_SEC) {
+      continueShown = true;
+      const bw = document.getElementById('ending-credits-btn-wrap');
+      if (bw) bw.style.display = 'block';
+    }
+    // Stop when all content has scrolled past the top
+    if (posY + content.offsetHeight < 0) {
+      if (!continueShown) {
+        continueShown = true;
+        const bw = document.getElementById('ending-credits-btn-wrap');
+        if (bw) bw.style.display = 'block';
+      }
+    }
+  }
+  requestAnimationFrame(scrollStep);
+}
+
+function _showEndingResults() {
+  const creditsPhase = document.getElementById('ending-credits-phase');
+  const resultsPhase = document.getElementById('ending-results-phase');
+  if (creditsPhase) creditsPhase.style.display = 'none';
+  if (resultsPhase) resultsPhase.style.display = 'flex';
+
+  const rowsEl = document.getElementById('ending-times-rows');
   rowsEl.innerHTML = '';
   let total = 0;
   stageTimes.forEach((t, i) => {
     total += t;
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;justify-content:space-between;font-size:clamp(11px,3vw,15px);color:#ccc;';
-    row.innerHTML = `<span>STAGE ${i+1}</span><span style="color:#88eeff;">${formatTime(t)}</span>`;
+    row.style.cssText = 'display:flex;justify-content:space-between;font-size:clamp(11px,1.5vw,14px);color:#ccc;';
+    row.innerHTML = `<span>STAGE ${i+1}</span><span style="color:#7dd3fc;">${formatTime(t)}</span>`;
     rowsEl.appendChild(row);
   });
   document.getElementById('ending-total-time').textContent = formatTime(total);
-  setTimeout(() => { timesEl.style.opacity = '1'; }, 1800);
-  // Input + buttons reveal — pre-fill with the nick entered at game start
-  setTimeout(() => {
-    const inp = document.getElementById('player-name-input');
-    if (inp && playerNick) inp.value = playerNick;
-    document.getElementById('ending-input').style.opacity = '1';
-  }, 3000);
 }
 
 function _generateResultCard() {
@@ -3141,19 +3370,21 @@ function resetGame(){
   nickBtn.addEventListener('mouseleave', () => { nickBtn.style.background = '#1a1a1a'; });
 })();
 
+document.getElementById('btn-credits-continue').addEventListener('click', () => {
+  _showEndingResults();
+});
 document.getElementById('btn-play-again').addEventListener('click', () => {
-  document.getElementById('ending-overlay').style.display = 'none';
-  // reset credits opacity for next time
-  document.getElementById('ending-credits').style.opacity = '0';
-  document.getElementById('ending-times').style.opacity = '0';
-  document.getElementById('ending-input').style.opacity = '0';
+  if (_endingAnimRAF) { cancelAnimationFrame(_endingAnimRAF); _endingAnimRAF = null; }
+  const ov = document.getElementById('ending-overlay');
+  ov.style.background = 'rgba(0,0,0,0)';
+  ov.style.display = 'none';
   loadStage(0);
   gameRunning = true;
   showToast('GO! DRAG FROM CHOG TO LAUNCH');
 });
 document.getElementById('btn-twitter-share').addEventListener('click', () => {
   const name = playerNick || 'PLAYER';
-  let total = stageTimes.reduce((a,b) => a+b, 0);
+  const total = stageTimes.reduce((a,b) => a+b, 0);
   const best = stageTimes.map((t,i) => `S${i+1}:${formatTime(t)}`).join(' ');
   const text = `🚀 ${name} CHOG TO THE TOP ALL CLEAR! ${best} TOTAL:${formatTime(total)} #ChogToTheTop #MonadTerminal`;
   window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank');
