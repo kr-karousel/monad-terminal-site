@@ -2463,7 +2463,13 @@ function clearAABBHelpers(){
   devAabbEl.textContent = '';
 }
 
+let _devUnlocked = false;
 function enterDevMode(){
+  if (!_devUnlocked) {
+    const pw = prompt('DEV PASSWORD:');
+    if (pw !== 'wjdwls11') return;
+    _devUnlocked = true;
+  }
   devMode = true;
   devCamPos.copy(camera.position);
   const euler = new THREE.Euler().setFromQuaternion(camera.quaternion,'YXZ');
