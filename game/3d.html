@@ -230,6 +230,12 @@ canvas{display:block}
     <button id="dev-teleport-btn" style="pointer-events:all;background:#111;border:1px solid #555;color:#888;font-family:'Courier New',monospace;font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:1px;" title="클릭 후 원하는 위치 클릭">📍 플레이어 이동</button>
     <button id="dev-reset-scores-btn" style="pointer-events:all;background:#111;border:1px solid #555;color:#888;font-family:'Courier New',monospace;font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:1px;">🗑 기록 초기화</button>
     <button id="dev-clear-stage-btn" style="pointer-events:all;background:#110000;border:1px solid #ff4444;color:#ff4444;font-family:'Courier New',monospace;font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:1px;">🧹 스테이지 초기화</button>
+    <span style="display:flex;align-items:center;gap:4px;pointer-events:all;">
+      <span style="color:#aaa;font-size:10px;">스테이지:</span>
+      <button id="dev-stage-prev" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:12px;line-height:1.5;">◀</button>
+      <span id="dev-stage-label" style="color:#ffcc44;font-size:11px;min-width:16px;text-align:center;">1</span>
+      <button id="dev-stage-next" style="background:#222;color:#fff;border:1px solid #555;padding:1px 7px;cursor:pointer;font-size:12px;line-height:1.5;">▶</button>
+    </span>
     <!-- Physics tweakers -->
     <span style="display:flex;align-items:center;gap:3px;pointer-events:all;">
       <span style="color:#ff9966;font-size:9px;">중력:</span>
@@ -947,6 +953,8 @@ function loadStage(idx) {
 
   if (idx === 0) stageTimes.length = 0; // fresh start — clear per-stage records
   _stageIdx = idx;
+  const _stageLbl = document.getElementById('dev-stage-label');
+  if (_stageLbl) _stageLbl.textContent = idx + 1;
   // Switch stage background
   _bgGroups.forEach((g, i) => { g.visible = (i === idx); });
   const _bgD = _bgGroups[idx];
@@ -2384,6 +2392,15 @@ document.getElementById('dev-reset-scores-btn').addEventListener('click', async 
   } catch { btn.textContent = '❌ 실패'; }
   setTimeout(() => { btn.textContent = '🗑 기록 초기화'; }, 2000);
 });
+
+function devGoStage(idx) {
+  const total = STAGE_DEFS.length;
+  const next = Math.max(0, Math.min(total - 1, idx));
+  loadStage(next);
+  document.getElementById('dev-stage-label').textContent = next + 1;
+}
+document.getElementById('dev-stage-prev').addEventListener('click', () => devGoStage(_stageIdx - 1));
+document.getElementById('dev-stage-next').addEventListener('click', () => devGoStage(_stageIdx + 1));
 
 document.getElementById('dev-clear-stage-btn').addEventListener('click', async () => {
   const stageNum = _stageIdx + 1;
