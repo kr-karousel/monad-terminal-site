@@ -1013,7 +1013,8 @@ function loadStage(idx) {
           _hw: bs.x/2, _hh: bs.y/2, _hd: bs.z/2,
           _motion: TILE_KEYS.has(key) ? (motion || null) : null,
         };
-        if (!hasTrigger) platforms.push(aabb);
+        // vanish = solid platform that disappears; death = player passes through
+        if (!hasTrigger || entry.trigger === 'vanish') platforms.push(aabb);
       }
     }
 
@@ -2298,8 +2299,10 @@ function _devSetTrigger(type) {
   // trigger 오브젝트는 physics에서 제외 — 몸통 전체로 감지 가능
   if (devSelectedRef.aabb) {
     const inPlatforms = platforms.indexOf(devSelectedRef.aabb);
-    if (type !== 'none' && inPlatforms >= 0) platforms.splice(inPlatforms, 1);
-    if (type === 'none' && inPlatforms < 0)  platforms.push(devSelectedRef.aabb);
+    // death = pass-through; vanish = solid until it disappears; none = solid
+    const needsSolid = (type === 'none' || type === 'vanish');
+    if (!needsSolid && inPlatforms >= 0) platforms.splice(inPlatforms, 1);
+    if (needsSolid  && inPlatforms < 0)  platforms.push(devSelectedRef.aabb);
   }
   Object.entries(_devTrigBtns).forEach(([k,b]) => {
     const active = k === type;
