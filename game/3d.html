@@ -227,6 +227,7 @@ canvas{display:block}
     <span id="dev-edit-label" style="color:#ff44ff;font-size:10px;"></span>
     <button id="dev-save-btn" style="pointer-events:all;background:#003300;border:1px solid #44ff44;color:#44ff44;font-family:'Courier New',monospace;font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:1px;">💾 SAVE</button>
     <button id="dev-zlock-btn" style="pointer-events:all;background:#111;border:1px solid #555;color:#888;font-family:'Courier New',monospace;font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:1px;" title="Z키로 토글">Z축 고정: OFF</button>
+    <button id="dev-teleport-btn" style="pointer-events:all;background:#111;border:1px solid #555;color:#888;font-family:'Courier New',monospace;font-size:11px;padding:3px 10px;border-radius:3px;cursor:pointer;letter-spacing:1px;" title="클릭 후 원하는 위치 클릭">📍 플레이어 이동</button>
     <!-- Physics tweakers -->
     <span style="display:flex;align-items:center;gap:3px;pointer-events:all;">
       <span style="color:#ff9966;font-size:9px;">중력:</span>
@@ -2328,6 +2329,17 @@ function devToggleZLock() {
 }
 document.getElementById('dev-zlock-btn').addEventListener('click', devToggleZLock);
 
+let devTeleportMode = false;
+function devToggleTeleport() {
+  devTeleportMode = !devTeleportMode;
+  const btn = document.getElementById('dev-teleport-btn');
+  btn.style.background   = devTeleportMode ? '#002244' : '#111';
+  btn.style.borderColor  = devTeleportMode ? '#44aaff' : '#555';
+  btn.style.color        = devTeleportMode ? '#44aaff' : '#888';
+  btn.textContent        = devTeleportMode ? '📍 클릭해서 이동' : '📍 플레이어 이동';
+}
+document.getElementById('dev-teleport-btn').addEventListener('click', devToggleTeleport);
+
 async function devSaveStage() {
   const entries = devEditObjects.map(({ key, obj, scale, ry, motion, trigger }) => {
     const p = obj.position;
@@ -2569,8 +2581,21 @@ devExportBtn.addEventListener('mousedown', e => { e.stopPropagation(); devPrintA
 /* ── Canvas pointer events ─────────────────────────────────────────────── */
 document.addEventListener('click', e => {
   if (!devMode) return;
-  // Ignore clicks that originate from the palette sidebar
-  if (e.target.closest('#dev-palette')) return;
+  // Ignore clicks that originate from the palette sidebar or HUD buttons
+  if (e.target.closest('#dev-palette') || e.target.closest('#dev-hud button')) return;
+  // Teleport player mode
+  if (devTeleportMode) {
+    const pt = devGetPoint(e.clientX, e.clientY);
+    if (pt) {
+      playerPos.set(pt.x, pt.y + 1.5, pt.z);
+      playerVel.set(0, 0, 0);
+      devTeleportMode = false;
+      const btn = document.getElementById('dev-teleport-btn');
+      btn.style.background = '#111'; btn.style.borderColor = '#555'; btn.style.color = '#888';
+      btn.textContent = '📍 플레이어 이동';
+    }
+    return;
+  }
   if (devEditActive) {
     if (devPlacementKey) {
       const pt = devGetPoint(e.clientX, e.clientY);
