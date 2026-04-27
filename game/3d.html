@@ -918,6 +918,7 @@ function updateMovingTiles(t) {
   for (const tile of movingTiles) {
     if (tile.aabb.disabled) continue;
     const newX = tile.baseX + Math.sin(t * tile.spd + tile.phase) * tile.amp;
+    tile.velX = Math.cos(t * tile.spd + tile.phase) * tile.amp * tile.spd;
     tile.visual.position.x = newX;
     if (tile.glbVisual) tile.glbVisual.position.x = newX;
     tile.aabb.minX = newX - tile.w/2;
@@ -1598,6 +1599,9 @@ function physicsStep(dt){
         playerOnGround = true;
         playerVel.x *= FRICTION_GROUND;
         playerVel.z *= FRICTION_GROUND;
+        // Carry player horizontally with moving platform
+        const mt = movingTiles.find(m => m.aabb === b);
+        if (mt && mt.velX) playerPos.x += mt.velX * dt;
       }
     }
   }
