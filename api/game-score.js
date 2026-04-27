@@ -10,7 +10,7 @@ const SB_HEADERS = {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
@@ -61,6 +61,17 @@ module.exports = async function handler(req, res) {
     }
 
     return res.status(200).json({ top10: top10 || [], rank });
+  }
+
+  // DELETE — clear all scores for a stage
+  if (req.method === 'DELETE') {
+    const stage = parseInt(req.query.stage, 10);
+    if (isNaN(stage)) return res.status(400).json({ error: 'Missing stage' });
+    await fetch(`${SB_URL}/rest/v1/game_scores?stage=eq.${stage}`, {
+      method: 'DELETE',
+      headers: { ...SB_HEADERS, 'Prefer': 'return=minimal' },
+    });
+    return res.status(200).json({ ok: true });
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
