@@ -1017,6 +1017,22 @@ function loadStage(idx) {
     const { key, scale = 1, x = 0, y = 0, z = 0, ry = 0, motion } = entry;
     // Stage-clear portal handled separately
     if (key === 'stageClear') { buildStageClear(x, y, z); return; }
+    // Rocket: capture reference for animation + proximity trigger, no solid collision
+    if (key === 'rocket') {
+      const tmplR = glbAssets['rocket'];
+      if (!tmplR) return;
+      const objR = tmplR.clone();
+      objR.scale.setScalar(scale);
+      objR.position.set(x, y, z);
+      objR.rotation.y = ry;
+      objR.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+      scene.add(objR);
+      rocketGroup = objR;
+      const refR = { key, obj: objR, scale, motion: null, _motBase: null, label: `rocket@(${x.toFixed(1)},${y.toFixed(1)},${z.toFixed(1)})`, ry, trigger: 'none' };
+      _stageObjs.push(refR);
+      devEditObjects.push(refR);
+      return;
+    }
     // chogOrigin acts as stage-clear goal — render GLB and register as clear trigger
     if (key === 'chogOrigin') {
       const tmplC = glbAssets['chogOrigin'];
@@ -3463,7 +3479,7 @@ function frame(now){
     const rocketPos = rocketGroup ? rocketGroup.position
                     : new THREE.Vector3(0, ROCKET_Y, 0);
     if (!gameOver && !shipLaunching && _stageIdx >= 4 &&
-        playerPos.distanceTo(rocketPos) < 2.8) {
+        playerPos.distanceTo(rocketPos) < 5.5) {
       shipLaunching = true;
       gameRunning = false;
       spawnParticles(rocketPos.clone(), 0xff8833, 40);
