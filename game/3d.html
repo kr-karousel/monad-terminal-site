@@ -3402,7 +3402,7 @@ document.getElementById('btn-twitter-share').addEventListener('click', () => {
   const name = playerNick || 'PLAYER';
   const total = stageTimes.reduce((a,b) => a+b, 0);
   const best = stageTimes.map((t,i) => `S${i+1}:${formatTime(t)}`).join(' ');
-  const text = `🚀 ${name} CHOG TO THE TOP ALL CLEAR! ${best} TOTAL:${formatTime(total)} #ChogToTheTop #MonadTerminal`;
+  const text = `🚀 ${name} CHOG TO THE TOP ALL CLEAR!  ${best} TOTAL:${formatTime(total)} #ChogToTheTop #MonadTerminal #CHOG $CHOG`;
   window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank');
 });
 document.getElementById('btn-save-card').addEventListener('click', () => {
