@@ -1273,7 +1273,19 @@ function loadGLBAsset(name, url) {
     l.setDRACOLoader(_dracoLoader);
     if (_meshoptDecoder) l.setMeshoptDecoder(_meshoptDecoder);
     l.load(url, gltf => {
-      gltf.scene.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+      gltf.scene.traverse(c => {
+        if (c.isMesh) {
+          c.castShadow = true; c.receiveShadow = true;
+          // chogWall brightness boost
+          if (name === 'chogWall' && c.material) {
+            const mats = Array.isArray(c.material) ? c.material : [c.material];
+            mats.forEach(m => {
+              m.color.multiplyScalar(2.2);
+              if (m.emissive) m.emissive.multiplyScalar(2.2);
+            });
+          }
+        }
+      });
       glbAssets[name] = gltf.scene;
       resolve();
     }, undefined, err => { console.warn('GLB load failed:', name, err); resolve(); });
