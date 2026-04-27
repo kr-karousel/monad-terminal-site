@@ -968,22 +968,9 @@ function loadStage(idx) {
 
     let aabb = null;
     const hasTrigger = entry.trigger && entry.trigger !== 'none';
-    if (TILE_KEYS.has(key)) {
-      const hw = TILE_DEFAULT_W / 2 * scale;
-      const hh = TILE_DEFAULT_H / 2 * scale;
-      const hd = TILE_DEFAULT_D / 2 * scale;
-      aabb = {
-        minX: x - hw, maxX: x + hw,
-        minY: y - hh,  maxY: y + hh,
-        minZ: z - hd,  maxZ: z + hd,
-        disabled: false,
-        _obj: obj, _baseX: x, _baseY: y,
-        _hw: hw, _hh: hh,
-        _motion: motion || null,
-      };
-      if (!hasTrigger) platforms.push(aabb);
-    } else {
-      // All other GLB objects — compute AABB from visible meshes only
+    const needsPhysics = TILE_KEYS.has(key) || PLATFORM_KEYS.has(key) || hasTrigger;
+
+    if (needsPhysics) {
       const box3 = visibleBox3(obj);
       const bc = box3.getCenter(new THREE.Vector3());
       const bs = box3.getSize(new THREE.Vector3());
@@ -993,7 +980,9 @@ function loadStage(idx) {
           minY: bc.y - bs.y/2, maxY: bc.y + bs.y/2,
           minZ: bc.z - bs.z/2, maxZ: bc.z + bs.z/2,
           disabled: false,
+          _obj: obj, _baseX: x, _baseY: y,
           _hw: bs.x/2, _hh: bs.y/2, _hd: bs.z/2,
+          _motion: TILE_KEYS.has(key) ? (motion || null) : null,
         };
         if (!hasTrigger) platforms.push(aabb);
       }
@@ -2103,33 +2092,25 @@ function devPlaceObject(pt) {
   obj.rotation.y = THREE.MathUtils.degToRad(devPlacementRY);
   obj.position.copy(pt);
   scene.add(obj);
-  // Build AABB matching actual visual size
+  // Only physics objects (tiles + platforms) get AABBs; decorative objects get none
   let aabb;
-  if (TILE_KEYS.has(devPlacementKey)) {
-    // Use same fixed formula as loadStage for consistency
-    const hw = TILE_DEFAULT_W / 2 * devPlacementScale;
-    const hh = TILE_DEFAULT_H / 2 * devPlacementScale;
-    const hd = TILE_DEFAULT_D / 2 * devPlacementScale;
-    aabb = {
-      minX: pt.x - hw, maxX: pt.x + hw,
-      minY: pt.y - hh, maxY: pt.y + hh,
-      minZ: pt.z - hd, maxZ: pt.z + hd,
-      disabled: false, _hw: hw, _hh: hh, _hd: hd,
-    };
-  } else {
+  const needsPhysics = TILE_KEYS.has(devPlacementKey) || PLATFORM_KEYS.has(devPlacementKey);
+  if (needsPhysics) {
     const box3 = visibleBox3(obj);
     const bc = box3.getCenter(new THREE.Vector3());
     const bs = box3.getSize(new THREE.Vector3());
-    aabb = {
-      minX: bc.x - bs.x/2, maxX: bc.x + bs.x/2,
-      minY: bc.y - bs.y/2, maxY: bc.y + bs.y/2,
-      minZ: bc.z - bs.z/2, maxZ: bc.z + bs.z/2,
-      disabled: false, _hw: bs.x/2, _hh: bs.y/2, _hd: bs.z/2,
-    };
+    if (bs.x > 0.01 && bs.y > 0.01) {
+      aabb = {
+        minX: bc.x - bs.x/2, maxX: bc.x + bs.x/2,
+        minY: bc.y - bs.y/2, maxY: bc.y + bs.y/2,
+        minZ: bc.z - bs.z/2, maxZ: bc.z + bs.z/2,
+        disabled: false, _hw: bs.x/2, _hh: bs.y/2, _hd: bs.z/2,
+      };
+      platforms.push(aabb);
+    }
   }
-  platforms.push(aabb);
   const ryRad = parseFloat((devPlacementRY * Math.PI / 180).toFixed(4));
-  const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale, ry: ryRad, trigger: 'none', aabb };
+  const ref = { key: devPlacementKey, label: `${devPlacementKey}@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`, obj, scale: devPlacementScale, ry: ryRad, trigger: 'none', ...(aabb ? { aabb } : {}) };
   devPlacedObjs.push(ref);
   devEditObjects.push(ref);
   devSelectRef(ref);
