@@ -3156,6 +3156,19 @@ function frame(now){
     }
     updateClouds(dtRaw);
 
+    // Vanish fade-out (5s delay then 1s fade)
+    for (const ref of devEditObjects) {
+      if (!ref._vanishing) continue;
+      ref._vanishTimer -= dtRaw;
+      const opacity = ref._vanishTimer > 1.0 ? 1.0 : Math.max(0, ref._vanishTimer);
+      if (ref._vanishMats) ref._vanishMats.forEach(m => { m.opacity = opacity; });
+      if (ref._vanishTimer <= 0) {
+        ref.obj.visible = false;
+        ref.aabb.disabled = true;
+        ref._vanishing = false;
+      }
+    }
+
     // Dev-placed object triggers
     if (gameRunning && !gameOver && !gameWon) {
       for (const ref of devEditObjects) {
@@ -3167,8 +3180,22 @@ function frame(now){
             triggerGameOver();
             break;
           } else if (ref.trigger === 'vanish') {
-            ref.obj.visible = false;
-            ref.aabb.disabled = true;
+            if (!ref._vanishing) {
+              ref._vanishing = true;
+              ref._vanishTimer = 5.0; // seconds until fully gone
+              // Collect all materials for fade
+              ref._vanishMats = [];
+              ref.obj.traverse(c => {
+                if (!c.isMesh || !c.material) return;
+                const mats = Array.isArray(c.material) ? c.material : [c.material];
+                mats.forEach(m => {
+                  if (!ref._vanishMats.includes(m)) {
+                    m.transparent = true;
+                    ref._vanishMats.push(m);
+                  }
+                });
+              });
+            }
           }
         }
       }
