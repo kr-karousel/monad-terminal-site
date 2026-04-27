@@ -959,6 +959,24 @@ function loadStage(idx) {
     const { key, scale = 1, x = 0, y = 0, z = 0, ry = 0, motion } = entry;
     // Stage-clear portal handled separately
     if (key === 'stageClear') { buildStageClear(x, y, z); return; }
+    // chogOrigin acts as stage-clear goal — render GLB and register as clear trigger
+    if (key === 'chogOrigin') {
+      const tmplC = glbAssets['chogOrigin'];
+      if (!tmplC) return;
+      const objC = tmplC.clone();
+      objC.scale.setScalar(scale);
+      objC.position.set(x, y, z);
+      objC.rotation.y = ry;
+      objC.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+      scene.add(objC);
+      const scEntry = { pos: new THREE.Vector3(x, y, z), group: objC, light: null, collected: false, noSpin: true };
+      stageClearObjects.push(scEntry);
+      const refC = { key, obj: objC, scale, motion: null, _motBase: null, _motPhase: 0,
+        label: `chogOrigin@(${x.toFixed(1)},${y.toFixed(1)},${z.toFixed(1)})`, ry, trigger: 'none', stageClearRef: scEntry };
+      _stageObjs.push(refC);
+      devEditObjects.push(refC);
+      return;
+    }
     const tmpl = glbAssets[key];
     if (!tmpl) return;
     const obj = tmpl.clone();
@@ -1005,7 +1023,7 @@ function loadStage(idx) {
   });
 
   // Auto-place stage-clear portal only if not manually placed in defs
-  const hasStageClear = defs.some(e => e.key === 'stageClear');
+  const hasStageClear = defs.some(e => e.key === 'stageClear' || e.key === 'chogOrigin');
   if (!hasStageClear && defs.length > 0) {
     const highestY = defs.reduce((m, e) => Math.max(m, e.y || 0), 0);
     buildStageClear(0, highestY + 4, 0);
@@ -2087,6 +2105,25 @@ function devPlaceObject(pt) {
     devCollectRayMeshes();
     return;
   }
+  // chogOrigin — renders as GLB and acts as stage-clear goal
+  if (devPlacementKey === 'chogOrigin') {
+    if (!glbAssets['chogOrigin']) return;
+    const obj = glbAssets['chogOrigin'].clone();
+    obj.scale.setScalar(devPlacementScale);
+    obj.rotation.y = THREE.MathUtils.degToRad(devPlacementRY);
+    obj.position.copy(pt);
+    obj.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+    scene.add(obj);
+    const scEntry = { pos: pt.clone(), group: obj, light: null, collected: false, noSpin: true };
+    stageClearObjects.push(scEntry);
+    const ref = { key: 'chogOrigin', label: `chogOrigin@(${pt.x.toFixed(1)},${pt.y.toFixed(1)},${pt.z.toFixed(1)})`,
+      obj, scale: devPlacementScale, ry: THREE.MathUtils.degToRad(devPlacementRY), trigger: 'none', stageClearRef: scEntry };
+    devPlacedObjs.push(ref);
+    devEditObjects.push(ref);
+    devSelectRef(ref);
+    devCollectRayMeshes();
+    return;
+  }
   if (!glbAssets[devPlacementKey]) return;
   const obj = glbAssets[devPlacementKey].clone();
   obj.scale.setScalar(devPlacementScale);
@@ -3030,7 +3067,7 @@ function frame(now){
 
   // Stage-clear idle spin
   for (const sc of stageClearObjects) {
-    if (sc.group && sc.group.visible) sc.group.rotation.y = t * 1.1;
+    if (!sc.noSpin && sc.group && sc.group.visible) sc.group.rotation.y = t * 1.1;
   }
 
   // Moving tiles
