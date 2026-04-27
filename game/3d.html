@@ -804,19 +804,9 @@ const proceduralBushes = [];
 const stageClearObjects = []; // [{pos, group, light, collected}]
 function buildStageClear(x, y, z) {
   const g = new THREE.Group();
-  // Placeholder gold star (replaced by GLB when loaded)
-  const mat = new THREE.MeshLambertMaterial({ color:0xffd700, emissive:0x886600 });
-  for (let i=0;i<5;i++){
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.9,0.15), mat);
-    arm.rotation.z = (i/5)*Math.PI*2;
-    g.add(arm);
-  }
-  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.4,8,6), mat));
   g.position.set(x, y, z);
   scene.add(g);
-  const lt = HQ ? new THREE.PointLight(0xffd700, 1.8, 14) : null;
-  if (lt) { lt.position.set(x, y, z); scene.add(lt); }
-  stageClearObjects.push({ pos: new THREE.Vector3(x, y, z), group: g, light: lt, collected: false });
+  stageClearObjects.push({ pos: new THREE.Vector3(x, y, z), group: g, light: null, collected: false });
 }
 
 /* ── Poison mushroom factory (placeholder — swap with GLB) ──────────────── */
