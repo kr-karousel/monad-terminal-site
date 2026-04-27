@@ -931,6 +931,15 @@ function loadStage(idx) {
     if (ei >= 0) devEditObjects.splice(ei, 1);
   });
   _stageObjs = [];
+  // Also clear dev-placed objects so they don't bleed into the next stage's save
+  devPlacedObjs.forEach(ref => {
+    scene.remove(ref.obj);
+    if (ref.aabb) { const i = platforms.indexOf(ref.aabb); if (i >= 0) platforms.splice(i, 1); }
+    if (ref.stageClearRef) { const i = stageClearObjects.indexOf(ref.stageClearRef); if (i >= 0) stageClearObjects.splice(i, 1); }
+    const ei = devEditObjects.indexOf(ref);
+    if (ei >= 0) devEditObjects.splice(ei, 1);
+  });
+  devPlacedObjs.length = 0;
   // Clear stage-clear objects
   stageClearObjects.forEach(sc => { scene.remove(sc.group); if(sc.light) scene.remove(sc.light); });
   stageClearObjects.length = 0;
@@ -2376,6 +2385,7 @@ document.getElementById('dev-reset-scores-btn').addEventListener('click', async 
 });
 
 async function devSaveStage() {
+  const seen = new Set();
   const entries = devEditObjects.map(({ key, obj, scale, ry, motion, trigger }) => {
     const p = obj.position;
     const entry = { key: key || '?', scale: scale || 1, x: parseFloat(p.x.toFixed(3)), y: parseFloat(p.y.toFixed(3)), z: parseFloat(p.z.toFixed(3)) };
@@ -2383,6 +2393,11 @@ async function devSaveStage() {
     if (motion) entry.motion = { axis: motion.axis, amp: parseFloat(motion.amp.toFixed(1)), spd: parseFloat(motion.spd.toFixed(1)) };
     if (trigger && trigger !== 'none') entry.trigger = trigger;
     return entry;
+  }).filter(e => {
+    const k = `${e.key}|${e.x}|${e.y}|${e.z}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
   });
   const btn = document.getElementById('dev-save-btn');
   btn.textContent = '⏳ 저장중...';
