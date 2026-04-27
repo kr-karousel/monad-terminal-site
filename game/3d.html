@@ -1052,6 +1052,11 @@ function loadStage(idx) {
     MAX_LAUNCH_FORCE = DEFAULT_LAUNCH_FORCE;
   }
 
+  // ── Stage 5: hide green grass start platform ───────────────────────────────
+  platformMeshes.forEach(p => {
+    if (p.def.flat) p.mesh.visible = (idx !== 4);
+  });
+
   // ── Stage 5: dark sci-fi launch pad on top of start platform ─────────────
   if (idx === 4) {
     const _padG = new THREE.Group();
