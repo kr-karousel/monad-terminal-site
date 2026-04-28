@@ -1577,7 +1577,7 @@ loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
 });
   // Critical assets gate game start; deferred load silently in background
   window._glbsReady = Promise.all(glbQueueCritical.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
-  window._glbsReady.then(() => Promise.all(glbQueueDeferred.map(([n,u]) => loadGLBAsset(n,u))));
+  window._glbsReady.then(() => Promise.all(glbQueueDeferred.map(([n,u]) => loadGLBAsset(n,u)))).catch(() => {});
 }); // end _meshoptPromise.then
 
 /* ── GLB Asset Preloader ──────────────────────────────────────────────────── */
@@ -1930,9 +1930,12 @@ function physicsStep(dt){
         // Carry player horizontally with moving platform (movingTiles system)
         const mt = movingTiles.find(m => m.aabb === b);
         if (mt && mt.velX) playerPos.x += mt.velX * dt;
-        // Carry player with stage-loaded tiles that have motion (_velX/_velY set each frame)
+        // Carry player with stage-loaded tiles that have motion
         if (b._velX) playerPos.x += b._velX * dt;
-        if (b._velY) playerPos.y += b._velY * dt;
+        // Y: match velocity instead of position-carry to avoid double-push stutter
+        if (b._velY) playerVel.y = b._velY > 0
+          ? Math.max(playerVel.y, b._velY)
+          : Math.min(playerVel.y, b._velY);
       }
     }
   }
@@ -2726,8 +2729,14 @@ document.getElementById('dev-reset-scores-btn').addEventListener('click', async 
   btn.textContent = '⏳ 삭제중...';
   try {
     const r = await fetch(`/api/game-score?stage=${stage}`, { method: 'DELETE' });
-    btn.textContent = r.ok ? '✅ 삭제완료' : '❌ 실패';
-  } catch { btn.textContent = '❌ 실패'; }
+    if (r.ok) {
+      btn.textContent = '✅ 삭제완료';
+    } else {
+      const body = await r.json().catch(() => ({}));
+      btn.textContent = '❌ 실패';
+      alert(`삭제 실패 (${r.status}): ${body.detail || body.error || '알 수 없는 오류'}`);
+    }
+  } catch (e) { btn.textContent = '❌ 실패'; alert(`네트워크 오류: ${e.message}`); }
   setTimeout(() => { btn.textContent = '🗑 기록 초기화'; }, 2000);
 });
 
@@ -2892,6 +2901,15 @@ function clearAABBHelpers(){
 
 let _devUnlocked = false;
 function enterDevMode(){
+  function activate(){
+    devMode = true;
+    devCamPos.copy(camera.position);
+    const euler = new THREE.Euler().setFromQuaternion(camera.quaternion,'YXZ');
+    devYaw   = euler.y;
+    devPitch = euler.x;
+    devHud.style.display = 'block';
+    devCollectRayMeshes();
+  }
   if (!_devUnlocked) {
     const pw = prompt('DEV PASSWORD:');
     if (!pw) return;
@@ -2902,20 +2920,11 @@ function enterDevMode(){
     }).then(r => {
       if (!r.ok) { alert('Access denied.'); return; }
       _devUnlocked = true;
-      _enterDevModeNow();
+      activate();
     }).catch(() => alert('Auth error.'));
     return;
   }
-  _enterDevModeNow();
-}
-function _enterDevModeNow(){
-  devMode = true;
-  devCamPos.copy(camera.position);
-  const euler = new THREE.Euler().setFromQuaternion(camera.quaternion,'YXZ');
-  devYaw   = euler.y;
-  devPitch = euler.x;
-  devHud.style.display = 'block';
-  devCollectRayMeshes();
+  activate();
 }
 function exitDevMode(){
   devMode = false;
@@ -3206,6 +3215,7 @@ function showStageClearScreen(completedStage, timeSec, cb) {
   screen.scrollTop = 0;
   requestAnimationFrame(() => requestAnimationFrame(() => { screen.style.opacity = '1'; }));
 
+  const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   postScore(completedStage, timeSec).then(() => fetchLeaderboard(completedStage, timeSec)).then(data => {
     if (data && Array.isArray(data.top10)) {
       const fmtMs = ms => formatTime(ms / 1000);
@@ -3217,17 +3227,14 @@ function showStageClearScreen(completedStage, timeSec, cb) {
         html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 4px;`
               + (isMe ? 'background:rgba(255,224,102,0.10);border-radius:4px;' : '') + `">`
               + `<span style="font-family:'Courier New',monospace;font-size:11px;color:${rankCol};min-width:24px;text-align:right;">#${i+1}</span>`
-              + `<span style="font-family:'Courier New',monospace;font-size:clamp(11px,2.8vw,13px);color:${isMe ? '#ffe066' : '#ccc'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${row.nickname}</span>`
+              + `<span style="font-family:'Courier New',monospace;font-size:clamp(11px,2.8vw,13px);color:${isMe ? '#ffe066' : '#ccc'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(row.nickname)}</span>`
               + `<span style="font-family:'Courier New',monospace;font-size:clamp(11px,2.8vw,13px);color:${isMe ? '#88ddff' : '#888'};">${fmtMs(row.clear_time_ms)}</span>`
               + `</div>`;
       });
       lbRows.innerHTML = html;
       lbStatus.style.display = 'none';
       lbRows.style.display = 'block';
-      if (data.rank != null && data.rank > 10) {
-        myRank.textContent = `MY RANK  #${data.rank}`;
-        myRank.style.display = 'block';
-      } else if (data.rank != null && data.rank <= 10) {
+      if (data.rank != null) {
         myRank.textContent = `MY RANK  #${data.rank}`;
         myRank.style.display = 'block';
       }
