@@ -8,7 +8,8 @@ module.exports = function handler(req, res) {
 
   const { pw } = req.body || {};
   const secret = process.env.DEV_PASSWORD;
-  if (!secret || pw !== secret) {
+  const enabled = process.env.DEV_MODE_ENABLED === 'true';
+  if (!enabled || !secret || pw !== secret) {
     return res.status(401).json({ ok: false });
   }
   return res.status(200).json({ ok: true });

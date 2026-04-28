@@ -2892,6 +2892,15 @@ function clearAABBHelpers(){
 
 let _devUnlocked = false;
 function enterDevMode(){
+  function activate(){
+    devMode = true;
+    devCamPos.copy(camera.position);
+    const euler = new THREE.Euler().setFromQuaternion(camera.quaternion,'YXZ');
+    devYaw   = euler.y;
+    devPitch = euler.x;
+    devHud.style.display = 'block';
+    devCollectRayMeshes();
+  }
   if (!_devUnlocked) {
     const pw = prompt('DEV PASSWORD:');
     if (!pw) return;
@@ -2902,20 +2911,11 @@ function enterDevMode(){
     }).then(r => {
       if (!r.ok) { alert('Access denied.'); return; }
       _devUnlocked = true;
-      _enterDevModeNow();
+      activate();
     }).catch(() => alert('Auth error.'));
     return;
   }
-  _enterDevModeNow();
-}
-function _enterDevModeNow(){
-  devMode = true;
-  devCamPos.copy(camera.position);
-  const euler = new THREE.Euler().setFromQuaternion(camera.quaternion,'YXZ');
-  devYaw   = euler.y;
-  devPitch = euler.x;
-  devHud.style.display = 'block';
-  devCollectRayMeshes();
+  activate();
 }
 function exitDevMode(){
   devMode = false;
