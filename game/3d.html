@@ -1577,7 +1577,7 @@ loader.load('/game/CHOG_3D_COLOR.glb', gltf => {
 });
   // Critical assets gate game start; deferred load silently in background
   window._glbsReady = Promise.all(glbQueueCritical.map(([n,u]) => loadGLBAsset(n,u))).then(setupGLBVisuals);
-  window._glbsReady.then(() => Promise.all(glbQueueDeferred.map(([n,u]) => loadGLBAsset(n,u))));
+  window._glbsReady.then(() => Promise.all(glbQueueDeferred.map(([n,u]) => loadGLBAsset(n,u)))).catch(() => {});
 }); // end _meshoptPromise.then
 
 /* ── GLB Asset Preloader ──────────────────────────────────────────────────── */
@@ -3206,6 +3206,7 @@ function showStageClearScreen(completedStage, timeSec, cb) {
   screen.scrollTop = 0;
   requestAnimationFrame(() => requestAnimationFrame(() => { screen.style.opacity = '1'; }));
 
+  const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   postScore(completedStage, timeSec).then(() => fetchLeaderboard(completedStage, timeSec)).then(data => {
     if (data && Array.isArray(data.top10)) {
       const fmtMs = ms => formatTime(ms / 1000);
@@ -3217,17 +3218,14 @@ function showStageClearScreen(completedStage, timeSec, cb) {
         html += `<div style="display:flex;align-items:center;gap:8px;padding:5px 4px;`
               + (isMe ? 'background:rgba(255,224,102,0.10);border-radius:4px;' : '') + `">`
               + `<span style="font-family:'Courier New',monospace;font-size:11px;color:${rankCol};min-width:24px;text-align:right;">#${i+1}</span>`
-              + `<span style="font-family:'Courier New',monospace;font-size:clamp(11px,2.8vw,13px);color:${isMe ? '#ffe066' : '#ccc'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${row.nickname}</span>`
+              + `<span style="font-family:'Courier New',monospace;font-size:clamp(11px,2.8vw,13px);color:${isMe ? '#ffe066' : '#ccc'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(row.nickname)}</span>`
               + `<span style="font-family:'Courier New',monospace;font-size:clamp(11px,2.8vw,13px);color:${isMe ? '#88ddff' : '#888'};">${fmtMs(row.clear_time_ms)}</span>`
               + `</div>`;
       });
       lbRows.innerHTML = html;
       lbStatus.style.display = 'none';
       lbRows.style.display = 'block';
-      if (data.rank != null && data.rank > 10) {
-        myRank.textContent = `MY RANK  #${data.rank}`;
-        myRank.style.display = 'block';
-      } else if (data.rank != null && data.rank <= 10) {
+      if (data.rank != null) {
         myRank.textContent = `MY RANK  #${data.rank}`;
         myRank.style.display = 'block';
       }
