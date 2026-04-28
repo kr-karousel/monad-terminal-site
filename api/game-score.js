@@ -67,10 +67,14 @@ module.exports = async function handler(req, res) {
   if (req.method === 'DELETE') {
     const stage = parseInt(req.query.stage, 10);
     if (isNaN(stage)) return res.status(400).json({ error: 'Missing stage' });
-    await fetch(`${SB_URL}/rest/v1/game_scores?stage=eq.${stage}`, {
+    const sbRes = await fetch(`${SB_URL}/rest/v1/game_scores?stage=eq.${stage}`, {
       method: 'DELETE',
       headers: { ...SB_HEADERS, 'Prefer': 'return=minimal' },
     });
+    if (!sbRes.ok) {
+      const detail = await sbRes.text().catch(() => sbRes.status);
+      return res.status(502).json({ error: 'DB delete failed', detail });
+    }
     return res.status(200).json({ ok: true });
   }
 

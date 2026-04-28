@@ -2726,8 +2726,14 @@ document.getElementById('dev-reset-scores-btn').addEventListener('click', async 
   btn.textContent = '⏳ 삭제중...';
   try {
     const r = await fetch(`/api/game-score?stage=${stage}`, { method: 'DELETE' });
-    btn.textContent = r.ok ? '✅ 삭제완료' : '❌ 실패';
-  } catch { btn.textContent = '❌ 실패'; }
+    if (r.ok) {
+      btn.textContent = '✅ 삭제완료';
+    } else {
+      const body = await r.json().catch(() => ({}));
+      btn.textContent = '❌ 실패';
+      alert(`삭제 실패 (${r.status}): ${body.detail || body.error || '알 수 없는 오류'}`);
+    }
+  } catch (e) { btn.textContent = '❌ 실패'; alert(`네트워크 오류: ${e.message}`); }
   setTimeout(() => { btn.textContent = '🗑 기록 초기화'; }, 2000);
 });
 
