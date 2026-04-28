@@ -1930,9 +1930,12 @@ function physicsStep(dt){
         // Carry player horizontally with moving platform (movingTiles system)
         const mt = movingTiles.find(m => m.aabb === b);
         if (mt && mt.velX) playerPos.x += mt.velX * dt;
-        // Carry player with stage-loaded tiles that have motion (_velX/_velY set each frame)
+        // Carry player with stage-loaded tiles that have motion
         if (b._velX) playerPos.x += b._velX * dt;
-        if (b._velY) playerPos.y += b._velY * dt;
+        // Y: match velocity instead of position-carry to avoid double-push stutter
+        if (b._velY) playerVel.y = b._velY > 0
+          ? Math.max(playerVel.y, b._velY)
+          : Math.min(playerVel.y, b._velY);
       }
     }
   }
