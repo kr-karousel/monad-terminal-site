@@ -2894,9 +2894,21 @@ let _devUnlocked = false;
 function enterDevMode(){
   if (!_devUnlocked) {
     const pw = prompt('DEV PASSWORD:');
-    if (pw !== 'wjdwls11') return;
-    _devUnlocked = true;
+    if (!pw) return;
+    fetch('/api/dev-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pw }),
+    }).then(r => {
+      if (!r.ok) { alert('Access denied.'); return; }
+      _devUnlocked = true;
+      _enterDevModeNow();
+    }).catch(() => alert('Auth error.'));
+    return;
   }
+  _enterDevModeNow();
+}
+function _enterDevModeNow(){
   devMode = true;
   devCamPos.copy(camera.position);
   const euler = new THREE.Euler().setFromQuaternion(camera.quaternion,'YXZ');
