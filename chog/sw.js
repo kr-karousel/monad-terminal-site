@@ -1,5 +1,5 @@
 // CHOG Terminal Service Worker
-const CACHE = 'chog-v2';
+const CACHE = 'chog-v3';
 const STATIC = [
   '/chog/',
   '/chog/style.css',
@@ -22,6 +22,7 @@ const STATIC = [
   '/chog/js/main.js',
   '/chog/js/pricealert.js',
   '/chog/js/pnl.js',
+  '/chog/js/tutorial.js',
 ];
 
 // 캐시 대상이 아닌 요청 패턴 (API, RPC, Supabase 등)

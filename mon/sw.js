@@ -1,5 +1,5 @@
 // Monad Terminal Service Worker
-const CACHE = 'mon-v2';
+const CACHE = 'mon-v3';
 const STATIC = [
   '/mon/',
   '/mon/style.css',
@@ -23,6 +23,7 @@ const STATIC = [
   '/mon/js/main.js',
   '/mon/js/pricealert.js',
   '/mon/js/pnl.js',
+  '/mon/js/tutorial.js',
 ];
 
 const BYPASS = [
