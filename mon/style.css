@@ -1128,3 +1128,27 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:12px 2
   font-size: 12px;
   color: var(--muted);
 }
+
+/* ── Mobile: Price Alert Modal ── */
+@media(max-width:480px){
+  #priceAlertModal .modal{
+    width:96vw;max-width:96vw;padding:18px 14px;
+  }
+  #priceAlertModal input[type="number"],
+  #priceAlertModal input[type="email"]{
+    font-size:16px!important;
+    padding:10px 10px!important;
+  }
+  #priceAlertModal button{
+    padding:10px 14px!important;font-size:13px!important;
+  }
+}
+
+/* ── Mobile: Shout Section ── */
+@media(max-width:600px){
+  .shout-section{border-radius:12px}
+  .shout-input{font-size:16px}
+  .shout-row{flex-wrap:wrap}
+  .shout-cost{font-size:12px}
+  .btn-shout{width:100%;text-align:center;padding:10px}
+}
