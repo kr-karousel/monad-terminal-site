@@ -385,9 +385,9 @@ function _subscribeToConfig(){
 }
 
 function _applyConfig(key, value){
-  if(key === 'nick_cost'){
+  if(key === 'mon_nick_cost'){
     NICK_COST = parseInt(value) || 2000;
-  } else if(key === 'shout_cost'){
+  } else if(key === 'mon_shout_cost'){
     SHOUT_COST = parseInt(value) || 2000;
   }
   if(typeof updateCostDisplays === 'function') updateCostDisplays();
@@ -397,8 +397,8 @@ async function syncConfigToServer(nickCost, shoutCost){
   if(!_sbClient) return;
   try{
     await _sbClient.from('site_config').upsert([
-      { key: 'nick_cost',   value: String(nickCost),  updated_at: new Date().toISOString() },
-      { key: 'shout_cost',  value: String(shoutCost), updated_at: new Date().toISOString() }
+      { key: 'mon_nick_cost',   value: String(nickCost),  updated_at: new Date().toISOString() },
+      { key: 'mon_shout_cost',  value: String(shoutCost), updated_at: new Date().toISOString() }
     ], { onConflict: 'key' });
   }catch(e){ console.warn('[Sync] config 저장 실패:', e.message); }
 }
