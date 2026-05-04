@@ -193,11 +193,19 @@ async function connectWallet(name){
     alert(`${name} wallet not found!\nPlease install it from ${links[name]||'the official site'}.`);
     return;
   }
+  const area = document.getElementById('walletArea');
+  const prevHTML = area ? area.innerHTML : '';
+  if(area) area.innerHTML = '<button class="btn-connect" disabled>Connecting…</button>';
   try{
     const accounts = await provider.request({method:'eth_requestAccounts'});
     if(!accounts||!accounts.length) throw new Error('No accounts');
     await _finalizeWalletConnection(accounts[0], provider, name);
-  }catch(err){ console.error('connectWallet error:',err); alert('Connection failed: '+(err.message||err)); }
+  }catch(err){
+    console.error('connectWallet error:',err);
+    if(area) area.innerHTML = prevHTML;
+    if(err && err.code === 4001) return; // user rejected
+    alert('Connection failed: '+(err.message||err));
+  }
 }
 
 function sendChat(){
