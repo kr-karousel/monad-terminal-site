@@ -10,11 +10,11 @@ module.exports = async function handler(req, res) {
   if (!token) return res.status(500).send('TELEGRAM_BOT_TOKEN not set');
 
   const { id } = req.query;
-  if (!id || !/^[\w\-]+$/.test(id)) return res.status(400).send('Invalid file_id');
+  if (!id || !/^[A-Za-z0-9_\-+=\/]+$/.test(id)) return res.status(400).json({ ok: false, error: 'Invalid file_id' });
 
   try {
     // 1. file_id → file_path 조회
-    const infoRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${id}`);
+    const infoRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(id)}`);
     const info = await infoRes.json();
     if (!info.ok || !info.result.file_path) return res.status(404).send('File not found');
 
