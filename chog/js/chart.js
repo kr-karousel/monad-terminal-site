@@ -22,9 +22,29 @@ function initChart(){
   const tvContainer = document.getElementById('tv-chart-container');
   const fallback    = document.getElementById('chart-fallback');
 
+  var CHART_SRC = 'https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0';
+  // 삼성인터넷에서 iframe 로드 중 스크롤 시 display 토글이 네트워크 요청을
+  // 중단시키는 문제 방지: load 이벤트로 로드 완료 여부 추적
+  window.__chartLoaded = false;
+  function buildChartIframe(){
+    if(!tvContainer) return;
+    window.__chartLoaded = false;
+    tvContainer.innerHTML = '';
+    var iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%;height:360px;border:none;display:block';
+    iframe.allow = 'clipboard-write';
+    iframe.loading = 'eager';
+    iframe.title = 'CHOG/MON Chart';
+    iframe.addEventListener('load', function(){ window.__chartLoaded = true; }, {once:true});
+    iframe.src = CHART_SRC;
+    tvContainer.appendChild(iframe);
+  }
+  window.__buildChartIframe = buildChartIframe;
+
   if(tvContainer){
-    var CHART_SRC = 'https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0';
-    tvContainer.innerHTML = '<iframe src="'+CHART_SRC+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="CHOG/MON Chart"></iframe>';
+    buildChartIframe();
+    // 20초 내 load 이벤트가 안 오면 강제로 ready 처리 (복구 로직 차단 해제)
+    setTimeout(function(){ window.__chartLoaded = true; }, 20000);
     tvContainer.style.display = 'block';
     tvContainer.style.position = 'relative';
     tvContainer.style.zIndex = '1';
@@ -35,15 +55,13 @@ function initChart(){
     if(fallback) fallback.style.display = 'none';
     console.log('✅ DEXScreener 차트 로드');
 
-    // 모바일 스크롤 후 iframe 소멸 방지 - IntersectionObserver로 복구
+    // iframe이 DOM에서 완전히 사라진 경우만 재생성 (로딩 중에는 절대 재생성 안 함)
     if('IntersectionObserver' in window){
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if(entry.isIntersecting){
             const iframe = tvContainer.querySelector('iframe');
-            if(!iframe || !iframe.src){
-              tvContainer.innerHTML = '<iframe src="'+CHART_SRC+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="CHOG/MON Chart"></iframe>';
-            }
+            if(!iframe) buildChartIframe();
           }
         });
       }, {threshold: 0.1});
@@ -106,37 +124,41 @@ function initChart(){
   startPriceRefresh();
 
   // 삼성인터넷 스크롤 시 iframe 사라짐 방지
-  // 접근: RAF 루프 대신, 스크롤 종료 후 iframe이 깨졌는지 1회 체크 + display 토글로 복구
+  // 핵심: 초기 load 이벤트 발생 전에는 iframe을 절대 건드리지 않음
+  // (display 토글이 진행 중인 네트워크 요청을 중단시키는 버그 방지)
   (function(){
     var scrollTimer = null;
-    var chartSrc = 'https://dexscreener.com/monad/0x116e7d070f1888b81e1e0324f56d6746b2d7d8f1?embed=1&theme=dark&trades=0&info=0';
 
     function recoverIframe(){
       var c = document.getElementById('tv-chart-container');
       if(!c) return;
       var iframe = c.querySelector('iframe');
-      if(!iframe || !iframe.src || iframe.src==='about:blank'){
-        // iframe이 DOM에서 완전히 사라진 경우 → 재생성
-        c.innerHTML = '<iframe src="'+chartSrc+'" style="width:100%;height:360px;border:none;display:block" allow="clipboard-write" loading="eager" title="CHOG/MON Chart"></iframe>';
+      if(!iframe){
+        if(typeof window.__buildChartIframe === 'function') window.__buildChartIframe();
         return;
       }
-      // iframe은 있지만 렌더링이 사라진 경우 → display 토글로 강제 repaint
-      // (한 번만 실행, RAF 루프 아님)
+      // 로드 미완료 시 절대 건드리지 않음
+      if(!window.__chartLoaded) return;
+      if(!iframe.src || iframe.src==='about:blank'){
+        if(typeof window.__buildChartIframe === 'function') window.__buildChartIframe();
+        return;
+      }
+      // 로드 완료된 iframe만 강제 repaint (1회)
       iframe.style.display = 'none';
       iframe.offsetHeight; // force reflow
       iframe.style.display = 'block';
     }
 
-    // 스크롤 종료 200ms 후 1회 체크 (디바운스)
+    // 스크롤 종료 250ms 후 1회 체크 (디바운스)
     window.addEventListener('scroll', function(){
       clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(recoverIframe, 200);
+      scrollTimer = setTimeout(recoverIframe, 250);
     }, {passive:true});
 
     // 터치 종료 시에도 체크
     window.addEventListener('touchend', function(){
       clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(recoverIframe, 200);
+      scrollTimer = setTimeout(recoverIframe, 250);
     }, {passive:true});
   })();
 }
