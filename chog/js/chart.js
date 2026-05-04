@@ -68,6 +68,40 @@ function initChart(){
       observer.observe(tvContainer);
     }
 
+    // Samsung Internet: viewport를 벗어난 iframe document가 GC되어
+    // 다시 보일 때 빈 화면이 되는 문제 → src 재할당으로 강제 reload
+    const isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
+    if(isSamsung && 'IntersectionObserver' in window){
+      let wasOut = false;
+      const reloadObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if(entry.intersectionRatio === 0){
+            wasOut = true;
+          } else if(wasOut && entry.intersectionRatio > 0){
+            wasOut = false;
+            const iframe = tvContainer.querySelector('iframe');
+            if(iframe && window.__chartLoaded){
+              window.__chartLoaded = false;
+              iframe.addEventListener('load', function(){ window.__chartLoaded = true; }, {once:true});
+              iframe.src = iframe.src;
+            }
+          }
+        });
+      }, {threshold: [0, 0.01]});
+      reloadObserver.observe(tvContainer);
+
+      // 백그라운드 탭에서 돌아왔을 때도 reload
+      document.addEventListener('visibilitychange', function(){
+        if(document.hidden) return;
+        const iframe = tvContainer.querySelector('iframe');
+        if(iframe && window.__chartLoaded){
+          window.__chartLoaded = false;
+          iframe.addEventListener('load', function(){ window.__chartLoaded = true; }, {once:true});
+          iframe.src = iframe.src;
+        }
+      });
+    }
+
     // CHOG 캐릭터 - 마우스 따라다니기 (부드럽게)
     const chog = document.getElementById('chogChar');
     if(chog){
@@ -126,8 +160,11 @@ function initChart(){
   // 삼성인터넷 스크롤 시 iframe 사라짐 방지
   // 핵심: 초기 load 이벤트 발생 전에는 iframe을 절대 건드리지 않음
   // (display 토글이 진행 중인 네트워크 요청을 중단시키는 버그 방지)
+  // Samsung Internet은 IntersectionObserver의 reload 핸들러가 처리하므로
+  // display 토글은 다른 브라우저(iOS Safari 등)용으로만 실행
   (function(){
     var scrollTimer = null;
+    var isSamsung = /SamsungBrowser/i.test(navigator.userAgent);
 
     function recoverIframe(){
       var c = document.getElementById('tv-chart-container');
@@ -137,25 +174,23 @@ function initChart(){
         if(typeof window.__buildChartIframe === 'function') window.__buildChartIframe();
         return;
       }
-      // 로드 미완료 시 절대 건드리지 않음
       if(!window.__chartLoaded) return;
       if(!iframe.src || iframe.src==='about:blank'){
         if(typeof window.__buildChartIframe === 'function') window.__buildChartIframe();
         return;
       }
-      // 로드 완료된 iframe만 강제 repaint (1회)
+      // Samsung Internet: display 토글로는 GC된 document 복구 불가 → skip
+      if(isSamsung) return;
       iframe.style.display = 'none';
       iframe.offsetHeight; // force reflow
       iframe.style.display = 'block';
     }
 
-    // 스크롤 종료 250ms 후 1회 체크 (디바운스)
     window.addEventListener('scroll', function(){
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(recoverIframe, 250);
     }, {passive:true});
 
-    // 터치 종료 시에도 체크
     window.addEventListener('touchend', function(){
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(recoverIframe, 250);
