@@ -44,7 +44,7 @@ function isSyncEnabled(){ return !!_sbClient; }
 async function _syncNicknamesFromServer(){
   if(!_sbClient) return;
   try{
-    const { data } = await _sbClient.from('nicknames').select('address, nickname');
+    const { data } = await _sbClient.from('nicknames').select('address, nickname').eq('terminal', 'chog');
     if(!data) return;
     data.forEach(row => {
       if(row.address && row.nickname)
@@ -72,9 +72,9 @@ function _refreshChatNicknames(){
 
 function _subscribeToNicknames(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-nicknames')
+  _sbClient.channel('sync-nicknames-chog')
     .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'nicknames' },
+      { event: '*', schema: 'public', table: 'nicknames', filter: 'terminal=eq.chog' },
       payload => {
         const row = payload.new;
         if(!row || !row.address || !row.nickname) return;
@@ -104,8 +104,8 @@ async function syncNickToServer(address, nickname){
   if(!_sbClient) return;
   try{
     await _sbClient.from('nicknames').upsert(
-      { address: address.toLowerCase(), nickname, updated_at: new Date().toISOString() },
-      { onConflict: 'address' }
+      { address: address.toLowerCase(), nickname, terminal: 'chog', updated_at: new Date().toISOString() },
+      { onConflict: 'address,terminal' }
     );
   }catch(e){ console.warn('[Sync] 닉네임 저장 실패:', e.message); }
 }
@@ -118,6 +118,7 @@ async function _syncShoutsFromServer(){
     const { data } = await _sbClient
       .from('shouts')
       .select('id, address, nickname, message, created_at')
+      .eq('terminal', 'chog')
       .order('created_at', { ascending: false })
       .limit(SHOUT_MAX_SLOTS);
     if(!data || !data.length) return;
@@ -137,12 +138,13 @@ async function _syncShoutsFromServer(){
 
 function _subscribeToShouts(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-shouts')
+  _sbClient.channel('sync-shouts-chog')
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'shouts' },
       payload => {
         const row = payload.new;
         if(!row) return;
+        if(row.terminal !== 'chog') return;
         const entry = { addr: row.nickname || row.address, msg: row.message, id: row.id };
         const isMyShout = wallet && wallet.addr.toLowerCase() === row.address.toLowerCase();
 
@@ -168,7 +170,7 @@ function _subscribeToShouts(){
 async function syncShoutToServer(address, nickname, message){
   if(!_sbClient) return;
   try{
-    await _sbClient.from('shouts').insert({ address: address.toLowerCase(), nickname, message });
+    await _sbClient.from('shouts').insert({ address: address.toLowerCase(), nickname, message, terminal: 'chog' });
   }catch(e){ console.warn('[Sync] 외치기 저장 실패:', e.message); }
 }
 
@@ -294,7 +296,8 @@ async function _syncMessagesFromServer(){
   try{
     const { data } = await _sbClient
       .from('messages')
-      .select('id, address, nickname, content, created_at')
+      .select('id, address, nickname, content, created_at, chog_bal')
+      .not('chog_bal', 'is', null)
       .order('created_at', { ascending: false })
       .limit(10);
     if(!data || !data.length) return;
@@ -316,12 +319,13 @@ async function _syncMessagesFromServer(){
 
 function _subscribeToMessages(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-messages')
+  _sbClient.channel('sync-messages-chog')
     .on('postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'messages' },
       payload => {
         const row = payload.new;
         if(!row) return;
+        if(row.chog_bal === null || row.chog_bal === undefined) return;
         renderMsg({
           addr: row.address,
           addrFull: row.address,
@@ -339,9 +343,9 @@ function _subscribeToMessages(){
 
 function _subscribeToContributions(){
   if(!_sbClient) return;
-  _sbClient.channel('sync-contributions')
+  _sbClient.channel('sync-chog-contributions')
     .on('postgres_changes',
-      { event: '*', schema: 'public', table: 'contributions' },
+      { event: '*', schema: 'public', table: 'chog_contributions' },
       () => {
         // Revenue 모달이 열려있으면 자동 갱신
         const modal = document.getElementById('revenueModal');
@@ -378,9 +382,9 @@ function _subscribeToConfig(){
 }
 
 function _applyConfig(key, value){
-  if(key === 'nick_cost'){
+  if(key === 'chog_nick_cost'){
     NICK_COST = parseInt(value) || 2000;
-  } else if(key === 'shout_cost'){
+  } else if(key === 'chog_shout_cost'){
     SHOUT_COST = parseInt(value) || 2000;
   }
   if(typeof updateCostDisplays === 'function') updateCostDisplays();
@@ -390,8 +394,8 @@ async function syncConfigToServer(nickCost, shoutCost){
   if(!_sbClient) return;
   try{
     await _sbClient.from('site_config').upsert([
-      { key: 'nick_cost',   value: String(nickCost),  updated_at: new Date().toISOString() },
-      { key: 'shout_cost',  value: String(shoutCost), updated_at: new Date().toISOString() }
+      { key: 'chog_nick_cost',   value: String(nickCost),  updated_at: new Date().toISOString() },
+      { key: 'chog_shout_cost',  value: String(shoutCost), updated_at: new Date().toISOString() }
     ], { onConflict: 'key' });
   }catch(e){ console.warn('[Sync] config 저장 실패:', e.message); }
 }
