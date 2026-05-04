@@ -1,0 +1,28 @@
+{
+  "name": "CHOG Terminal",
+  "short_name": "CHOG",
+  "description": "Real-time trading terminal for CHOG on Monad — live chart, trades, chat & chess",
+  "start_url": "/chog/",
+  "scope": "/chog/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d0a1a",
+  "theme_color": "#c084fc",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    {
+      "src": "/chog/img/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/chog/img/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "lang": "en"
+}

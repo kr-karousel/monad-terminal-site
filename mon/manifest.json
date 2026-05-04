@@ -1,0 +1,28 @@
+{
+  "name": "Monad Terminal",
+  "short_name": "MON",
+  "description": "Real-time trading terminal for MONAD — live chart, trades, chat & chess",
+  "start_url": "/mon/",
+  "scope": "/mon/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#070612",
+  "theme_color": "#7c3aed",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    {
+      "src": "/mon/img/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/mon/img/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "lang": "en"
+}
