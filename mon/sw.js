@@ -1,5 +1,5 @@
 // Monad Terminal Service Worker
-const CACHE = 'mon-v4';
+const CACHE = 'mon-v5';
 const STATIC = [
   '/mon/',
   '/mon/style.css',

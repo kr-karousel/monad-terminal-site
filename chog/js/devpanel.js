@@ -245,10 +245,13 @@ function clearAllShouts(){
 }
 
 async function doShout(){
+  console.log('[Shout] clicked');
   if(!wallet){alert('Please connect your wallet first!');return;}
   // 잔액 최신화
-  const freshBal = await fetchChogBalance(wallet.addr);
-  if(freshBal !== null){ wallet.bal = Math.floor(freshBal); chogBalance = wallet.bal; updateWalletDisplay(); }
+  try{
+    const freshBal = await fetchChogBalance(wallet.addr);
+    if(freshBal !== null){ wallet.bal = Math.floor(freshBal); chogBalance = wallet.bal; updateWalletDisplay(); }
+  }catch(e){ console.warn('[Shout] balance refresh failed:', e.message); }
   const isDev = wallet.addr.toLowerCase()===DEV_WALLET.toLowerCase();
   if(!isDev && wallet.bal<SHOUT_COST){
     alert('You need '+SHOUT_COST.toLocaleString()+' CHOG to shout!\nBalance: '+wallet.bal.toLocaleString()+' CHOG');
@@ -260,11 +263,20 @@ async function doShout(){
     try{
       const provider=window.ethereum;
       if(provider&&wallet.addr.length===42){
+        // Ensure on Monad chain before sending tx
+        try{
+          await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN_ID}]});
+        }catch(sw){ if(sw.code === 4001) return; }
         const paddedTo=DEV_WALLET.slice(2).padStart(64,'0');
         const paddedAmt='00000000000000000000000000000000000000000000010f0cf064dd59200000';
         await provider.request({method:'eth_sendTransaction',params:[{from:wallet.addr,to:CHOG_CONTRACT,data:'0xa9059cbb'+paddedTo+paddedAmt}]});
       }
-    }catch(e){console.warn('Shout tx:',e.message);}
+    }catch(e){
+      console.warn('[Shout] tx failed:', e.message, e.code);
+      if(e.code === 4001) return; // user rejected
+      alert('Shout transaction failed: ' + (e.message || 'Unknown error'));
+      return;
+    }
     wallet.bal-=SHOUT_COST;chogBalance=wallet.bal;
   }
   const shoutNick = getNick(wallet.addr) || (wallet.addr.slice(0,6)+'...'+wallet.addr.slice(-4));

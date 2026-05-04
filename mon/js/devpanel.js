@@ -308,11 +308,14 @@ function clearAllShouts(){
 }
 
 async function doShout(){
+  console.log('[Shout] clicked');
   if(!wallet){alert('Please connect your wallet first!');return;}
   // 잔액 최신화
   if(typeof fetchMonBalance === 'function'){
-    const freshBal = await fetchMonBalance(wallet.addr);
-    if(freshBal !== null){ wallet.bal = Math.floor(freshBal); updateWalletDisplay(); }
+    try{
+      const freshBal = await fetchMonBalance(wallet.addr);
+      if(freshBal !== null){ wallet.bal = Math.floor(freshBal); updateWalletDisplay(); }
+    }catch(e){ console.warn('[Shout] balance refresh failed:', e.message); }
   }
   const isDev = wallet.addr.toLowerCase()===DEV_WALLET.toLowerCase();
   if(!isDev && wallet.bal<SHOUT_COST){
@@ -329,7 +332,12 @@ async function doShout(){
         const valueWei = BigInt(Math.floor(SHOUT_COST * 1e18));
         await provider.request({method:'eth_sendTransaction',params:[{from:wallet.addr,to:DEV_WALLET,value:'0x'+valueWei.toString(16),gas:'0x5208'}]});
       }
-    }catch(e){if(e.code===4001)return;console.warn('Shout tx:',e.message);}
+    }catch(e){
+      console.warn('[Shout] tx failed:', e.message, e.code);
+      if(e.code===4001) return; // user rejected
+      alert('Shout transaction failed: ' + (e.message || 'Unknown error'));
+      return;
+    }
     wallet.bal-=SHOUT_COST;
   }
   const shoutNick = getNick(wallet.addr) || (wallet.addr.slice(0,6)+'...'+wallet.addr.slice(-4));
