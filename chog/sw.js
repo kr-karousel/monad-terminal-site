@@ -1,5 +1,5 @@
 // CHOG Terminal Service Worker
-const CACHE = 'chog-v1';
+const CACHE = 'chog-v2';
 const STATIC = [
   '/chog/',
   '/chog/style.css',

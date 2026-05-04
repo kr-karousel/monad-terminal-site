@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════
-//  CHOG STICKER PICKER — Telegram 연동
+//  MON STICKER PICKER — Telegram 연동
 // ═══════════════════════════════════════
 
 const STICKER_SET_NAME = 'ChogStikers';
@@ -7,11 +7,15 @@ const STICKERS_PER_PAGE = 6; // 3열 × 2행
 
 var _loadedStickers = [];
 var _currentPage    = 0;
+var _stickerState   = 'idle'; // idle | loading | loaded | error
 
 // ── 스티커 팩 로드 ────────────────────────────────────────
 async function loadTelegramStickers(){
+  if(_stickerState === 'loading') return;
+  _stickerState = 'loading';
+
   const grid = document.querySelector('#stickerPicker .sticker-grid');
-  if(!grid) return;
+  if(!grid) { _stickerState = 'idle'; return; }
   grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:12px;grid-column:span 3;text-align:center">Loading...</div>';
 
   try {
@@ -19,15 +23,19 @@ async function loadTelegramStickers(){
     const data = await res.json();
 
     if(!data.ok || !data.stickers || !data.stickers.length){
-      grid.innerHTML = '<div style="color:#f87171;font-size:11px;padding:12px;grid-column:span 3;text-align:center">Failed to load stickers<br><span style="opacity:.7">' + (data.error||'No stickers found') + '</span></div>';
+      _stickerState = 'error';
+      grid.innerHTML = '<div style="color:#f87171;font-size:11px;padding:12px;grid-column:span 3;text-align:center">Failed to load stickers<br><span style="opacity:.7">' + (data.error||'No stickers found') + '</span><br><button onclick="loadTelegramStickers()" style="margin-top:8px;padding:4px 10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:var(--muted);font-size:10px;cursor:pointer">Retry</button></div>';
       return;
     }
 
     _loadedStickers = data.stickers;
     _currentPage    = 0;
+    _stickerState   = 'loaded';
     _renderPage();
   } catch(e){
-    grid.innerHTML = '<div style="color:#f87171;font-size:11px;padding:12px;grid-column:span 3;text-align:center">Error: ' + e.message + '</div>';
+    _stickerState = 'error';
+    const grid2 = document.querySelector('#stickerPicker .sticker-grid');
+    if(grid2) grid2.innerHTML = '<div style="color:#f87171;font-size:11px;padding:12px;grid-column:span 3;text-align:center">Error: ' + e.message + '<br><button onclick="loadTelegramStickers()" style="margin-top:8px;padding:4px 10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:4px;color:var(--muted);font-size:10px;cursor:pointer">Retry</button></div>';
   }
 }
 
@@ -96,6 +104,10 @@ function toggleStickerPicker(){
     picker.classList.remove('open');
   } else {
     picker.classList.add('open');
+    // lazy load: fetch on first open (or retry after error)
+    if(_stickerState === 'idle' || _stickerState === 'error'){
+      loadTelegramStickers();
+    }
     setTimeout(() => {
       document.addEventListener('click', _closeStickerOnOutside, { once: true });
     }, 0);
@@ -131,6 +143,3 @@ function sendSticker(s){
   }
   if(typeof trackChatPoint === 'function') trackChatPoint();
 }
-
-// ── 초기화 ────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => { loadTelegramStickers(); });
