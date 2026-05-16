@@ -135,21 +135,32 @@ input[type=file]{display:none;}
 
   <!-- HINT BOX -->
   <div class="howto" style="margin-bottom:20px;">
-    <div class="howto-title">💡 HOW IT WORKS</div>
-    <div class="howto-steps" style="grid-template-columns:1fr 1fr 1fr;gap:10px;">
+    <div class="howto-title">🔑 HOW TO USE · FREE WITH NEW OPENAI ACCOUNT</div>
+    <div class="howto-steps" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
       <div class="step">
         <div class="step-num">1</div>
-        <div class="step-text">Drop any image — your NFT, character, or outfit you like</div>
+        <div class="step-text">Sign up at <a href="https://platform.openai.com" target="_blank">platform.openai.com</a> → get <strong>$5 free credits</strong> (~125 PFPs)</div>
       </div>
       <div class="step">
         <div class="step-num">2</div>
-        <div class="step-text">AI reads the outfit, accessories &amp; style from the image</div>
+        <div class="step-text">Profile → <strong>API keys</strong> → <strong>Create new secret key</strong></div>
       </div>
       <div class="step">
         <div class="step-num">3</div>
-        <div class="step-text">CHOG PFP is generated wearing the same style — free, instant</div>
+        <div class="step-text">Paste the key below — it's never stored, only used in your browser</div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-text">Drop any reference image → CHOG PFP auto-generates instantly</div>
       </div>
     </div>
+  </div>
+
+  <!-- API KEY -->
+  <div class="api-row">
+    <label>OPENAI KEY</label>
+    <input type="password" id="apiKey" placeholder="sk-...  paste your OpenAI API key here" />
+    <button class="eye" onclick="toggleKey()" id="eyeBtn">👁</button>
   </div>
 
   <!-- PANELS -->
@@ -190,6 +201,12 @@ const CHOG_DATA_URL = 'data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUN
 
 let b64 = null, resultUrl = null;
 
+function toggleKey(){
+  const i=document.getElementById('apiKey'),b=document.getElementById('eyeBtn');
+  i.type=i.type==='password'?'text':'password';
+  b.textContent=i.type==='password'?'👁':'🙈';
+}
+
 function handleFile(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
@@ -219,43 +236,56 @@ dz.addEventListener('drop',e=>{
 
 /* Upload → auto analyze → auto generate, all in one */
 async function runAll(){
+  const key=document.getElementById('apiKey').value.trim();
+  if(!key){setStatus('⚠ Paste your OpenAI API key first',true);return;}
+  if(!b64){setStatus('⚠ Drop a reference image first',true);return;}
   const btn=document.getElementById('genBtn');
   btn.disabled=true;
   document.getElementById('dlBtn').style.display='none';
   document.getElementById('resultBox').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
-  setStatus('🔍 Reading outfit & style from your image...');
+  setStatus('🔍 GPT-4o analyzing your reference...');
 
   try{
-    /* Step 1: vision → generate a detailed CHOG prompt */
-    const visionRes=await fetch('https://text.pollinations.ai/',{
+    /* Step 1: GPT-4o vision → generate detailed CHOG prompt */
+    const visionRes=await fetch('https://api.openai.com/v1/chat/completions',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
       body:JSON.stringify({
+        model:'gpt-4o',max_tokens:300,
         messages:[{role:'user',content:[
           {type:'image_url',image_url:{url:CHOG_DATA_URL}},
           {type:'image_url',image_url:{url:b64}},
-          {type:'text',text:`The first image is CHOG — a chibi hedgehog with spiky purple hair, large black eyes with white highlight dot, pink blush marks on cheeks, cream beige round face, bold black outlines, flat 2D cartoon style, solid blue background #00AAFF.
+          {type:'text',text:`The first image is CHOG — a chibi hedgehog with spiky purple hair, large black eyes with white highlight dot, pink blush marks, cream beige face, bold black outlines, flat 2D chibi cartoon style, blue background.
 
-The second image is a reference character showing an outfit, accessories, and pose to apply to CHOG.
+The second image is a reference. Write a DALL-E 3 prompt to recreate CHOG wearing the exact same outfit and accessories as the character in the second image. Keep all CHOG visual traits. List every detail: hat (type+color), glasses (type+color), jacket/suit (type+color), shirt, held items, pose, expression.
 
-Write an image generation prompt that recreates CHOG with the exact outfit and accessories from the reference. Structure:
-- Start: "CHOG chibi hedgehog NFT profile picture, spiky purple hair, large black eyes white highlight, pink blush marks, cream beige round face, bold black outlines, flat 2D chibi cartoon style,"
-- Middle: describe every detail from reference (hat type+color, glasses, jacket/coat type+color, shirt, held objects, pose, expression)
-- End: "solid bright blue background #00AAFF, square 1:1 format, no text, no watermark"
+Start with: "CHOG chibi hedgehog NFT profile picture, spiky purple hair, large black eyes white highlight dot, pink blush marks on cheeks, cream beige round chibi face, bold black outlines, flat 2D chibi cartoon style,"
+End with: "solid bright blue background #00AAFF, square 1:1 format, no text, no watermark"
 
-Output only the prompt text, under 130 words.`}
-        ]}],
-        model:'openai',
-        seed:42
+Output only the prompt, under 150 words.`}
+        ]}]
       })
     });
-    if(!visionRes.ok) throw new Error('Vision error '+visionRes.status);
-    const chogPrompt=(await visionRes.text()).trim();
+    const vd=await visionRes.json();
+    if(vd.error)throw new Error(vd.error.message);
+    const chogPrompt=vd.choices[0].message.content.trim();
 
-    /* Step 2: generate image */
+    /* Step 2: DALL-E 3 generate */
     document.getElementById('resultBox').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">generating CHOG...</div></div>';
-    setStatus('⚡ Generating your CHOG PFP...');
-    await spawnImage(chogPrompt);
+    setStatus('⚡ DALL-E 3 generating your CHOG PFP...');
+
+    const genRes=await fetch('https://api.openai.com/v1/images/generations',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+      body:JSON.stringify({model:'dall-e-3',prompt:chogPrompt,n:1,size:'1024x1024',quality:'standard',response_format:'url'})
+    });
+    const gd=await genRes.json();
+    if(gd.error)throw new Error(gd.error.message);
+    resultUrl=gd.data[0].url;
+    document.getElementById('resultBox').innerHTML=`<img src="${resultUrl}" alt="CHOG PFP" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    document.getElementById('dlBtn').style.display='flex';
+    setStatus('✦ Your CHOG PFP is ready! GM fren 🦔','ok');
+    btn.disabled=false;
 
   }catch(err){
     document.getElementById('resultBox').innerHTML='<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
@@ -264,19 +294,17 @@ Output only the prompt text, under 130 words.`}
   }
 }
 
-/* Re-generate button: reuse last runAll */
 async function generatePFP(){
   if(!b64){setStatus('⚠ Drop a reference image first',true);return;}
   runAll();
 }
 
+/* unused — kept for reset */
 async function spawnImage(chogPrompt){
   const btn=document.getElementById('genBtn');
   try{
-
     const seed=Math.floor(Math.random()*99999);
     const imageUrl=`https://image.pollinations.ai/prompt/${encodeURIComponent(chogPrompt)}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`;
-
     const img=new Image();
     img.crossOrigin='anonymous';
     img.onload=()=>{
