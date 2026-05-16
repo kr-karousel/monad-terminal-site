@@ -236,24 +236,22 @@ async function generatePFP(){
   setStatus('🔍 Reading outfit & accessories from your image...');
 
   try{
-    /* Step 1 — vision: describe outfit from reference image */
+    /* Step 1 — vision: send CHOG base + reference together, ask for full generation prompt */
     const visionRes=await fetch('https://text.pollinations.ai/',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         messages:[{role:'user',content:[
+          {type:'image_url',image_url:{url:CHOG_DATA_URL}},
           {type:'image_url',image_url:{url:b64}},
-          {type:'text',text:'List every visible clothing item and accessory on the character: hat (type+color), glasses (type+color), jacket/shirt/suit (type+color+style), any held objects, jewelry, patterns. Be precise and exhaustive. Output as a comma-separated list only, no sentences.'}
+          {type:'text',text:'First image is CHOG: a chibi hedgehog with spiky purple hair, large black eyes, pink blush marks, cream beige face, bold black outlines, flat 2D cartoon style, blue background. Second image has a character with a specific outfit. Write a DALL-E image generation prompt to recreate CHOG wearing exactly the outfit and accessories from the second image. Keep all of CHOG\'s visual traits. List every accessory: hat, glasses, clothing, held items, colors. Output only the prompt, under 100 words.'}
         ]}],
         model:'openai',
         seed:Math.floor(Math.random()*99999)
       })
     });
     if(!visionRes.ok) throw new Error('Vision API error '+visionRes.status);
-    const outfitDesc=(await visionRes.text()).trim();
-
-    /* Step 2 — build CHOG prompt: outfit FIRST so Flux prioritizes it */
-    const chogPrompt=`chibi cartoon NFT profile picture of a hedgehog character wearing ${outfitDesc}, outfit clearly visible and prominent, spiky purple hair, large round black eyes with white highlight, pink blush marks on both cheeks, cream beige skin, bold black outlines, flat 2D chibi illustration, solid bright blue background #00AAFF, bust portrait showing full outfit, square 1:1 format, no text, no watermark, no humans`;
+    const chogPrompt=(await visionRes.text()).trim();
 
     /* Step 3 — generate image */
     document.getElementById('resultBox').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">generating CHOG...</div></div>';
