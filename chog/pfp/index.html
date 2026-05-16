@@ -175,7 +175,7 @@ input[type=file]{display:none;}
 
   <!-- BUTTONS -->
   <div class="btn-row" style="margin-top:16px;">
-    <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate CHOG PFP</button>
+    <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate Again</button>
     <button class="icon-btn" id="dlBtn" onclick="openResult()" style="display:none" title="Open / Download">⬇</button>
     <button class="icon-btn" onclick="resetAll()" title="Reset">↺</button>
   </div>
@@ -193,18 +193,13 @@ let b64 = null, resultUrl = null;
 function handleFile(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=ev=>{
-    b64=ev.target.result;
-    setDropImage(b64);
-    document.getElementById('genBtn').disabled=false;
-    setStatus('✓ Image ready — hit Generate 🦔','ok');
-  };
+  r.onload=ev=>{b64=ev.target.result;setDropImage(b64);runAll();};
   r.readAsDataURL(f);
 }
 
 function setDropImage(src){
   const dz=document.getElementById('dropZone');
-  dz.innerHTML=`<img class="uploaded" src="${src}" alt="CHOG" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block;">`;
+  dz.innerHTML=`<img class="uploaded" src="${src}" alt="ref" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block;">`;
   dz.classList.add('has-img');
 }
 
@@ -217,26 +212,21 @@ dz.addEventListener('drop',e=>{
   const f=e.dataTransfer.files[0];
   if(f&&f.type.startsWith('image/')){
     const r=new FileReader();
-    r.onload=ev=>{
-      b64=ev.target.result;
-      setDropImage(b64);
-      document.getElementById('genBtn').disabled=false;
-      setStatus('✓ Image ready — hit Generate 🦔','ok');
-    };
+    r.onload=ev=>{b64=ev.target.result;setDropImage(b64);runAll();};
     r.readAsDataURL(f);
   }
 });
 
-async function generatePFP(){
-  if(!b64){setStatus('⚠ Drop a reference image first',true);return;}
+/* Upload → auto analyze → auto generate, all in one */
+async function runAll(){
   const btn=document.getElementById('genBtn');
   btn.disabled=true;
   document.getElementById('dlBtn').style.display='none';
-  document.getElementById('resultBox').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing reference...</div></div>';
-  setStatus('🔍 Reading outfit & accessories from your image...');
+  document.getElementById('resultBox').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
+  setStatus('🔍 Reading outfit & style from your image...');
 
   try{
-    /* Step 1 — vision: send CHOG base + reference together, ask for full generation prompt */
+    /* Step 1: vision → generate a detailed CHOG prompt */
     const visionRes=await fetch('https://text.pollinations.ai/',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -244,18 +234,45 @@ async function generatePFP(){
         messages:[{role:'user',content:[
           {type:'image_url',image_url:{url:CHOG_DATA_URL}},
           {type:'image_url',image_url:{url:b64}},
-          {type:'text',text:'First image is CHOG: a chibi hedgehog with spiky purple hair, large black eyes, pink blush marks, cream beige face, bold black outlines, flat 2D cartoon style, blue background. Second image has a character with a specific outfit. Write a DALL-E image generation prompt to recreate CHOG wearing exactly the outfit and accessories from the second image. Keep all of CHOG\'s visual traits. List every accessory: hat, glasses, clothing, held items, colors. Output only the prompt, under 100 words.'}
+          {type:'text',text:`The first image is CHOG — a chibi hedgehog with spiky purple hair, large black eyes with white highlight dot, pink blush marks on cheeks, cream beige round face, bold black outlines, flat 2D cartoon style, solid blue background #00AAFF.
+
+The second image is a reference character showing an outfit, accessories, and pose to apply to CHOG.
+
+Write an image generation prompt that recreates CHOG with the exact outfit and accessories from the reference. Structure:
+- Start: "CHOG chibi hedgehog NFT profile picture, spiky purple hair, large black eyes white highlight, pink blush marks, cream beige round face, bold black outlines, flat 2D chibi cartoon style,"
+- Middle: describe every detail from reference (hat type+color, glasses, jacket/coat type+color, shirt, held objects, pose, expression)
+- End: "solid bright blue background #00AAFF, square 1:1 format, no text, no watermark"
+
+Output only the prompt text, under 130 words.`}
         ]}],
         model:'openai',
-        seed:Math.floor(Math.random()*99999)
+        seed:42
       })
     });
-    if(!visionRes.ok) throw new Error('Vision API error '+visionRes.status);
+    if(!visionRes.ok) throw new Error('Vision error '+visionRes.status);
     const chogPrompt=(await visionRes.text()).trim();
 
-    /* Step 3 — generate image */
+    /* Step 2: generate image */
     document.getElementById('resultBox').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">generating CHOG...</div></div>';
-    setStatus('⚡ Generating your CHOG PFP... (30–60s)');
+    setStatus('⚡ Generating your CHOG PFP...');
+    await spawnImage(chogPrompt);
+
+  }catch(err){
+    document.getElementById('resultBox').innerHTML='<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
+    setStatus('✗ '+err.message,true);
+    btn.disabled=false;
+  }
+}
+
+/* Re-generate button: reuse last runAll */
+async function generatePFP(){
+  if(!b64){setStatus('⚠ Drop a reference image first',true);return;}
+  runAll();
+}
+
+async function spawnImage(chogPrompt){
+  const btn=document.getElementById('genBtn');
+  try{
 
     const seed=Math.floor(Math.random()*99999);
     const imageUrl=`https://image.pollinations.ai/prompt/${encodeURIComponent(chogPrompt)}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`;
