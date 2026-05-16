@@ -243,7 +243,7 @@ async function generatePFP(){
       body:JSON.stringify({
         messages:[{role:'user',content:[
           {type:'image_url',image_url:{url:b64}},
-          {type:'text',text:'Describe ONLY the outfit, clothing, and accessories visible on the character in this image. Be specific: hat type, clothing style, glasses, jewelry, colors, patterns. Under 40 words. No character description, outfit only.'}
+          {type:'text',text:'List every visible clothing item and accessory on the character: hat (type+color), glasses (type+color), jacket/shirt/suit (type+color+style), any held objects, jewelry, patterns. Be precise and exhaustive. Output as a comma-separated list only, no sentences.'}
         ]}],
         model:'openai',
         seed:Math.floor(Math.random()*99999)
@@ -252,8 +252,8 @@ async function generatePFP(){
     if(!visionRes.ok) throw new Error('Vision API error '+visionRes.status);
     const outfitDesc=(await visionRes.text()).trim();
 
-    /* Step 2 — build CHOG prompt */
-    const chogPrompt=`CHOG chibi hedgehog NFT profile picture, Monad blockchain mascot, spiky purple hedgehog hair, large black eyes with white highlight dot, pink blush circles on cheeks, cream beige round chibi face, bold black outlines, flat chibi cartoon illustration style, wearing: ${outfitDesc}, solid bright blue background #00AAFF, square 1:1, centered, no text, no watermark`;
+    /* Step 2 — build CHOG prompt: outfit FIRST so Flux prioritizes it */
+    const chogPrompt=`chibi cartoon NFT profile picture of a hedgehog character wearing ${outfitDesc}, outfit clearly visible and prominent, spiky purple hair, large round black eyes with white highlight, pink blush marks on both cheeks, cream beige skin, bold black outlines, flat 2D chibi illustration, solid bright blue background #00AAFF, bust portrait showing full outfit, square 1:1 format, no text, no watermark, no humans`;
 
     /* Step 3 — generate image */
     document.getElementById('resultBox').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">generating CHOG...</div></div>';
