@@ -139,7 +139,7 @@ input[type=file]{display:none;}
     <div class="howto-steps" style="grid-template-columns:1fr 1fr 1fr;gap:10px;">
       <div class="step"><div class="step-num">1</div><div class="step-text">Connect your Monad wallet — get <strong>1 free generation</strong></div></div>
       <div class="step"><div class="step-num">2</div><div class="step-text">Drop any reference image → CHOG PFP auto-generates</div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-text">Pay <strong>100 MON</strong> to get <strong>5 more</strong> generations</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text">Pay <strong>100 MON</strong> to get <strong>10 more</strong> generations</div></div>
     </div>
   </div>
 
@@ -151,7 +151,7 @@ input[type=file]{display:none;}
       <span style="margin:0 10px;color:#3a3055;">·</span>
       <span id="creditDisplay" style="color:#a78bfa;"></span>
     </div>
-    <button id="payBtn" onclick="pfpPay()" style="display:none;background:rgba(138,92,246,.15);border:1px solid rgba(138,92,246,.4);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;white-space:nowrap;">💎 100 MON → +5</button>
+    <button id="payBtn" onclick="pfpPay()" style="display:none;background:rgba(138,92,246,.15);border:1px solid rgba(138,92,246,.4);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;white-space:nowrap;">💎 100 MON → +10</button>
   </div>
 
   <!-- CHOG STYLE SWITCHER -->
@@ -315,7 +315,7 @@ async function runAll(){
   if(!pfpWallet){setStatus('⚠ Connect wallet first',true);return;}
   if(!b64){setStatus('⚠ Drop a reference image first',true);return;}
   if(pfpCredits < 1){
-    setStatus('⚠ No credits left — pay 100 MON for 5 more',true);
+    setStatus('⚠ No credits left — pay 100 MON for 10 more',true);
     document.getElementById('payBtn').style.display='block';
     return;
   }

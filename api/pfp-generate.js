@@ -1,12 +1,12 @@
 // Vercel serverless — CHOG PFP Studio
-// 1 free generation per wallet / 100 MON = +5 credits
+// 1 free generation per wallet / 100 MON = +10 credits
 const SB_URL = 'https://phjolzvyewacjqausmxx.supabase.co';
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoam9senZ5ZXdhY2pxYXVzbXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDY5NzIsImV4cCI6MjA5MDY4Mjk3Mn0.XDNfHWN7NdzBHffE6-YgMMR8skNMR7blTJVu1EbvPrY';
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const MONAD_RPC  = 'https://rpc.monad.xyz';
 const DEV_WALLET = '0x38A7d00c3494ACFF01c0d216A6115A2af1A72162';
 const MON_PAYMENT = '0x16345785D3A00000'; // 100 MON in wei (hex)
-const CREDITS_PER_PAYMENT = 5;
+const CREDITS_PER_PAYMENT = 10;
 
 const SB_HEADERS = {
   'apikey': SB_KEY,
@@ -103,7 +103,7 @@ module.exports = async function handler(req, res) {
     // Check & decrement credits
     const row = await sbGet(wallet);
     const currentCredits = row?.credits ?? 1;
-    if (currentCredits < 1) return res.status(402).json({ error: 'No credits. Pay 100 MON for 5 more.' });
+    if (currentCredits < 1) return res.status(402).json({ error: 'No credits. Pay 100 MON for 10 more.' });
 
     await sbUpsert(wallet, currentCredits - 1, row?.used_txhashes || []);
 
