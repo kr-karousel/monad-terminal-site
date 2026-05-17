@@ -241,7 +241,7 @@ Style: flat 2D illustration${stylePart}, zero gradients, zero shading, zero text
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'gpt-image-2',
+        model: 'chatgpt-image-latest',
         prompt: chogPrompt,
         n: 1,
         size: '1024x1024',

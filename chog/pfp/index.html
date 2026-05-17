@@ -841,7 +841,7 @@ async function runAll() {
   const stages = [
     { delay: 0,     text: 'analyzing outfit...',           toast: '🔍 GPT-4o analyzing outfit & accessories...' },
     { delay: 6000,  text: 'composing CHOG...',             toast: '🎨 Composing CHOG with your outfit...' },
-    { delay: 15000, text: 'rendering details...',          toast: '✨ gpt-image-2 rendering details (this takes 30-60s)...' },
+    { delay: 15000, text: 'rendering details...',          toast: '✨ chatgpt-image-latest rendering details (this takes 30-60s)...' },
     { delay: 35000, text: 'finalizing...',                 toast: '🦔 Almost there...' },
   ];
   const stageTimers = stages.map(s => setTimeout(() => {
