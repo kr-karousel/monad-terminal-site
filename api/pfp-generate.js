@@ -204,44 +204,23 @@ module.exports = async function handler(req, res) {
       await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
     }
 
-    // Step 1: GPT-4o vision → extract ONLY outfit/accessories from reference
-    const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
-      body: JSON.stringify({
-        model: 'gpt-4o', max_tokens: 200,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: `Look at the person/character in this image. Describe ONLY the outfit, accessories, and pose in a comma-separated list. Include: headwear (hat/cap/none), eyewear (sunglasses/glasses/none), top (jacket/suit/shirt color and type), held items (phone/cash/coffee/none), pose, facial expression. Maximum 60 words. No introduction, just the comma-separated list. Example output: "black fedora hat, round black sunglasses, black tuxedo with white shirt, holding fan of dollar bills, confident pose, smug smirk".` }
-          ]
-        }]
-      }),
-    });
-    const vd = await visionRes.json();
-    if (vd.error) return res.status(500).json({ error: vd.error.message });
-    const outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
-
-    // Step 2: build prompt — only include options the user enabled
-    const bgPart = bgTemplate ? ` Background: ${bgTemplate}.` : ' Keep the original background of the source image.';
-    const stylePart = artStyle ? ` Render in art style: ${artStyle}.` : '';
-    const extraPart = customPrompt ? `, ${customPrompt.trim()}` : '';
-    const chogPrompt = `Add ONLY the following clothing and accessories to this character: ${outfit}${extraPart}.
-
-CRITICAL — DO NOT MODIFY:
-- The character's face, eyes, eyebrows, blush marks, mouth, or expression (must be 100% identical to source)
-- The character's hair shape, color, or style
-- The character's body shape or proportions
-- The art style, line weight, color palette, or rendering technique of the source image
-
-ONLY add the clothing/accessories on top of the existing character. Treat this like putting stickers/clothes on a paper doll — the doll itself never changes, only what's placed on it.${bgPart}${stylePart}`.trim();
-
-    // Step 3: gpt-image-1 EDIT the CHOG base — preserves silhouette/form
+    // Load both images: base CHOG + user reference (no vision text step — same as ChatGPT)
     const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
     const baseRes = await fetch(baseUrl);
     if (!baseRes.ok) return res.status(500).json({ error: 'Failed to load CHOG base image' });
     const baseBuf = Buffer.from(await baseRes.arrayBuffer());
+
+    // image is a base64 data URL like "data:image/jpeg;base64,..."
+    const refMatch = image.match(/^data:(image\/[^;]+);base64,(.+)$/);
+    if (!refMatch) return res.status(400).json({ error: 'Reference image must be a base64 data URL' });
+    const refMime = refMatch[1];
+    const refBuf = Buffer.from(refMatch[2], 'base64');
+
+    // Simple direct prompt — like ChatGPT's working prompt
+    const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background of the first image.';
+    const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
+    const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
+    const chogPrompt = `Generate the first image (CHOG character) wearing the outfit and accessories from the second image. Keep the first image's character face, eyes, hair, and art style exactly the same — only transfer the clothing, hats, glasses, and items from the second image onto the first character.${bgPart}${stylePart}${extraPart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
@@ -249,7 +228,10 @@ ONLY add the clothing/accessories on top of the existing character. Treat this l
     form.append('n', '1');
     form.append('size', '1024x1024');
     form.append('quality', 'medium');
-    form.append('image', new Blob([baseBuf], { type: 'image/png' }), 'chog.png');
+    form.append('input_fidelity', 'high');
+    // Pass BOTH images — base CHOG first, then user reference
+    form.append('image[]', new Blob([baseBuf], { type: 'image/png' }), 'chog_base.png');
+    form.append('image[]', new Blob([refBuf], { type: refMime }), 'reference.' + refMime.split('/')[1]);
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
