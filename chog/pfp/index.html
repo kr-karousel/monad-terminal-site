@@ -170,7 +170,7 @@ input[type=file]{display:none;}
     <div class="howto-title">💡 HOW IT WORKS</div>
     <div class="step"><div class="step-num">1</div><div class="step-text">Connect your X account → get <strong>1 free generation</strong></div></div>
     <div class="step"><div class="step-num">2</div><div class="step-text">Drop any reference image (character, outfit, NFT) → CHOG PFP auto-generates</div></div>
-    <div class="step"><div class="step-num">3</div><div class="step-text">Want more? Connect wallet and pay <strong>100 MON → +10 generations</strong></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Want more? Connect wallet and pay <strong>100 MON → +5 generations</strong></div></div>
   </div>
 
   <!-- X LOGIN ROW -->
@@ -196,7 +196,7 @@ input[type=file]{display:none;}
       <div id="creditDots" class="credit-dots"></div>
       <button onclick="disconnectWallet()" title="Disconnect" style="background:none;border:none;color:#4a3d6b;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;">✕</button>
     </div>
-    <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 100 MON → +10 generations</button>
+    <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 100 MON → +5 generations</button>
   </div>
 
   <!-- CHOG STYLE SWITCHER -->
@@ -630,7 +630,7 @@ async function pfpPay() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.error);
     await refreshCredits();
-    setStatus('✦ Payment confirmed! +10 generations unlocked 🦔', 'ok');
+    setStatus('✦ Payment confirmed! +5 generations unlocked 🦔', 'ok');
   } catch (e) { setStatus('✗ ' + e.message, true); }
 }
 
@@ -657,9 +657,9 @@ function updateCreditUI(d) {
   // Wallet credits display
   if (pfpWallet && d.walletCredits !== undefined) {
     const wc = d.walletCredits;
-    document.getElementById('creditDisplay').textContent = `${wc}/10`;
+    document.getElementById('creditDisplay').textContent = `${wc}/5`;
     const dots = document.getElementById('creditDots');
-    dots.innerHTML = Array.from({length:10},(_,i) =>
+    dots.innerHTML = Array.from({length:5},(_,i) =>
       `<div class="cdot ${i < wc ? 'on' : 'off'}"></div>`
     ).join('');
     document.getElementById('payBtn').style.display = wc < 3 ? 'block' : 'none';
@@ -728,7 +728,7 @@ async function runAll() {
 
   if (!canUseXFree && !canUseWallet) {
     if (!xSession) setStatus('⚠ Connect X for 1 free generation, or connect wallet', true);
-    else setStatus('⚠ No credits left — pay 100 MON for 10 more', true);
+    else setStatus('⚠ No credits left — pay 100 MON for 5 more', true);
     document.getElementById('payBtn').style.display = 'block';
     return;
   }

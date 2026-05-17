@@ -8,7 +8,7 @@ const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'chog-pfp-fallback-secret';
 const MONAD_RPC  = 'https://rpc.monad.xyz';
 const DEV_WALLET = '0xf9bb715c1DC21EB661FCaC75d45BCf470235e0d8';
-const CREDITS_PER_PAYMENT = 10;
+const CREDITS_PER_PAYMENT = 5;
 
 const SB_HEADERS = {
   'apikey': SB_KEY,
@@ -173,7 +173,7 @@ module.exports = async function handler(req, res) {
       if (!wallet) return res.status(402).json({ error: 'Connect X for 1 free generation, or pay 100 MON for more.' });
       walletRow = await getWalletRow(wallet);
       if (!walletRow || walletRow.credits < 1) {
-        return res.status(402).json({ error: 'No credits left. Pay 100 MON to get 10 more.' });
+        return res.status(402).json({ error: 'No credits left. Pay 100 MON to get 5 more.' });
       }
     }
 
@@ -220,7 +220,7 @@ module.exports = async function handler(req, res) {
     form.append('prompt', chogPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
-    form.append('quality', 'high');
+    form.append('quality', 'medium');
     form.append('image', new Blob([baseBuf], { type: 'image/png' }), 'chog.png');
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
