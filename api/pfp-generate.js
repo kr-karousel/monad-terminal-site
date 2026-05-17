@@ -222,7 +222,14 @@ module.exports = async function handler(req, res) {
     const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
     const chogPrompt = `The FIRST image is the ABSOLUTE base image. It is an IMMUTABLE ANCHOR.
 
-Preserve the FIRST image almost entirely:
+IMPORTANT: Preserve the crude amateur drawing quality of the FIRST image.
+Keep:
+- awkward linework
+- uneven shapes
+- imperfect proportions
+- childish hand-drawn feeling
+- messy/simple coloring
+- low-detail rendering
 - same face proportions
 - same line thickness
 - same flat coloring
@@ -230,11 +237,20 @@ Preserve the FIRST image almost entirely:
 - same hair shape and silhouette
 - same framing and crop
 - same background color
-- same hand-drawn simplicity
-- same overall drawing imperfections
+- same drawing imperfections
 
 DO NOT:
-- change the art style
+- polish the drawing
+- clean up the lines
+- make it symmetrical
+- make it professional
+- make it vector-clean
+- make it high-detail
+- make it look like modern AI art
+- convert it to vector art
+- convert it to mascot logo art
+- convert it to polished digital illustration
+- convert it to smooth modern cartoon style
 - add realism
 - add rendering
 - add texture
@@ -244,37 +260,42 @@ DO NOT:
 - redesign the character
 - reinterpret the composition
 
+The final image should STILL look badly hand-drawn in a charming way.
+
 The SECOND image is ONLY a clothing/accessory reference.
-Transfer ONLY:
+ONLY replace clothing-related regions. Transfer ONLY:
 - hat/headwear
 - glasses/sunglasses
 - clothing colors and outfit
 - accessories/items
 - fashion concept
 
+Do not redesign the character itself. Do not modify:
+- face structure
+- eyes
+- mouth
+- cheeks
+- head shape
+- hair silhouette
+
 Keep the FIRST image visually dominant.
 
 The final image should look like: "the FIRST image character wearing the SECOND image outfit."
 NOT: "a fusion of both images."
+NOT: "a polished AI illustration of the character."
 
 If any conflict occurs between the two images, ALWAYS prioritize the FIRST image.
-The SECOND image must never affect:
-- face structure
-- drawing style
-- rendering style
-- composition
-- camera framing
-- character proportions
+The SECOND image must never affect: face structure, drawing style, rendering style, composition, camera framing, character proportions.
 
 This is IDENTITY LOCK + ATTRIBUTE REPLACEMENT — not style transfer.
-The character identity is fixed by the FIRST image. Only the outfit is replaced from the SECOND image.${bgPart}${stylePart}${extraPart}`;
+The character's crude hand-drawn identity is fixed by the FIRST image. Only the outfit is replaced from the SECOND image.${bgPart}${stylePart}${extraPart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
     form.append('prompt', chogPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
-    form.append('quality', 'high');
+    form.append('quality', 'medium');
     form.append('input_fidelity', 'high');
     // Pass BOTH images — base CHOG first, then user reference
     form.append('image[]', new Blob([baseBuf], { type: 'image/png' }), 'chog_base.png');
