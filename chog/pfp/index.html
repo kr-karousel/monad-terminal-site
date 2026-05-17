@@ -655,28 +655,6 @@ function updateGenBtn() {
   document.getElementById('genBtn').disabled = !canGen;
 }
 
-async function pfpPay() {
-  if (!pfpWallet) { setStatus('⚠ Connect wallet first', true); return; }
-  setStatus('💎 Sending 100 MON...');
-  try {
-    const txHash = await window.ethereum.request({
-      method: 'eth_sendTransaction',
-      params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D3A00000', gas: '0x5208' }]
-    });
-    setStatus('⏳ Verifying payment on-chain...');
-    await new Promise(r => setTimeout(r, 4000));
-    const r = await fetch(API_BASE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'pay', wallet: pfpWallet, txHash }),
-    });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error);
-    await refreshCredits();
-    setStatus('✦ Payment confirmed! +10 generations unlocked 🦔', 'ok');
-  } catch (e) { setStatus('✗ ' + e.message, true); }
-}
-
 /* ── STYLE SWITCHER ── */
 function setChogStyle(n) {
   chogBaseUrl = n === 1 ? CHOG_STYLE1 : n === 2 ? CHOG_STYLE2 : CHOG_STYLE3;
