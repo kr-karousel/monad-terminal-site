@@ -1,15 +1,4 @@
 {
-  "headers": [
-    {
-      "source": "/chog/pfp(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; style-src-attr 'unsafe-inline'; connect-src *; img-src * data: blob:; font-src * data:; default-src *;"
-        }
-      ]
-    }
-  ],
   "redirects": [
     { "source": "/mon",  "destination": "/mon/",  "permanent": false },
     { "source": "/chog", "destination": "/chog/", "permanent": false },
