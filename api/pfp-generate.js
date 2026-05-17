@@ -1,8 +1,6 @@
 // Vercel serverless — CHOG PFP Studio
 // Free: 1 per X account · Paid: 0.1 MON = 10 credits (wallet)
 const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
 
 const SB_URL = 'https://phjolzvyewacjqausmxx.supabase.co';
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoam9senZ5ZXdhY2pxYXVzbXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDY5NzIsImV4cCI6MjA5MDY4Mjk3Mn0.XDNfHWN7NdzBHffE6-YgMMR8skNMR7blTJVu1EbvPrY';
@@ -206,49 +204,49 @@ module.exports = async function handler(req, res) {
       await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
     }
 
-    const bgPart = bgTemplate
-      ? `Solid flat background color: ${bgTemplate}.`
-      : 'Solid flat background: bright blue #00AAFF.';
-    const stylePart = artStyle ? `Art direction: ${artStyle}.` : '';
-    const extraPart = customPrompt ? `Additional details: ${customPrompt.trim()}.` : '';
-
-    // Read CHOG style image from disk
-    let styleFilename = 'IMG_20260516_025404_862.jpg';
-    if (chogStyle) {
-      if (chogStyle.includes('IMG_20260516')) styleFilename = 'IMG_20260516_025404_862.jpg';
-      else if (chogStyle.includes('CH_og'))   styleFilename = 'CH_og.jpg';
-      else if (chogStyle.includes('CHOG'))    styleFilename = 'CHOG.jpg';
-    }
-    const stylePath = path.join(__dirname, '../chog/pfp', styleFilename);
-    console.log('[generate] chogStyle param:', chogStyle, '→ file:', styleFilename);
-    const styleBuffer = fs.readFileSync(stylePath);
-
-    // Decode user reference image from base64
-    const refBase64 = image.replace(/^data:image\/\w+;base64,/, '');
-    const refBuffer = Buffer.from(refBase64, 'base64');
-
-    // Pass both images directly to gpt-image-2 — no separate vision call needed
-    // Image 1: CHOG style reference (locks character identity + art style)
-    // Image 2: user reference (model reads outfit/accessories directly)
-    const editPrompt = `The first image is a CHOG NFT character. The second image is a reference showing an outfit and accessories. Redraw the CHOG character from the first image wearing the outfit and accessories visible in the second image. Keep the CHOG character's face shape, spiky purple hair, dot eyes, pink blush cheeks, chibi proportions, thick black cartoon outlines, and flat 2D art style EXACTLY the same — only the clothing and accessories should change.${extraPart ? ' ' + extraPart : ''}
-
-${bgPart}${stylePart ? ' ' + stylePart : ''}
-
-Style rules: flat 2D illustration, bold solid colors, thick black outlines, no gradients, no shading, square frame, character centered.`;
-
-    const form = new FormData();
-    form.append('model', 'gpt-image-2');
-    form.append('prompt', editPrompt);
-    form.append('n', '1');
-    form.append('size', '1024x1024');
-    form.append('quality', 'high');
-    form.append('image[]', new Blob([styleBuffer], { type: 'image/jpeg' }), 'chog_style.jpg');
-    form.append('image[]', new Blob([refBuffer], { type: 'image/jpeg' }), 'reference.jpg');
-
-    const genRes = await fetch('https://api.openai.com/v1/images/edits', {
+    // Step 1: extract outfit from reference image via vision
+    const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
-      body: form,
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini', max_tokens: 150,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: image } },
+            { type: 'text', text: 'List only the clothing and accessories in this image. Include: hats, eyewear, jacket/top/dress color and style, tie, cape, bow/ribbon in hair, held items, jewelry. Exclude face, skin, hair color, background. Short comma-separated list, max 50 words.' }
+          ]
+        }]
+      }),
+    });
+    const vd = await visionRes.json();
+    if (vd.error) return res.status(500).json({ error: vd.error.message });
+    const outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
+
+    const bgPart = bgTemplate || 'solid flat bright blue background #00AAFF, no gradients';
+    const stylePart = artStyle ? `, ${artStyle}` : '';
+    const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
+
+    // Step 2: text-only generation — no style reference image contamination
+    // Full character spec produces consistent CHOG NFT style every time
+    const chogPrompt = `Flat 2D chibi cartoon NFT profile picture of CHOG character. Large round head filling most of the frame, tiny small body. Flat peach skin. Dark purple spiky hair with multiple sharp triangular spikes pointing up and outward, thick black outlines. Eyes: exactly two small solid black oval dots side by side, NO white sclera, NO shine, NO iris — just flat black dots. Round pink blush circle on each cheek. Tiny simple curved smile, no teeth. Bold thick solid black cartoon outlines on all shapes.
+
+Outfit: ${outfit}.${extraPart}
+
+Background: ${bgPart}.
+
+Style: flat 2D illustration${stylePart}, zero gradients, zero shading, zero texture, bold solid colors only, clean crisp edges, square frame, character centered, CHOG NFT collection art style.`;
+
+    const genRes = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-image-2',
+        prompt: chogPrompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'medium',
+      }),
     });
     const gd = await genRes.json();
     if (gd.error) return res.status(500).json({ error: gd.error.message });
