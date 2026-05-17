@@ -53,6 +53,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
 
+  if(!url.startsWith('http')) return;
   if(BYPASS.some(p => url.includes(p))) return;
   if(e.request.method !== 'GET') return;
 

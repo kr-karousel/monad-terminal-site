@@ -188,24 +188,29 @@ Output only the prompt, under 150 words.` }
     if (vd.error) return res.status(500).json({ error: vd.error.message });
     const chogPrompt = vd.choices[0].message.content.trim();
 
-    // Step 2: DALL-E 3 generate
+    // Step 2: gpt-image-1 generate
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'dall-e-3', prompt: chogPrompt,
-        n: 1, size: '1024x1024', quality: 'standard',
+        model: 'gpt-image-1', prompt: chogPrompt,
+        n: 1, size: '1024x1024', quality: 'medium',
       }),
     });
     const gd = await genRes.json();
     if (gd.error) return res.status(500).json({ error: gd.error.message });
+
+    // gpt-image-1 returns b64_json by default; dall-e-3 returns url
+    const img = gd.data[0];
+    const imageUrl = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
+    if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
     const walletCreditsNow = walletRow ? walletRow.credits - 1 : (wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0);
     const twitterFreeNow = useTwitterFree ? false : (session ? !(await getTwitterRow(session.id))?.used_free : false);
 
     return res.json({
       ok: true,
-      url: gd.data[0].url,
+      url: imageUrl,
       twitterFree: twitterFreeNow,
       walletCredits: walletCreditsNow,
       total: (twitterFreeNow ? 1 : 0) + walletCreditsNow,

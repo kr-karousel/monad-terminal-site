@@ -53,6 +53,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
 
+  // 비-HTTP(S) 스킴(chrome-extension:// 등)은 캐시 불가 → 통과
+  if(!url.startsWith('http')) return;
   // API/실시간 요청은 무조건 네트워크 통과
   if(BYPASS.some(p => url.includes(p))) return;
   // POST 요청은 통과
