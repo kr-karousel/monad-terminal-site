@@ -184,16 +184,26 @@ module.exports = async function handler(req, res) {
     const bg = bgTemplate || 'solid bright blue background #00AAFF';
     const style = artStyle ? `, ${artStyle}` : '';
     const extra = customPrompt ? `, ${customPrompt.trim()}` : '';
-    const chogPrompt = `CHOG chibi hedgehog mascot NFT profile picture: a cute kawaii chibi character with big round head, spiky purple hair, large black eyes with white highlight dot, pink blush marks on cheeks, cream beige round face, bold thick black outlines, flat 2D cel-shaded cartoon vector illustration style${style}. The CHOG character is wearing: ${outfit}${extra}. Background: ${bg}. Square 1:1 composition, centered character bust shot. STYLE: flat 2D chibi cartoon mascot, vector art, thick black outlines, cel shading, NFT PFP aesthetic. NOT photorealistic, NOT a real human, NOT 3D render, NOT realistic photography — strictly flat cartoon hedgehog mascot illustration. No text, no watermark, no signature.`;
+    const chogPrompt = `Edit this CHOG chibi hedgehog character: keep the EXACT same character form, body shape, head shape, hair style, eye style, face style, outlines, and overall flat 2D chibi cartoon mascot art style as the source image. ONLY add/change the outfit and accessories to: ${outfit}${extra}. Change the background to: ${bg}. ${style ? `Render in ${artStyle} style. ` : ''}Maintain the original CHOG silhouette and proportions exactly. Output a square 1:1 chibi cartoon NFT PFP. Do not turn it into a realistic photo, do not change the character into a human — it must remain the same flat 2D chibi hedgehog mascot character. No text, no watermark.`;
 
-    // Step 3: gpt-image-1 generate
-    const genRes = await fetch('https://api.openai.com/v1/images/generations', {
+    // Step 3: gpt-image-1 EDIT the CHOG base — preserves silhouette/form
+    const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
+    const baseRes = await fetch(baseUrl);
+    if (!baseRes.ok) return res.status(500).json({ error: 'Failed to load CHOG base image' });
+    const baseBuf = Buffer.from(await baseRes.arrayBuffer());
+
+    const form = new FormData();
+    form.append('model', 'gpt-image-1');
+    form.append('prompt', chogPrompt);
+    form.append('n', '1');
+    form.append('size', '1024x1024');
+    form.append('quality', 'medium');
+    form.append('image', new Blob([baseBuf], { type: 'image/png' }), 'chog.png');
+
+    const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
-      body: JSON.stringify({
-        model: 'gpt-image-1', prompt: chogPrompt,
-        n: 1, size: '1024x1024', quality: 'medium',
-      }),
+      headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
+      body: form,
     });
     const gd = await genRes.json();
     if (gd.error) return res.status(500).json({ error: gd.error.message });
