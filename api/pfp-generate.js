@@ -236,11 +236,14 @@ module.exports = async function handler(req, res) {
     const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
     const outfitList = outfit.split(',').map(s => '- ' + s.trim()).filter(s => s.length > 2).join('\n');
-    const chogPrompt = `Add the following items inside the transparent mask regions only:
+    const chogPrompt = `TASK: Identity-preserving asset replacement. The character identity is LOCKED. Only add accessories inside the transparent mask regions.
 
+Add ONLY these items, only in the masked regions:
 ${outfitList}${extraPart ? '\n' + extraPart : ''}
 
-Preserve the original crude amateur drawing exactly. Do not clean up lines. Do not improve the drawing. Do not make it symmetrical. Do not redraw the character. Match the input's flat childish hand-drawn style.${bgPart}${stylePart}`;
+This is NOT a redraw. This is NOT a new illustration. The goal is to MINIMIZE changes — keep the original pixels as untouched as possible. Only paint the listed items into the small transparent zones.
+
+Preserve the original crude amateur drawing exactly. Do not clean up lines. Do not improve the drawing. Do not make it symmetrical. Do not redraw the character. Do not polish, vectorize, or smooth anything. Match the input's flat childish hand-drawn style — awkward lines, uneven shapes, naive look.${bgPart}${stylePart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
