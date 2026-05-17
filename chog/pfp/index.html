@@ -439,8 +439,8 @@ async function useXPfp() {
       canvas.getContext('2d').drawImage(img, 0, 0);
       b64 = canvas.toDataURL('image/jpeg', 0.9);
       setDropImage(b64);
-      setStatus('✦ X profile picture loaded!', 'ok');
       updateGenBtn();
+      statusAfterUpload();
     };
     img.onerror = () => setStatus('✗ Could not load X avatar — please drag & drop instead', true);
     img.src = xSession.avatar;
