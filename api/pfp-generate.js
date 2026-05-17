@@ -203,11 +203,11 @@ module.exports = async function handler(req, res) {
     if (vd.error) return res.status(500).json({ error: vd.error.message });
     const outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
 
-    // Step 2: build hardcoded chibi-locked prompt
-    const bg = bgTemplate || 'solid bright blue background #00AAFF';
-    const style = artStyle ? `, ${artStyle}` : '';
-    const extra = customPrompt ? `, ${customPrompt.trim()}` : '';
-    const chogPrompt = `Take this exact CHOG chibi hedgehog character from the input image and dress it up with: ${outfit}${extra}. Keep the character's EXACT identity — same face, same purple spiky hair, same eyes, same blush marks, same body shape, same flat 2D chibi cartoon art style, same thick black outlines. Only add the clothing and accessories described. Background: ${bg}.${style ? ` Art style: ${artStyle}.` : ''} Output: square 1:1 chibi cartoon NFT profile picture. No text, no watermark, no signature.`;
+    // Step 2: build prompt — only include options the user enabled
+    const bgPart = bgTemplate ? ` Background: ${bgTemplate}.` : ' Keep the original background of the source image.';
+    const stylePart = artStyle ? ` Render in art style: ${artStyle}.` : '';
+    const extraPart = customPrompt ? `, ${customPrompt.trim()}` : '';
+    const chogPrompt = `Take this exact CHOG chibi hedgehog character from the input image and dress it up with: ${outfit}${extraPart}. Keep the character's EXACT identity — same face, same purple spiky hair, same eyes, same blush marks, same body shape, same flat 2D chibi cartoon art style, same thick black outlines. Only add the clothing and accessories described.${bgPart}${stylePart} Output: square 1:1 chibi cartoon NFT profile picture. No text, no watermark, no signature.`;
 
     // Step 3: gpt-image-1 EDIT the CHOG base — preserves silhouette/form
     const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';

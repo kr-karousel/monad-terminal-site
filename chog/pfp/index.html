@@ -97,14 +97,18 @@ h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-b
 .style-thumb img{width:100%;height:100%;object-fit:cover;}
 
 /* ── COLLAPSIBLE SECTIONS ────────── */
-.option-section{background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;}
+.option-section{background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;transition:border-color .2s;}
+.option-section.open{border-color:rgba(138,92,246,.5);}
 .option-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;user-select:none;}
 .option-header:hover{background:rgba(138,92,246,.05);}
-.option-header-left{display:flex;align-items:center;gap:8px;}
-.option-label{font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;text-transform:uppercase;}
+.option-header-left{display:flex;align-items:center;gap:10px;}
+.option-label{font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;text-transform:uppercase;transition:color .2s;}
+.option-section.open .option-label{color:#c4b5fd;}
 .option-optional{font-size:9px;font-family:'Space Mono',monospace;color:#4a3d6b;letter-spacing:0;text-transform:none;}
-.option-chevron{font-size:11px;color:#4a3d6b;transition:transform .2s;}
-.option-section.open .option-chevron{transform:rotate(180deg);}
+.option-checkbox{width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(138,92,246,.4);background:rgba(138,92,246,.05);display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0;}
+.option-section.open .option-checkbox{background:var(--purple);border-color:var(--purple);}
+.option-checkbox::after{content:'✓';font-size:11px;color:#fff;font-weight:700;opacity:0;transition:opacity .18s;}
+.option-section.open .option-checkbox::after{opacity:1;}
 .option-body{display:none;padding:0 14px 14px;}
 .option-section.open .option-body{display:block;}
 .bg-grid-sel{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px;}
@@ -242,10 +246,10 @@ input[type=file]{display:none;}
   <div class="option-section" id="bgSection" style="margin-top:10px;">
     <div class="option-header" onclick="toggleSection('bgSection')">
       <div class="option-header-left">
+        <div class="option-checkbox"></div>
         <span class="option-label">Background</span>
-        <span class="option-optional">(optional)</span>
+        <span class="option-optional">(check to customize)</span>
       </div>
-      <span class="option-chevron">▼</span>
     </div>
     <div class="option-body"><div class="bg-grid-sel" id="bgGrid"></div></div>
   </div>
@@ -254,10 +258,10 @@ input[type=file]{display:none;}
   <div class="option-section" id="styleSection">
     <div class="option-header" onclick="toggleSection('styleSection')">
       <div class="option-header-left">
+        <div class="option-checkbox"></div>
         <span class="option-label">Art Style</span>
-        <span class="option-optional">(optional)</span>
+        <span class="option-optional">(check to customize)</span>
       </div>
-      <span class="option-chevron">▼</span>
     </div>
     <div class="option-body"><div class="style-chips" id="styleChips"></div></div>
   </div>
@@ -266,10 +270,10 @@ input[type=file]{display:none;}
   <div class="option-section" id="promptSection">
     <div class="option-header" onclick="toggleSection('promptSection')">
       <div class="option-header-left">
+        <div class="option-checkbox"></div>
         <span class="option-label">Additional Prompt</span>
-        <span class="option-optional">(optional)</span>
+        <span class="option-optional">(check to customize)</span>
       </div>
-      <span class="option-chevron">▼</span>
     </div>
     <div class="option-body">
       <textarea id="customPrompt" placeholder="e.g. holding a sword, sitting on a throne, laughing..." style="width:100%;min-height:60px;background:rgba(255,255,255,.03);border:1px solid rgba(138,92,246,.2);border-radius:10px;padding:10px 13px;color:#d4c8f0;font-family:'Outfit',sans-serif;font-size:13px;line-height:1.55;resize:none;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(138,92,246,.52)'" onblur="this.style.borderColor='rgba(138,92,246,.2)'"></textarea>
@@ -620,18 +624,28 @@ async function pfpPay() {
       method: 'eth_sendTransaction',
       params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x56BC75E2D63100000', gas: '0x5208', data: '0x' }]
     });
-    setStatus('⏳ Verifying payment on-chain...');
-    await new Promise(r => setTimeout(r, 4000));
-    const r = await fetch(API_BASE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'pay', wallet: pfpWallet, txHash }),
-    });
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error);
-    await refreshCredits();
-    setStatus('✦ Payment confirmed! +5 generations unlocked 🦔', 'ok');
-  } catch (e) { setStatus('✗ ' + e.message, true); }
+    setStatus('⏳ Verifying payment on-chain... (tx: ' + txHash.slice(0,10) + '...)');
+    // Retry verification up to 6 times (24s total) — Monad RPC can lag
+    let lastErr = '';
+    for (let i = 0; i < 6; i++) {
+      await new Promise(r => setTimeout(r, 4000));
+      const r = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'pay', wallet: pfpWallet, txHash }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        await refreshCredits();
+        setStatus('✦ Payment confirmed! +5 generations unlocked 🦔', 'ok');
+        return;
+      }
+      lastErr = d.error || 'unknown';
+      if (lastErr === 'Transaction already used') break;
+      setStatus(`⏳ Verifying... (attempt ${i+1}/6, last error: ${lastErr})`);
+    }
+    throw new Error(lastErr + ` — tx ${txHash}`);
+  } catch (e) { setStatus('✗ ' + e.message, true); console.error('[pay]', e); }
 }
 
 async function refreshCredits() {
@@ -674,8 +688,24 @@ function updateCreditUI(d) {
 }
 
 function updateGenBtn() {
-  const canGen = b64 && (totalCredits > 0 || (xSession && !xSession.usedFree));
-  document.getElementById('genBtn').disabled = !canGen;
+  const btn = document.getElementById('genBtn');
+  const hasFree = xSession && !xSession.usedFree;
+  const hasCredits = totalCredits > 0 || hasFree;
+  if (!b64) {
+    btn.disabled = true;
+    btn.innerHTML = '🦔 Drop a reference image first';
+  } else if (!hasCredits) {
+    btn.disabled = false;
+    btn.innerHTML = '💎 Pay 100 MON to unlock 5 generations';
+    btn.onclick = () => {
+      if (!pfpWallet) { setStatus('⚠ Connect wallet first', true); return; }
+      pfpPay();
+    };
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = '🦔 Generate CHOG PFP';
+    btn.onclick = generatePFP;
+  }
 }
 
 function statusAfterUpload() {
@@ -779,7 +809,15 @@ async function runAll() {
     const res = await fetch(API_BASE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, bgTemplate: selectedBg.prompt, artStyle: selectedStyle.prompt, customPrompt: document.getElementById('customPrompt').value.trim() }),
+      body: JSON.stringify({
+        action: 'generate',
+        wallet: pfpWallet,
+        image: b64,
+        chogStyle: chogBaseUrl,
+        bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '',
+        artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '',
+        customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '',
+      }),
     });
     const d = await res.json();
     if (!res.ok) throw new Error(d.error);
