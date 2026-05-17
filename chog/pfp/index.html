@@ -671,7 +671,9 @@ async function pfpPay() {
         return;
       }
       lastErr = d.error || 'unknown';
-      if (lastErr === 'Transaction already used') break;
+      if (d.dbError) lastErr += ' | DB: ' + d.dbError;
+      if (lastErr.includes('Transaction already used')) break;
+      if (lastErr.includes('DB save failed') || lastErr.includes('did not persist')) break;
       setStatus(`⏳ Verifying... (attempt ${i+1}/6, last error: ${lastErr})`);
     }
     throw new Error(lastErr + ` — tx ${txHash}`);

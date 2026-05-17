@@ -50,17 +50,20 @@ async function getWalletRow(wallet) {
 }
 
 async function upsertWallet(wallet, credits, usedTxhashes) {
+  const body = { wallet: wallet.toLowerCase(), credits, used_txhashes: usedTxhashes };
+  console.log('[upsertWallet] POST body:', JSON.stringify(body));
+  console.log('[upsertWallet] SB_KEY prefix:', SB_KEY.slice(0, 20));
   const r = await fetch(`${SB_URL}/rest/v1/pfp_credits`, {
     method: 'POST',
     headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=representation' },
-    body: JSON.stringify({ wallet: wallet.toLowerCase(), credits, used_txhashes: usedTxhashes }),
+    body: JSON.stringify(body),
   });
-  const data = await r.json();
+  const text = await r.text();
+  console.log('[upsertWallet] response status:', r.status, 'body:', text);
   if (!r.ok) {
-    console.error('[upsertWallet] FAILED:', r.status, data);
-    throw new Error(`Supabase write failed: ${r.status} ${JSON.stringify(data)}`);
+    throw new Error(`Supabase ${r.status}: ${text}`);
   }
-  return data;
+  try { return JSON.parse(text); } catch { return null; }
 }
 
 /* ── Supabase: twitter free credits ── */
