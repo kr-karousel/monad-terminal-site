@@ -227,7 +227,7 @@ module.exports = async function handler(req, res) {
     const bgPart = bgTemplate ? ` Background: ${bgTemplate}.` : ' Keep the original background of the source image.';
     const stylePart = artStyle ? ` Render in art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? `, ${customPrompt.trim()}` : '';
-    const chogPrompt = `Dress this character with: ${outfit}${extraPart}.${bgPart}${stylePart}`.trim();
+    const chogPrompt = `Dress this CHOG character with: ${outfit}${extraPart}. Render in clean, polished cartoon illustration style — smooth solid color fills, crisp thick black outlines, soft cel-shading, vibrant saturated colors, professional NFT art finish (like an official PFP collection). High-quality polished look, NOT rough sketch or messy linework.${bgPart}${stylePart}`.trim();
 
     // Step 3: gpt-image-1 EDIT the CHOG base — preserves silhouette/form
     const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
@@ -240,7 +240,7 @@ module.exports = async function handler(req, res) {
     form.append('prompt', chogPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
-    form.append('quality', 'high');
+    form.append('quality', 'medium');
     form.append('image', new Blob([baseBuf], { type: 'image/png' }), 'chog.png');
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
