@@ -227,20 +227,7 @@ module.exports = async function handler(req, res) {
     const bgPart = bgTemplate ? ` Background: ${bgTemplate}.` : ' Keep the original background of the source image.';
     const stylePart = artStyle ? ` Render in art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? `, ${customPrompt.trim()}` : '';
-    const chogPrompt = `Transform this character to match the exact style, angle, framing, and vibe of the CHOG chibi hedgehog reference (input image): flat 2D chibi cartoon mascot style, big round head, large expressive eyes with white highlight dots, pink blush marks on cheeks, bold thick black outlines, cel-shaded vector illustration, square 1:1 bust-shot framing.
-
-Keep the EXACT character identity from the input image: same face shape, same hair style and color, same eye shape, same blush marks, same body proportions, same outline thickness, same overall chibi mascot art style.
-
-ONLY add/change the outfit and accessories to: ${outfit}${extraPart}.
-
-IMPORTANT CHARACTER PRESERVATION RULES:
-- DO NOT change the character into a different species or character
-- DO NOT change facial features, hair, or body shape
-- DO NOT make the character realistic or photorealistic
-- DO NOT add or remove the character's signature traits
-- Keep it as a flat 2D chibi cartoon mascot in the exact same art style as the input.${bgPart}${stylePart}
-
-Output: clean square 1:1 NFT profile picture, no text, no watermark, no signature, no border.`;
+    const chogPrompt = `Dress up this CHOG chibi hedgehog character with the following outfit and accessories: ${outfit}${extraPart}. Apply ALL the clothing, hats, glasses, items, and pose details listed. Keep CHOG's signature chibi look (big head, purple spiky hair, large eyes with white dots, pink blush, thick black outlines, flat 2D cartoon style).${bgPart}${stylePart} Output: square 1:1 NFT profile picture, no text, no watermark.`;
 
     // Step 3: gpt-image-1 EDIT the CHOG base — preserves silhouette/form
     const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
