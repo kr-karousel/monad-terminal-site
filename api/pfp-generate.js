@@ -19,7 +19,7 @@ const SB_HEADERS = {
   'Prefer': 'return=representation',
 };
 
-/* ── PNG mask generator ───────────────────────────────────────────────────── */
+/* ── PNG mask generator ─────────────────────────────────────────────────── */
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
   for (let n = 0; n < 256; n++) {
@@ -36,18 +36,16 @@ function crc32(buf) {
   return (c ^ 0xFFFFFFFF) >>> 0;
 }
 
-// zones: array of [x1,y1,x2,y2] proportions — transparent = edit, opaque = preserve
+// zones: array of [x1, y1, x2, y2] as 0-1 proportions — transparent = edit, opaque = preserve
 function makeMaskPng(w, h, zones) {
   const stride = 1 + w * 4;
   const raw = Buffer.alloc(h * stride, 0);
 
-  // All pixels opaque black by default (preserve)
   for (let y = 0; y < h; y++) {
     raw[y * stride] = 0;
     for (let x = 0; x < w; x++) raw[y * stride + 1 + x * 4 + 3] = 255;
   }
 
-  // Punch transparent holes for edit zones
   for (const [rx1, ry1, rx2, ry2] of zones) {
     const px1 = Math.max(0, Math.floor(rx1 * w));
     const py1 = Math.max(0, Math.floor(ry1 * h));
@@ -113,6 +111,7 @@ function getSession(req) {
   return raw ? verifySession(raw) : null;
 }
 
+/* ── Supabase ── */
 async function getWalletRow(wallet) {
   const r = await fetch(`${SB_URL}/rest/v1/pfp_credits?wallet=eq.${wallet.toLowerCase()}`, { headers: SB_HEADERS });
   const rows = await r.json();
@@ -175,12 +174,21 @@ async function verifyPayment(txHash, fromWallet) {
   return { ok: true };
 }
 
+/* ── handler ── */
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
+  try {
+    return await _handler(req, res);
+  } catch (e) {
+    console.error('[pfp-generate] unhandled:', e);
+    return res.status(500).json({ error: e.message || 'Internal server error' });
+  }
+};
 
+async function _handler(req, res) {
   const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle, customPrompt } = req.body || {};
   const session = getSession(req);
 
@@ -233,7 +241,7 @@ module.exports = async function handler(req, res) {
     if (useTwitterFree) await markFreeUsed(session.id);
     else await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
 
-    // STEP 1: semantic JSON extraction — no reference image passed to generation model
+    // STEP 1: semantic JSON extraction — no reference image to generation model
     const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
@@ -266,6 +274,7 @@ module.exports = async function handler(req, res) {
     }
     const basePath = path.join(__dirname, '../chog/pfp', styleFilename);
     const baseBuffer = fs.readFileSync(basePath);
+    console.log('[generate] base:', styleFilename, baseBuffer.length, 'bytes');
 
     // STEP 3: build tiny mask — only regions that need editing
     const SIZE = 1024;
@@ -321,4 +330,4 @@ module.exports = async function handler(req, res) {
   }
 
   return res.status(400).json({ error: 'Unknown action' });
-};
+}
