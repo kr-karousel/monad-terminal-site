@@ -2,6 +2,7 @@
   "redirects": [
     { "source": "/mon",  "destination": "/mon/",  "permanent": false },
     { "source": "/chog", "destination": "/chog/", "permanent": false },
+    { "source": "/chog/pfp", "destination": "/chog/pfp/", "permanent": false },
     { "source": "/emo",  "destination": "/emo/",  "permanent": false },
     { "source": "/bob",  "destination": "/bob/",  "permanent": false },
     { "source": "/game",              "destination": "/", "permanent": false },
