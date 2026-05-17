@@ -210,6 +210,10 @@ module.exports = async function handler(req, res) {
     if (!baseRes.ok) return res.status(500).json({ error: 'Failed to load CHOG base image' });
     const baseBuf = Buffer.from(await baseRes.arrayBuffer());
 
+    // Load mask: transparent zones = editable (hat top + clothing bottom), opaque = preserve (face/hair middle)
+    const maskRes = await fetch('https://monad-terminal.xyz/chog/pfp/chog_mask.png');
+    const maskBuf = maskRes.ok ? Buffer.from(await maskRes.arrayBuffer()) : null;
+
     // image is a base64 data URL like "data:image/jpeg;base64,..."
     const refMatch = image.match(/^data:(image\/[^;]+);base64,(.+)$/);
     if (!refMatch) return res.status(400).json({ error: 'Reference image must be a base64 data URL' });
@@ -220,22 +224,7 @@ module.exports = async function handler(req, res) {
     const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background of the first image.';
     const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
-    const chogPrompt = `The FIRST image is the base character. Keep its art style exactly:
-- crude amateur hand-drawn quality
-- awkward linework, uneven shapes, imperfect proportions
-- childish naive cartoon feeling
-- flat simple coloring with no shading
-- same face, eyes, expression, blush, hair shape
-- same framing and background color
-- charming badly-drawn look
-
-The SECOND image is only a fashion reference. Take only its outfit and items:
-- hat or headwear
-- sunglasses or glasses
-- jacket, suit, shirt colors
-- held items like cash or accessories
-
-Render the FIRST image character wearing the SECOND image outfit. Style stays from the first, outfit comes from the second. Keep the same crude childish drawing style as the first image — avoid polishing, avoid vector art look, avoid adding realism or detailed shading. The result should still look hand-drawn and a bit messy in a cute way.${bgPart}${stylePart}${extraPart}`;
+    const chogPrompt = `Edit ONLY the transparent regions of the mask. Add the outfit from the second image: hat, sunglasses, clothing, held items. Match the crude hand-drawn cartoon style of the first image — flat colors, simple lines, no extra shading or polish. Keep everything in the opaque (preserved) regions untouched.${bgPart}${stylePart}${extraPart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
@@ -247,6 +236,10 @@ Render the FIRST image character wearing the SECOND image outfit. Style stays fr
     // Pass BOTH images — base CHOG first, then user reference
     form.append('image[]', new Blob([baseBuf], { type: 'image/png' }), 'chog_base.png');
     form.append('image[]', new Blob([refBuf], { type: refMime }), 'reference.' + refMime.split('/')[1]);
+    // Mask constrains editing to hat zone (top) + clothing zone (bottom). Face/hair preserved.
+    if (maskBuf) {
+      form.append('mask', new Blob([maskBuf], { type: 'image/png' }), 'mask.png');
+    }
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
