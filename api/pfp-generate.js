@@ -50,11 +50,17 @@ async function getWalletRow(wallet) {
 }
 
 async function upsertWallet(wallet, credits, usedTxhashes) {
-  await fetch(`${SB_URL}/rest/v1/pfp_credits`, {
+  const r = await fetch(`${SB_URL}/rest/v1/pfp_credits`, {
     method: 'POST',
-    headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=representation' },
     body: JSON.stringify({ wallet: wallet.toLowerCase(), credits, used_txhashes: usedTxhashes }),
   });
+  const data = await r.json();
+  if (!r.ok) {
+    console.error('[upsertWallet] FAILED:', r.status, data);
+    throw new Error(`Supabase write failed: ${r.status} ${JSON.stringify(data)}`);
+  }
+  return data;
 }
 
 /* ── Supabase: twitter free credits ── */
@@ -146,8 +152,19 @@ module.exports = async function handler(req, res) {
     if (!verify.ok) return res.status(400).json({ error: verify.reason });
 
     const newCredits = (row?.credits ?? 0) + CREDITS_PER_PAYMENT;
-    await upsertWallet(wallet, newCredits, [...usedTxhashes, txHash.toLowerCase()]);
-    return res.json({ ok: true, walletCredits: newCredits });
+    try {
+      await upsertWallet(wallet, newCredits, [...usedTxhashes, txHash.toLowerCase()]);
+    } catch (e) {
+      console.error('[pay] DB write failed after on-chain verify:', e.message);
+      return res.status(500).json({ error: 'Payment verified on-chain but DB save failed. Contact support with txHash: ' + txHash, dbError: e.message });
+    }
+    // Read back to confirm persistence
+    const verifyRow = await getWalletRow(wallet);
+    if (!verifyRow || verifyRow.credits !== newCredits) {
+      console.error('[pay] DB read-back mismatch:', { expected: newCredits, got: verifyRow?.credits });
+      return res.status(500).json({ error: 'Credits did not persist. txHash: ' + txHash });
+    }
+    return res.json({ ok: true, walletCredits: verifyRow.credits });
   }
 
   // ── GENERATE PFP ─────────────────────────────────
