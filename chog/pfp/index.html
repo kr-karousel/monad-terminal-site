@@ -827,7 +827,7 @@ async function runAll() {
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('shareBtn').style.display = 'none';
   document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
-  setStatus('🔍 GPT-4o analyzing your reference image...');
+  setStatus('🔍 Analyzing your reference image...');
 
   // Optimistic credit deduction — update UI immediately
   if (canUseXFree) {
@@ -839,7 +839,7 @@ async function runAll() {
 
   // Spinner progress text simulation (visual feedback during long request)
   const stages = [
-    { delay: 0,     text: 'analyzing outfit...',           toast: '🔍 GPT-4o analyzing outfit & accessories...' },
+    { delay: 0,     text: 'analyzing outfit...',           toast: '🔍 Analyzing outfit & accessories...' },
     { delay: 6000,  text: 'composing CHOG...',             toast: '🎨 Composing CHOG with your outfit...' },
     { delay: 15000, text: 'rendering details...',          toast: '✨ chatgpt-image-latest rendering details (this takes 30-60s)...' },
     { delay: 35000, text: 'finalizing...',                 toast: '🦔 Almost there...' },

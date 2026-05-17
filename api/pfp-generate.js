@@ -227,15 +227,14 @@ module.exports = async function handler(req, res) {
     const stylePart = artStyle ? `, ${artStyle}` : '';
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
-    // Step 2: text-only generation — no style reference image contamination
-    // Full character spec produces consistent CHOG NFT style every time
-    const chogPrompt = `Flat 2D chibi cartoon NFT profile picture of CHOG character. Large round head filling most of the frame, tiny small body. Flat peach skin. Dark purple spiky hair with multiple sharp triangular spikes pointing up and outward, thick black outlines. Eyes: exactly two small solid black oval dots side by side, NO white sclera, NO shine, NO iris — just flat black dots. Round pink blush circle on each cheek. Tiny simple curved smile, no teeth. Bold thick solid black cartoon outlines on all shapes.
+    // Step 2: text-only generation with precise CHOG NFT spec
+    const chogPrompt = `2D flat cartoon NFT profile picture. Cute chibi character with a very large perfectly round head and a tiny body. Flat peach-cream colored skin. Dark purple hair shaped as multiple sharp pointy spikes sticking outward. TWO SMALL PURE BLACK CIRCLE EYES — absolutely no white, no shine, no highlight, no iris, no pupil detail, just two flat solid black circles. Pink blush circle on each cheek. Small simple curved mouth. Thick solid black outlines on every shape.
 
-Outfit: ${outfit}.${extraPart}
+Wearing: ${outfit}.${extraPart}
 
 Background: ${bgPart}.
 
-Style: flat 2D illustration${stylePart}, zero gradients, zero shading, zero texture, bold solid colors only, clean crisp edges, square frame, character centered, CHOG NFT collection art style.`;
+Art style: simple flat 2D cartoon${stylePart}. NO anime style. NO manga style. NO gradients. NO shading. NO white highlights on eyes. Bold flat colors, thick black outlines, clean vector-like look. Square frame, character centered and large.`;
 
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
