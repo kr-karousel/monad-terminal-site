@@ -106,7 +106,8 @@ module.exports = async function handler(req, res) {
   // ── GET CREDITS ──────────────────────────────────
   if (action === 'credits') {
     const twitterRow = session ? await getTwitterRow(session.id) : null;
-    const twitterFree = twitterRow ? !twitterRow.used_free : false;
+    // if session exists but no row yet → new user, give free generation
+    const twitterFree = session ? (twitterRow ? !twitterRow.used_free : true) : false;
     const walletCredits = wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0;
     return res.json({ twitterFree, walletCredits, total: (twitterFree ? 1 : 0) + walletCredits });
   }
