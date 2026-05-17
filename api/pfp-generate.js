@@ -84,6 +84,29 @@ const CHOG_ZONES = {
   accessories: [0.08, 0.62, 0.92, 0.96],
 };
 
+/* ── image dimension parser (JPEG + PNG, no deps) ── */
+function getImageDimensions(buf) {
+  // PNG: 8-byte sig + IHDR (width @ 16, height @ 20)
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
+    return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
+  }
+  // JPEG: scan for SOF0/SOF1/SOF2/SOF3 markers
+  if (buf[0] === 0xFF && buf[1] === 0xD8) {
+    let i = 2;
+    while (i + 4 <= buf.length) {
+      if (buf[i] !== 0xFF) break;
+      const marker = buf[i + 1];
+      const segLen  = buf.readUInt16BE(i + 2);
+      if (marker >= 0xC0 && marker <= 0xC3) {
+        return { w: buf.readUInt16BE(i + 7), h: buf.readUInt16BE(i + 5) };
+      }
+      if (marker === 0xD9 || marker === 0xDA) break;
+      i += 2 + segLen;
+    }
+  }
+  return { w: 1024, h: 1024 }; // fallback
+}
+
 /* ── helpers ── */
 function parseCookies(str = '') {
   return Object.fromEntries(
@@ -275,8 +298,10 @@ async function _handler(req, res) {
     const baseBuffer = Buffer.from(await baseImgRes.arrayBuffer());
     console.log('[generate] base:', styleFilename, baseBuffer.length, 'bytes');
 
-    // STEP 3: build tiny mask — only regions that need editing
-    const SIZE = 1024;
+    // STEP 3: build mask at actual image dimensions
+    const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
+    console.log('[generate] image dims:', IMG_W, 'x', IMG_H);
+
     const editZones = [];
     if (semantics.hat)         editZones.push(CHOG_ZONES.hat);
     if (semantics.glasses)     editZones.push(CHOG_ZONES.glasses);
@@ -284,7 +309,7 @@ async function _handler(req, res) {
     if (semantics.accessories) editZones.push(CHOG_ZONES.accessories);
     if (!editZones.length)     editZones.push(CHOG_ZONES.clothing);
 
-    const maskBuffer = makeMaskPng(SIZE, SIZE, editZones);
+    const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     // STEP 4: surgical prompt — DO NOT REDRAW
     const itemParts = [
@@ -300,12 +325,12 @@ async function _handler(req, res) {
 
     const prompt = `Edit ONLY the transparent masked regions. Do NOT redraw the character. Do NOT clean up the art. Preserve the original flat cartoon drawing style exactly — keep uneven lines, thick black outlines, flat solid colors, hand-drawn quality.\n\nAdd ONLY in the masked areas: ${semanticDesc}.${extraPart}\n\nDO NOT: redraw the face, change proportions, add gradients, vectorize, or reinterpret the character. Character identity and drawing style must remain completely unchanged.\n${bgPart}${stylePart}`;
 
-    // STEP 5: gpt-image-1 surgical edit (base image + tiny mask only)
+    // STEP 5: gpt-image-1 surgical edit (base image + mask at matching dimensions)
     const form = new FormData();
     form.append('model', 'gpt-image-1');
     form.append('prompt', prompt);
     form.append('n', '1');
-    form.append('size', `${SIZE}x${SIZE}`);
+    form.append('size', '1024x1024');
     form.append('quality', 'medium');
     form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'base.jpg');
     form.append('mask',  new Blob([maskBuffer], { type: 'image/png'  }), 'mask.png');
