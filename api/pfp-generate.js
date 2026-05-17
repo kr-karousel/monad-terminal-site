@@ -194,7 +194,7 @@ Output only the prompt, under 150 words.` }
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
         model: 'dall-e-3', prompt: chogPrompt,
-        n: 1, size: '1024x1024', quality: 'standard', response_format: 'url',
+        n: 1, size: '1024x1024', quality: 'standard',
       }),
     });
     const gd = await genRes.json();
