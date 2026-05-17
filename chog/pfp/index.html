@@ -609,7 +609,7 @@ async function pfpPay() {
     });
     const balData = await balRes.json();
     const bal = BigInt(balData.result || '0x0');
-    const required = BigInt('0x16345785D3A00000'); // 100 MON
+    const required = BigInt('0x56BC75E2D63100000'); // 100 MON
     if (bal < required) {
       const balMon = Number(bal) / 1e18;
       setStatus(`✗ Insufficient balance: ${balMon.toFixed(4)} MON (need 100+ MON)`, true);
@@ -618,7 +618,7 @@ async function pfpPay() {
     setStatus('💎 Sending 100 MON... (confirm in wallet)');
     const txHash = await pfpProvider.request({
       method: 'eth_sendTransaction',
-      params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D3A00000', gas: '0x5208', data: '0x' }]
+      params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x56BC75E2D63100000', gas: '0x5208', data: '0x' }]
     });
     setStatus('⏳ Verifying payment on-chain...');
     await new Promise(r => setTimeout(r, 4000));

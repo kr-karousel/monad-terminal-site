@@ -99,7 +99,7 @@ async function verifyPayment(txHash, fromWallet) {
   const to   = (tx.to || '').toLowerCase();
   const from = (tx.from || '').toLowerCase();
   const val  = BigInt(tx.value || '0x0');
-  const required = BigInt('0x16345785D3A00000'); // 100 MON
+  const required = BigInt('0x56BC75E2D63100000'); // 100 MON
 
   if (to !== DEV_WALLET.toLowerCase()) return { ok: false, reason: 'Wrong recipient' };
   if (from !== fromWallet.toLowerCase()) return { ok: false, reason: 'Sender mismatch' };
