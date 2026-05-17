@@ -685,7 +685,12 @@ function setChogStyle(n) {
 function handleFile(e) {
   const f = e.target.files[0]; if (!f) return;
   const reader = new FileReader();
-  reader.onload = ev => { b64 = ev.target.result; setDropImage(b64); runAll(); };
+  reader.onload = ev => {
+    b64 = ev.target.result;
+    setDropImage(b64);
+    updateGenBtn();
+    setStatus('✓ Image loaded — click Generate when ready', 'ok');
+  };
   reader.readAsDataURL(f);
 }
 
@@ -704,7 +709,12 @@ dz.addEventListener('drop', e => {
   const f = e.dataTransfer.files[0];
   if (f && f.type.startsWith('image/')) {
     const reader = new FileReader();
-    reader.onload = ev => { b64 = ev.target.result; setDropImage(b64); runAll(); };
+    reader.onload = ev => {
+      b64 = ev.target.result;
+      setDropImage(b64);
+      updateGenBtn();
+      setStatus('✓ Image loaded — click Generate when ready', 'ok');
+    };
     reader.readAsDataURL(f);
   }
 });

@@ -64,13 +64,26 @@ async function getTwitterRow(twitterId) {
   return rows[0] || null;
 }
 
+async function ensureTwitterRow(twitterId) {
+  // Create row with used_free=false if missing — idempotent
+  const r = await fetch(`${SB_URL}/rest/v1/pfp_twitter`, {
+    method: 'POST',
+    headers: { ...SB_HEADERS, 'Prefer': 'resolution=ignore-duplicates,return=representation' },
+    body: JSON.stringify({ twitter_id: twitterId, used_free: false }),
+  });
+  return r.ok;
+}
+
 async function markFreeUsed(twitterId) {
   // UPSERT — creates row with used_free=true if missing, updates if exists
-  await fetch(`${SB_URL}/rest/v1/pfp_twitter`, {
+  const r = await fetch(`${SB_URL}/rest/v1/pfp_twitter`, {
     method: 'POST',
-    headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=representation' },
     body: JSON.stringify({ twitter_id: twitterId, used_free: true }),
   });
+  const data = await r.json();
+  if (!r.ok) console.error('[markFreeUsed] failed:', r.status, data);
+  return r.ok;
 }
 
 /* ── on-chain payment verification ── */
@@ -106,9 +119,13 @@ module.exports = async function handler(req, res) {
 
   // ── GET CREDITS ──────────────────────────────────
   if (action === 'credits') {
-    const twitterRow = session ? await getTwitterRow(session.id) : null;
-    // if session exists but no row yet → new user, give free generation
-    const twitterFree = session ? (twitterRow ? !twitterRow.used_free : true) : false;
+    let twitterRow = session ? await getTwitterRow(session.id) : null;
+    // First-time login: create row so future checks are deterministic
+    if (session && !twitterRow) {
+      await ensureTwitterRow(session.id);
+      twitterRow = await getTwitterRow(session.id);
+    }
+    const twitterFree = !!(twitterRow && !twitterRow.used_free);
     const walletCredits = wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0;
     return res.json({ twitterFree, walletCredits, total: (twitterFree ? 1 : 0) + walletCredits });
   }
@@ -143,8 +160,13 @@ module.exports = async function handler(req, res) {
     let walletRow = null;
 
     if (session) {
-      const twitterRow = await getTwitterRow(session.id);
-      if (!twitterRow?.used_free) useTwitterFree = true;
+      let twitterRow = await getTwitterRow(session.id);
+      if (!twitterRow) {
+        await ensureTwitterRow(session.id);
+        twitterRow = await getTwitterRow(session.id);
+      }
+      // Only allow free if row exists AND used_free is false
+      if (twitterRow && !twitterRow.used_free) useTwitterFree = true;
     }
 
     if (!useTwitterFree) {
@@ -215,7 +237,7 @@ module.exports = async function handler(req, res) {
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
     const walletCreditsNow = walletRow ? walletRow.credits - 1 : (wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0);
-    const twitterFreeNow = useTwitterFree ? false : (session ? !(await getTwitterRow(session.id))?.used_free : false);
+    const twitterFreeNow = useTwitterFree ? false : (session ? !!(await getTwitterRow(session.id) && !(await getTwitterRow(session.id)).used_free) : false);
 
     return res.json({
       ok: true,
