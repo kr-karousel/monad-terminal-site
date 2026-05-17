@@ -74,7 +74,6 @@ async function getTwitterRow(twitterId) {
 }
 
 async function ensureTwitterRow(twitterId) {
-  // Create row with used_free=false if missing — idempotent
   const r = await fetch(`${SB_URL}/rest/v1/pfp_twitter`, {
     method: 'POST',
     headers: { ...SB_HEADERS, 'Prefer': 'resolution=ignore-duplicates,return=representation' },
@@ -84,7 +83,6 @@ async function ensureTwitterRow(twitterId) {
 }
 
 async function markFreeUsed(twitterId) {
-  // UPSERT — creates row with used_free=true if missing, updates if exists
   const r = await fetch(`${SB_URL}/rest/v1/pfp_twitter`, {
     method: 'POST',
     headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=representation' },
@@ -129,7 +127,6 @@ module.exports = async function handler(req, res) {
   // ── GET CREDITS ──────────────────────────────────
   if (action === 'credits') {
     let twitterRow = session ? await getTwitterRow(session.id) : null;
-    // First-time login: create row so future checks are deterministic
     if (session && !twitterRow) {
       await ensureTwitterRow(session.id);
       twitterRow = await getTwitterRow(session.id);
@@ -161,7 +158,6 @@ module.exports = async function handler(req, res) {
       console.error('[pay] DB write failed after on-chain verify:', e.message);
       return res.status(500).json({ error: 'Payment verified on-chain but DB save failed. Contact support with txHash: ' + txHash, dbError: e.message });
     }
-    // Read back to confirm persistence
     const verifyRow = await getWalletRow(wallet);
     if (!verifyRow || verifyRow.credits !== newCredits) {
       console.error('[pay] DB read-back mismatch:', { expected: newCredits, got: verifyRow?.credits });
@@ -175,7 +171,6 @@ module.exports = async function handler(req, res) {
     if (!OPENAI_KEY) return res.status(500).json({ error: 'API key not configured' });
     if (!image) return res.status(400).json({ error: 'image required' });
 
-    // Determine credit source: X free first, then wallet paid
     let useTwitterFree = false;
     let walletRow = null;
 
@@ -185,7 +180,6 @@ module.exports = async function handler(req, res) {
         await ensureTwitterRow(session.id);
         twitterRow = await getTwitterRow(session.id);
       }
-      // Only allow free if row exists AND used_free is false
       if (twitterRow && !twitterRow.used_free) useTwitterFree = true;
     }
 
@@ -197,14 +191,13 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    // Deduct credit before generating (prevents double-spend on API failure)
     if (useTwitterFree) {
       await markFreeUsed(session.id);
     } else {
       await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
     }
 
-    // Step 1: extract outfit from reference image via vision
+    // Vision: extract outfit from reference image
     const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
@@ -227,20 +220,13 @@ module.exports = async function handler(req, res) {
     const stylePart = artStyle ? `, ${artStyle}` : '';
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
-    // Step 2: text-only generation with precise CHOG NFT spec
-    const chogPrompt = `2D flat cartoon NFT profile picture. Cute chibi character with a very large perfectly round head and a tiny body. Flat peach-cream colored skin. Dark purple hair shaped as multiple sharp pointy spikes sticking outward. TWO SMALL PURE BLACK CIRCLE EYES — absolutely no white, no shine, no highlight, no iris, no pupil detail, just two flat solid black circles. Pink blush circle on each cheek. Small simple curved mouth. Thick solid black outlines on every shape.
-
-Wearing: ${outfit}.${extraPart}
-
-Background: ${bgPart}.
-
-Art style: simple flat 2D cartoon${stylePart}. NO anime style. NO manga style. NO gradients. NO shading. NO white highlights on eyes. Bold flat colors, thick black outlines, clean vector-like look. Square frame, character centered and large.`;
+    const chogPrompt = `2D flat cartoon NFT profile picture. Cute chibi character with a very large perfectly round head and a tiny body. Flat peach-cream colored skin. Dark purple hair shaped as multiple sharp pointy spikes sticking outward. TWO SMALL PURE BLACK CIRCLE EYES — absolutely no white, no shine, no highlight, no iris, no pupil detail, just two flat solid black circles. Pink blush circle on each cheek. Small simple curved mouth. Thick solid black outlines on every shape.\n\nWearing: ${outfit}.${extraPart}\n\nBackground: ${bgPart}.\n\nArt style: simple flat 2D cartoon${stylePart}. NO anime style. NO manga style. NO gradients. NO shading. NO white highlights on eyes. Bold flat colors, thick black outlines, clean vector-like look. Square frame, character centered and large.`;
 
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'chatgpt-image-latest',
+        model: 'gpt-image-2-2026-04-21',
         prompt: chogPrompt,
         n: 1,
         size: '1024x1024',
