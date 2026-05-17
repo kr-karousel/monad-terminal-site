@@ -232,7 +232,8 @@ module.exports = async function handler(req, res) {
     const extraPart = customPrompt ? `Extra details: ${customPrompt.trim()}.` : '';
 
     // Read the CHOG style image directly from disk (reliable, no network issues)
-    let styleFilename = 'CHOG.jpg';
+    // Default: IMG_20260516_025404_862.jpg (style 2, 125KB) — same as frontend default
+    let styleFilename = 'IMG_20260516_025404_862.jpg';
     if (chogStyle) {
       if (chogStyle.includes('IMG_20260516')) styleFilename = 'IMG_20260516_025404_862.jpg';
       else if (chogStyle.includes('CH_og'))   styleFilename = 'CH_og.jpg';
