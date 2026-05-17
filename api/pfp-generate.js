@@ -1,6 +1,8 @@
 // Vercel serverless — CHOG PFP Studio
 // Free: 1 per X account · Paid: 0.1 MON = 10 credits (wallet)
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 
 const SB_URL = 'https://phjolzvyewacjqausmxx.supabase.co';
 const SB_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoam9senZ5ZXdhY2pxYXVzbXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDY5NzIsImV4cCI6MjA5MDY4Mjk3Mn0.XDNfHWN7NdzBHffE6-YgMMR8skNMR7blTJVu1EbvPrY';
@@ -229,12 +231,16 @@ module.exports = async function handler(req, res) {
     const stylePart = artStyle ? `Art direction: ${artStyle}.` : '';
     const extraPart = customPrompt ? `Extra details: ${customPrompt.trim()}.` : '';
 
-    // Use the selected CHOG style image as reference via images/edits
-    // This locks in the CHOG character identity and art style precisely
-    const styleUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
-    const styleResp = await fetch(styleUrl);
-    if (!styleResp.ok) return res.status(500).json({ error: 'Failed to fetch CHOG style image' });
-    const styleBuffer = Buffer.from(await styleResp.arrayBuffer());
+    // Read the CHOG style image directly from disk (reliable, no network issues)
+    let styleFilename = 'CHOG.jpg';
+    if (chogStyle) {
+      if (chogStyle.includes('IMG_20260516')) styleFilename = 'IMG_20260516_025404_862.jpg';
+      else if (chogStyle.includes('CH_og'))   styleFilename = 'CH_og.jpg';
+      else if (chogStyle.includes('CHOG'))    styleFilename = 'CHOG.jpg';
+    }
+    const stylePath = path.join(__dirname, '../chog/pfp', styleFilename);
+    console.log('[generate] chogStyle param:', chogStyle, '→ file:', styleFilename);
+    const styleBuffer = fs.readFileSync(stylePath);
 
     const editPrompt = `This is a CHOG NFT character. Keep the character's face, head shape, spiky purple hair, dot eyes, pink blush cheeks, thick black cartoon outlines, and flat 2D chibi art style EXACTLY the same. Only change the outfit and accessories.
 
