@@ -447,7 +447,6 @@ function setXSession(d) {
   const badge = document.getElementById('xFreeBadge');
   badge.textContent = d.usedFree ? 'FREE USED' : '✦ 1 FREE';
   badge.className = d.usedFree ? 'x-used-badge' : 'x-free-badge';
-  // Show "Use my X PFP" button if avatar exists
   if (d.avatar) document.getElementById('useXPfpBtn').style.display = 'block';
   refreshCredits();
 }
@@ -457,9 +456,6 @@ async function useXPfp() {
   if (!xSession?.avatar) return;
   setStatus('⏳ Loading your X profile picture...');
   try {
-    // Fetch avatar via proxy to avoid CORS
-    const proxyUrl = `/api/pfp-session?proxy=${encodeURIComponent(xSession.avatar)}`;
-    // Fallback: load directly (may work if Twitter allows)
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
@@ -480,10 +476,8 @@ async function useXPfp() {
 function getAllProviders() {
   const candidates = [];
 
-  // Backpack EVM: window.backpack.ethereum or window.ethereum with isBackpack
   if (window.backpack?.ethereum?.request)  candidates.push(window.backpack.ethereum);
   else if (window.backpack?.request)       candidates.push(window.backpack);
-  // providers array (multi-wallet environments)
   if (window.ethereum?.providers?.length) window.ethereum.providers.forEach(p => candidates.push(p));
   if (window.phantom?.ethereum?.request)  candidates.push(window.phantom.ethereum);
   if (window.rabby?.request)              candidates.push(window.rabby);
@@ -493,7 +487,6 @@ function getAllProviders() {
   if (window.trustwallet?.request)        candidates.push(window.trustwallet);
   if (window.ethereum?.request)           candidates.push(window.ethereum);
 
-  // Deduplicate by wallet type — keep first match per type
   const seen = new Set();
   const result = [];
   for (const p of candidates) {
@@ -501,7 +494,6 @@ function getAllProviders() {
     if (!seen.has(type)) { seen.add(type); result.push(p); }
   }
 
-  // Sort: Backpack → MetaMask → Phantom → rest
   const order = ['backpack','metamask','phantom'];
   result.sort((a, b) => {
     const ia = order.indexOf(getWalletType(a));
@@ -539,9 +531,20 @@ function getWalletName(p) {
   return map[t] || map.unknown;
 }
 
+function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 function openWalletModal() {
   const providers = getAllProviders();
-  if (!providers.length) { alert('No wallet detected. Please install MetaMask or Rabby.'); return; }
+  if (!providers.length) {
+    if (isMobile()) {
+      showMobileWalletOptions();
+    } else {
+      alert('No wallet detected. Please install MetaMask or Rabby.');
+    }
+    return;
+  }
 
   const list = document.getElementById('walletList');
   list.innerHTML = '';
@@ -572,7 +575,40 @@ function openWalletModal() {
   document.getElementById('walletModal').style.display = 'flex';
 }
 
+function showMobileWalletOptions() {
+  const pageUrl = encodeURIComponent(window.location.href);
+  const host = window.location.host + window.location.pathname;
+  const list = document.getElementById('walletList');
+  const title = document.querySelector('.modal-title');
+  if (title) title.textContent = 'OPEN IN WALLET';
+  list.innerHTML = '';
+
+  const wallets = [
+    { name: 'Backpack',     icon: '🎒', url: `https://backpack.app/` },
+    { name: 'MetaMask',     icon: '🦊', url: `https://metamask.app.link/dapp/${host}` },
+    { name: 'Trust Wallet', icon: '🛡️', url: `https://link.trustwallet.com/open_url?coin_id=60&url=${pageUrl}` },
+    { name: 'Rabby Mobile', icon: '🐰', url: `https://rabby.io/` },
+  ];
+
+  wallets.forEach(w => {
+    const btn = document.createElement('button');
+    btn.className = 'wallet-option';
+    btn.innerHTML = `<span class="wallet-icon">${w.icon}</span>${w.name}`;
+    btn.onclick = () => { window.location.href = w.url; };
+    list.appendChild(btn);
+  });
+
+  const note = document.createElement('div');
+  note.style.cssText = 'font-size:10px;font-family:Space Mono,monospace;color:#4a3d6b;text-align:center;padding:10px 0 0;line-height:1.5;';
+  note.textContent = "Open this page inside your wallet's browser to connect.";
+  list.appendChild(note);
+
+  document.getElementById('walletModal').style.display = 'flex';
+}
+
 function closeWalletModal() {
+  const title = document.querySelector('.modal-title');
+  if (title) title.textContent = 'SELECT WALLET';
   document.getElementById('walletModal').style.display = 'none';
 }
 
@@ -597,7 +633,6 @@ async function connectWithProvider(provider) {
     pfpWallet = accounts[0];
     pfpProvider = provider;
 
-    // Switch to Monad Mainnet — add chain if not found
     try {
       await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] });
     } catch (sw) {
@@ -622,7 +657,6 @@ async function connectWithProvider(provider) {
   }
 }
 
-
 async function pfpPay() {
   if (!pfpWallet || !pfpProvider) { setStatus('⚠ Connect wallet first', true); return; }
   if (pfpWallet.toLowerCase() === DEV_WALLET.toLowerCase()) {
@@ -631,14 +665,13 @@ async function pfpPay() {
   }
   setStatus('💎 Checking balance...');
   try {
-    // Pre-flight balance check via Monad RPC (bypass wallet ethers estimateGas issues)
     const balRes = await fetch('https://rpc.monad.xyz', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [pfpWallet, 'latest'] }),
     });
     const balData = await balRes.json();
     const bal = BigInt(balData.result || '0x0');
-    const required = BigInt('0x16345785D8A0000'); // 0.1 MON
+    const required = BigInt('0x16345785D8A0000');
     if (bal < required) {
       const balMon = Number(bal) / 1e18;
       setStatus(`✗ Insufficient balance: ${balMon.toFixed(4)} MON (need 0.1+ MON)`, true);
@@ -650,7 +683,6 @@ async function pfpPay() {
       params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D8A0000', gas: '0x5208', data: '0x' }]
     });
     setStatus('⏳ Verifying payment on-chain... (tx: ' + txHash.slice(0,10) + '...)');
-    // Retry verification up to 6 times (24s total) — Monad RPC can lag
     let lastErr = '';
     for (let i = 0; i < 6; i++) {
       await new Promise(r => setTimeout(r, 4000));
@@ -661,7 +693,6 @@ async function pfpPay() {
       });
       const d = await r.json();
       if (r.ok) {
-        // Immediate UI update from pay response (don't trust cache/race)
         const newCredits = d.walletCredits ?? 0;
         const freeStillOk = xSession && !xSession.usedFree;
         totalCredits = newCredits + (freeStillOk ? 1 : 0);
@@ -693,14 +724,12 @@ async function refreshCredits() {
 
 function updateCreditUI(d) {
   if (!d) return;
-  // Update X free badge
   if (xSession) {
     const badge = document.getElementById('xFreeBadge');
     badge.textContent = d.twitterFree ? '✦ 1 FREE' : 'FREE USED';
     badge.className = d.twitterFree ? 'x-free-badge' : 'x-used-badge';
     xSession.usedFree = !d.twitterFree;
   }
-  // Wallet credits display
   if (pfpWallet && d.walletCredits !== undefined) {
     const wc = d.walletCredits;
     const disp = document.getElementById('creditDisplay');
@@ -747,7 +776,6 @@ function statusAfterUpload() {
     setStatus('✓ Image loaded — click Generate when ready', 'ok');
     return;
   }
-  // No credits left
   if (xSession && xSession.usedFree && !pfpWallet) {
     setStatus('✗ Free generation already used. Connect wallet and pay 0.1 MON for 5 more.', true);
     document.getElementById('payBtn').style.display = 'block';
@@ -829,7 +857,6 @@ async function runAll() {
   document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
   setStatus('🔍 Analyzing your reference image...');
 
-  // Optimistic credit deduction — update UI immediately
   if (canUseXFree) {
     updateCreditUI({ twitterFree: false, walletCredits: pfpWallet ? totalCredits : 0, total: pfpWallet ? totalCredits : 0 });
   } else if (canUseWallet) {
@@ -837,12 +864,11 @@ async function runAll() {
     updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: newWalletCredits, total: newWalletCredits + (xSession && !xSession.usedFree ? 1 : 0) });
   }
 
-  // Spinner progress text simulation (visual feedback during long request)
   const stages = [
-    { delay: 0,     text: 'analyzing outfit...',           toast: '🔍 Analyzing outfit & accessories...' },
-    { delay: 6000,  text: 'composing CHOG...',             toast: '🎨 Composing CHOG with your outfit...' },
-    { delay: 15000, text: 'rendering details...',          toast: '✨ chatgpt-image-latest rendering details (this takes 30-60s)...' },
-    { delay: 35000, text: 'finalizing...',                 toast: '🦔 Almost there...' },
+    { delay: 0,     text: 'analyzing outfit...',  toast: '🔍 Analyzing outfit & accessories...' },
+    { delay: 6000,  text: 'composing CHOG...',    toast: '🎨 Composing CHOG with your outfit...' },
+    { delay: 15000, text: 'rendering details...', toast: '✨ Surgical edit rendering (30-60s)...' },
+    { delay: 35000, text: 'finalizing...',        toast: '🦔 Almost there...' },
   ];
   const stageTimers = stages.map(s => setTimeout(() => {
     const spinTxt = document.querySelector('.spinner-text');
@@ -891,11 +917,9 @@ function generatePFP() { runAll(); }
 /* ── SHARE ON X ── */
 async function shareOnX() {
   const text = 'just turned my PFP into a CHOG 🦔\n\ntry it at monad-terminal.xyz/chog/pfp\n\n#CHOG #Monad';
-  // Try to copy the generated image to clipboard so user can paste into X composer
   if (resultUrl) {
     try {
       const blob = await fetch(resultUrl).then(r => r.blob());
-      // Some clipboards reject non-PNG; convert if needed
       const pngBlob = blob.type === 'image/png' ? blob : await new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
