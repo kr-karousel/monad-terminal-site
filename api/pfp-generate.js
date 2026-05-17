@@ -161,34 +161,32 @@ module.exports = async function handler(req, res) {
       await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
     }
 
-    // Step 1: GPT-4o vision → CHOG prompt
+    // Step 1: GPT-4o vision → extract ONLY outfit/accessories from reference
     const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'gpt-4o', max_tokens: 300,
+        model: 'gpt-4o', max_tokens: 200,
         messages: [{
           role: 'user',
           content: [
-            { type: 'image_url', image_url: { url: chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg' } },
             { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: `The first image is CHOG — a chibi hedgehog with spiky purple hair, large black eyes with white highlight dot, pink blush marks, cream beige round face, bold black outlines, flat 2D chibi cartoon style, blue background.
-
-The second image is a reference. Write a DALL-E 3 prompt to recreate CHOG wearing the exact same outfit and accessories. Keep all CHOG visual traits. List every detail: hat (type+color), glasses, jacket/suit (type+color), held items, pose, expression.
-
-Start: "CHOG chibi hedgehog NFT profile picture, spiky purple hair, large black eyes white highlight dot, pink blush marks on cheeks, cream beige round chibi face, bold black outlines, flat 2D chibi cartoon style,${artStyle ? ' ' + artStyle + ',' : ''}"
-End: "${bgTemplate || 'solid bright blue background #00AAFF'}, square 1:1 format, no text, no watermark"
-${customPrompt ? `\nAlso incorporate this detail: "${customPrompt}"` : ''}
-Output only the prompt, under 150 words.` }
+            { type: 'text', text: `Look at the person/character in this image. Describe ONLY the outfit, accessories, and pose in a comma-separated list. Include: headwear (hat/cap/none), eyewear (sunglasses/glasses/none), top (jacket/suit/shirt color and type), held items (phone/cash/coffee/none), pose, facial expression. Maximum 60 words. No introduction, just the comma-separated list. Example output: "black fedora hat, round black sunglasses, black tuxedo with white shirt, holding fan of dollar bills, confident pose, smug smirk".` }
           ]
         }]
       }),
     });
     const vd = await visionRes.json();
     if (vd.error) return res.status(500).json({ error: vd.error.message });
-    const chogPrompt = vd.choices[0].message.content.trim();
+    const outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
 
-    // Step 2: gpt-image-1 generate
+    // Step 2: build hardcoded chibi-locked prompt
+    const bg = bgTemplate || 'solid bright blue background #00AAFF';
+    const style = artStyle ? `, ${artStyle}` : '';
+    const extra = customPrompt ? `, ${customPrompt.trim()}` : '';
+    const chogPrompt = `CHOG chibi hedgehog mascot NFT profile picture: a cute kawaii chibi character with big round head, spiky purple hair, large black eyes with white highlight dot, pink blush marks on cheeks, cream beige round face, bold thick black outlines, flat 2D cel-shaded cartoon vector illustration style${style}. The CHOG character is wearing: ${outfit}${extra}. Background: ${bg}. Square 1:1 composition, centered character bust shot. STYLE: flat 2D chibi cartoon mascot, vector art, thick black outlines, cel shading, NFT PFP aesthetic. NOT photorealistic, NOT a real human, NOT 3D render, NOT realistic photography — strictly flat cartoon hedgehog mascot illustration. No text, no watermark, no signature.`;
+
+    // Step 3: gpt-image-1 generate
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
