@@ -730,6 +730,14 @@ async function runAll() {
   document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
   setStatus('🔍 GPT-4o analyzing your reference image...');
 
+  // Optimistic credit deduction — update UI immediately
+  if (canUseXFree) {
+    updateCreditUI({ twitterFree: false, walletCredits: pfpWallet ? totalCredits : 0, total: pfpWallet ? totalCredits : 0 });
+  } else if (canUseWallet) {
+    const newWalletCredits = Math.max(0, totalCredits - (xSession && !xSession.usedFree ? 1 : 0) - 1);
+    updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: newWalletCredits, total: newWalletCredits + (xSession && !xSession.usedFree ? 1 : 0) });
+  }
+
   try {
     const res = await fetch(API_BASE, {
       method: 'POST',
