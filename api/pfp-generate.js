@@ -65,10 +65,11 @@ async function getTwitterRow(twitterId) {
 }
 
 async function markFreeUsed(twitterId) {
-  await fetch(`${SB_URL}/rest/v1/pfp_twitter?twitter_id=eq.${twitterId}`, {
-    method: 'PATCH',
-    headers: { ...SB_HEADERS, 'Prefer': 'return=minimal' },
-    body: JSON.stringify({ used_free: true }),
+  // UPSERT — creates row with used_free=true if missing, updates if exists
+  await fetch(`${SB_URL}/rest/v1/pfp_twitter`, {
+    method: 'POST',
+    headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ twitter_id: twitterId, used_free: true }),
   });
 }
 
