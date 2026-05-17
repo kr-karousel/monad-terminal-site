@@ -1,4 +1,18 @@
 {
+  "headers": [
+    {
+      "source": "/chog/pfp/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/chog/pfp/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    }
+  ],
   "redirects": [
     { "source": "/mon",  "destination": "/mon/",  "permanent": false },
     { "source": "/chog", "destination": "/chog/", "permanent": false },

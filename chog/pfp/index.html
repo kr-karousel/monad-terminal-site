@@ -3,7 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>CHOG PFP STUDIO · Monad</title>
+<script>
+// Nuke any stale service worker + caches that may serve old PFP code
+(async () => {
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      for (const r of regs) await r.unregister();
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      const needsReload = keys.some(k => k.startsWith('chog'));
+      await Promise.all(keys.map(k => caches.delete(k)));
+      if (needsReload && !sessionStorage.getItem('pfp_cache_busted')) {
+        sessionStorage.setItem('pfp_cache_busted', '1');
+        location.reload();
+      }
+    }
+  } catch (e) { console.warn('cache-bust failed', e); }
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
