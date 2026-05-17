@@ -673,6 +673,28 @@ function updateGenBtn() {
   document.getElementById('genBtn').disabled = !canGen;
 }
 
+function statusAfterUpload() {
+  const hasFree = xSession && !xSession.usedFree;
+  const hasWallet = pfpWallet && totalCredits > 0;
+  if (hasFree || hasWallet) {
+    statusAfterUpload();
+    return;
+  }
+  // No credits left
+  if (xSession && xSession.usedFree && !pfpWallet) {
+    setStatus('✗ Free generation already used. Connect wallet and pay 100 MON for 5 more.', true);
+    document.getElementById('payBtn').style.display = 'block';
+  } else if (xSession && xSession.usedFree && pfpWallet) {
+    setStatus('✗ No credits left. Pay 100 MON to get 5 more generations.', true);
+    document.getElementById('payBtn').style.display = 'block';
+  } else if (!xSession && !pfpWallet) {
+    setStatus('⚠ Connect X for 1 free generation, or connect wallet to pay 100 MON for 5.', true);
+  } else if (!xSession && pfpWallet) {
+    setStatus('✗ No credits. Pay 100 MON for 5 generations, or connect X for 1 free.', true);
+    document.getElementById('payBtn').style.display = 'block';
+  }
+}
+
 /* ── STYLE SWITCHER ── */
 function setChogStyle(n) {
   chogBaseUrl = n === 1 ? CHOG_STYLE1 : n === 2 ? CHOG_STYLE2 : CHOG_STYLE3;
@@ -689,7 +711,7 @@ function handleFile(e) {
     b64 = ev.target.result;
     setDropImage(b64);
     updateGenBtn();
-    setStatus('✓ Image loaded — click Generate when ready', 'ok');
+    statusAfterUpload();
   };
   reader.readAsDataURL(f);
 }
@@ -713,7 +735,7 @@ dz.addEventListener('drop', e => {
       b64 = ev.target.result;
       setDropImage(b64);
       updateGenBtn();
-      setStatus('✓ Image loaded — click Generate when ready', 'ok');
+      statusAfterUpload();
     };
     reader.readAsDataURL(f);
   }
