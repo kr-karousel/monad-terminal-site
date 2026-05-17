@@ -227,7 +227,7 @@ module.exports = async function handler(req, res) {
     const bgPart = bgTemplate ? ` Background: ${bgTemplate}.` : ' Keep the original background of the source image.';
     const stylePart = artStyle ? ` Render in art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? `, ${customPrompt.trim()}` : '';
-    const chogPrompt = `Dress up this CHOG chibi hedgehog character with the following outfit and accessories: ${outfit}${extraPart}. Apply ALL the clothing, hats, glasses, items, and pose details listed. Keep CHOG's signature chibi look (big head, purple spiky hair, large eyes with white dots, pink blush, thick black outlines, flat 2D cartoon style).${bgPart}${stylePart} Output: square 1:1 NFT profile picture, no text, no watermark.`;
+    const chogPrompt = `Dress this character with: ${outfit}${extraPart}.${bgPart}${stylePart}`.trim();
 
     // Step 3: gpt-image-1 EDIT the CHOG base — preserves silhouette/form
     const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
@@ -240,7 +240,7 @@ module.exports = async function handler(req, res) {
     form.append('prompt', chogPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
-    form.append('quality', 'medium');
+    form.append('quality', 'high');
     form.append('image', new Blob([baseBuf], { type: 'image/png' }), 'chog.png');
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
