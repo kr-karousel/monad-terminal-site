@@ -220,7 +220,10 @@ module.exports = async function handler(req, res) {
     const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background of the first image.';
     const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
-    const chogPrompt = `You are given two images.
+    const chogPrompt = `You are given two images. Perform THREE operations simultaneously:
+  1) STYLE TRANSFER — keep the FIRST image's exact art style
+  2) COMPOSITION PRESERVATION — keep the FIRST image's exact framing and pose
+  3) ATTRIBUTE INJECTION — inject ONLY the outfit/items from the SECOND image
 
 FIRST IMAGE = base style + composition (preserve everything):
 - Face proportions, line weight, simple flat coloring
@@ -236,7 +239,12 @@ SECOND IMAGE = design reference (transfer ONLY these elements):
 - Held items (cash/phone/items)
 - Accessories and concept vibe
 
-TASK: Re-render the FIRST image's character wearing the SECOND image's outfit and accessories. Do not change the first character's face, hair, or art style at all — only put the second image's clothes/items on them.${bgPart}${stylePart}${extraPart}`;
+CRITICAL STYLE RULES:
+- Do NOT make it realistic.
+- Keep the same naive hand-drawn cartoon feeling as the FIRST image.
+- Do NOT add extra rendering detail, shading, or texture beyond what's in the FIRST image.
+
+TASK: Re-render the FIRST image's character wearing the SECOND image's outfit and accessories. Style stays left, items come from right, composition stays left.${bgPart}${stylePart}${extraPart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
