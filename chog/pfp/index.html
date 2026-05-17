@@ -600,8 +600,22 @@ async function pfpPay() {
     setStatus('✗ Cannot pay to yourself (dev wallet detected). Use a different wallet.', true);
     return;
   }
-  setStatus('💎 Sending 100 MON... (confirm in wallet)');
+  setStatus('💎 Checking balance...');
   try {
+    // Pre-flight balance check via Monad RPC (bypass wallet ethers estimateGas issues)
+    const balRes = await fetch('https://rpc.monad.xyz', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [pfpWallet, 'latest'] }),
+    });
+    const balData = await balRes.json();
+    const bal = BigInt(balData.result || '0x0');
+    const required = BigInt('0x16345785D3A00000'); // 100 MON
+    if (bal < required) {
+      const balMon = Number(bal) / 1e18;
+      setStatus(`✗ Insufficient balance: ${balMon.toFixed(4)} MON (need 100+ MON)`, true);
+      return;
+    }
+    setStatus('💎 Sending 100 MON... (confirm in wallet)');
     const txHash = await pfpProvider.request({
       method: 'eth_sendTransaction',
       params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D3A00000', gas: '0x5208', data: '0x' }]
