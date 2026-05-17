@@ -600,7 +600,7 @@ async function pfpPay() {
   try {
     const txHash = await pfpProvider.request({
       method: 'eth_sendTransaction',
-      params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D3A00000' }]
+      params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D3A00000', gas: '0x5208', data: '0x' }]
     });
     setStatus('⏳ Verifying payment on-chain...');
     await new Promise(r => setTimeout(r, 4000));
