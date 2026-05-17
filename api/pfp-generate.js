@@ -100,7 +100,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { action, wallet, txHash, image, chogStyle } = req.body || {};
+  const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle } = req.body || {};
   const session = getSession(req);
 
   // ── GET CREDITS ──────────────────────────────────
@@ -176,8 +176,8 @@ module.exports = async function handler(req, res) {
 
 The second image is a reference. Write a DALL-E 3 prompt to recreate CHOG wearing the exact same outfit and accessories. Keep all CHOG visual traits. List every detail: hat (type+color), glasses, jacket/suit (type+color), held items, pose, expression.
 
-Start: "CHOG chibi hedgehog NFT profile picture, spiky purple hair, large black eyes white highlight dot, pink blush marks on cheeks, cream beige round chibi face, bold black outlines, flat 2D chibi cartoon style,"
-End: "solid bright blue background #00AAFF, square 1:1 format, no text, no watermark"
+Start: "CHOG chibi hedgehog NFT profile picture, spiky purple hair, large black eyes white highlight dot, pink blush marks on cheeks, cream beige round chibi face, bold black outlines, flat 2D chibi cartoon style,${artStyle ? ' ' + artStyle + ',' : ''}"
+End: "${bgTemplate || 'solid bright blue background #00AAFF'}, square 1:1 format, no text, no watermark"
 
 Output only the prompt, under 150 words.` }
           ]

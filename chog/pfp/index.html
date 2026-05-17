@@ -91,10 +91,23 @@ h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-b
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
 
 /* ── STYLE SWITCHER ──────────────── */
-.style-row{display:flex;gap:10px;align-items:center;margin-bottom:16px;}
+.style-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
 .style-thumb{cursor:pointer;border-radius:10px;overflow:hidden;width:52px;height:52px;border:2px solid rgba(138,92,246,.25);flex-shrink:0;transition:all .2s;opacity:.6;}
 .style-thumb.active{border-color:var(--purple);box-shadow:0 0 10px rgba(138,92,246,.5);opacity:1;}
 .style-thumb img{width:100%;height:100%;object-fit:cover;}
+
+/* ── BG + ART STYLE ──────────────── */
+.option-section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:12px;}
+.option-label{font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;}
+.bg-grid-sel{display:flex;flex-wrap:wrap;gap:8px;}
+.bg-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .18s;flex-shrink:0;position:relative;}
+.bg-swatch:hover{transform:scale(1.12);}
+.bg-swatch.active{border-color:#fff;box-shadow:0 0 0 2px var(--purple);}
+.bg-swatch[data-id="white"]{border-color:rgba(138,92,246,.3);}
+.style-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.style-chip{font-size:11px;padding:5px 12px;border-radius:999px;border:1px solid rgba(138,92,246,.25);color:var(--text-muted);cursor:pointer;transition:all .15s;font-family:'Space Mono',monospace;background:transparent;}
+.style-chip:hover{border-color:rgba(138,92,246,.5);color:var(--purple-light);}
+.style-chip.active{background:rgba(138,92,246,.25);border-color:var(--purple);color:#dbb8ff;}
 
 /* ── BUTTONS ─────────────────────── */
 .btn-row{display:flex;gap:10px;align-items:center;margin-top:12px;}
@@ -180,6 +193,18 @@ input[type=file]{display:none;}
     <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← pick CHOG art style</div>
   </div>
 
+  <!-- BACKGROUND TEMPLATES -->
+  <div class="option-section">
+    <div class="option-label">Background</div>
+    <div class="bg-grid-sel" id="bgGrid"></div>
+  </div>
+
+  <!-- ART STYLE -->
+  <div class="option-section">
+    <div class="option-label">Art Style</div>
+    <div class="style-chips" id="styleChips"></div>
+  </div>
+
   <!-- PANELS -->
   <div class="panels">
     <div class="panel">
@@ -229,14 +254,74 @@ const DEV_WALLET  = '0xf9bb715c1DC21EB661FCaC75d45BCf470235e0d8';
 const MONAD_CHAIN = '0x8F';
 const API_BASE    = '/api/pfp-generate';
 
+const BG_TEMPLATES = [
+  { id:'blue',    label:'Classic',  color:'#00AAFF', prompt:'solid bright blue background #00AAFF' },
+  { id:'purple',  label:'Monad',    color:'#8B5CF6', prompt:'solid purple background #8B5CF6' },
+  { id:'black',   label:'Dark',     color:'#0A0A18', prompt:'solid deep dark background #0A0A18' },
+  { id:'pink',    label:'Sakura',   color:'#FF6B9D', prompt:'solid sakura pink background #FF6B9D' },
+  { id:'mint',    label:'Mint',     color:'#00D4AA', prompt:'solid mint green background #00D4AA' },
+  { id:'orange',  label:'Sunset',   color:'#FF8C42', prompt:'warm orange sunset gradient background' },
+  { id:'gold',    label:'Gold',     color:'#FFD700', prompt:'solid golden yellow background #FFD700' },
+  { id:'red',     label:'Red',      color:'#FF4444', prompt:'solid vibrant red background #FF4444' },
+  { id:'white',   label:'White',    color:'#F5F5F5', prompt:'solid clean white background #FFFFFF' },
+  { id:'cosmic',  label:'Cosmic',   color:'#1a0533', prompt:'deep cosmic space background, dark purple gradient with subtle stars' },
+];
+
+const ART_STYLES = [
+  { id:'chibi',      label:'Chibi',      prompt:'' },
+  { id:'pixel',      label:'Pixel Art',  prompt:'pixel art style, 16-bit retro game sprite' },
+  { id:'watercolor', label:'Watercolor', prompt:'soft watercolor painting style, gentle brush strokes, paint texture' },
+  { id:'lineart',    label:'Line Art',   prompt:'minimal clean line art style, thin elegant outlines, simple flat' },
+  { id:'sticker',    label:'Sticker',    prompt:'sticker style with thick white border outline, glossy finish' },
+  { id:'oilpaint',   label:'Oil Paint',  prompt:'oil painting style, rich textured brushwork, classic art' },
+  { id:'neon',       label:'Neon',       prompt:'neon glow cyberpunk style, glowing outlines, vibrant neon colors, dark atmosphere' },
+  { id:'pastel',     label:'Pastel',     prompt:'soft pastel kawaii style, muted gentle dreamy colors' },
+  { id:'comic',      label:'Comic',      prompt:'bold comic book style, strong black outlines, halftone dot pattern' },
+  { id:'sketch',     label:'Sketch',     prompt:'pencil sketch style, hand-drawn rough graphite lines' },
+];
+
 let chogBaseUrl = CHOG_STYLE1;
 let b64 = null, resultUrl = null;
 let pfpWallet = null;
-let xSession = null; // { id, username, avatar, usedFree }
+let xSession = null;
 let totalCredits = 0;
+let selectedBg = BG_TEMPLATES[0];
+let selectedStyle = ART_STYLES[0];
+
+/* ── BUILD BG + STYLE SELECTORS ── */
+function buildSelectors() {
+  const bgGrid = document.getElementById('bgGrid');
+  BG_TEMPLATES.forEach((bg, i) => {
+    const el = document.createElement('div');
+    el.className = 'bg-swatch' + (i === 0 ? ' active' : '');
+    el.dataset.id = bg.id;
+    el.title = bg.label;
+    el.style.background = bg.color;
+    el.onclick = () => {
+      selectedBg = bg;
+      document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+      el.classList.add('active');
+    };
+    bgGrid.appendChild(el);
+  });
+
+  const chips = document.getElementById('styleChips');
+  ART_STYLES.forEach((s, i) => {
+    const el = document.createElement('button');
+    el.className = 'style-chip' + (i === 0 ? ' active' : '');
+    el.textContent = s.label;
+    el.onclick = () => {
+      selectedStyle = s;
+      document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+    };
+    chips.appendChild(el);
+  });
+}
 
 /* ── INIT: check session on load ── */
 window.addEventListener('DOMContentLoaded', async () => {
+  buildSelectors();
   const params = new URLSearchParams(location.search);
   if (params.get('login') === 'ok') history.replaceState({}, '', '/chog/pfp');
   if (params.get('error')) setStatus('✗ X login failed: ' + params.get('error'), true);
@@ -307,7 +392,17 @@ async function pfpConnectWallet() {
   try {
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     pfpWallet = accounts[0];
-    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] }).catch(() => {});
+    // Switch to Monad, add chain if not present
+    try {
+      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] });
+    } catch (sw) {
+      if (sw.code === 4902) {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{ chainId: MONAD_CHAIN, chainName: 'Monad Mainnet', nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 }, rpcUrls: ['https://rpc.monad.xyz'], blockExplorerUrls: ['https://explorer.monad.xyz'] }]
+        });
+      }
+    }
     document.getElementById('walletBtn').style.display = 'none';
     document.getElementById('walletInfo').style.display = 'flex';
     document.getElementById('walletAddr').textContent = pfpWallet.slice(0,6) + '...' + pfpWallet.slice(-4);
@@ -437,7 +532,7 @@ async function runAll() {
     const res = await fetch(API_BASE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl }),
+      body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, bgTemplate: selectedBg.prompt, artStyle: selectedStyle.prompt }),
     });
     const d = await res.json();
     if (!res.ok) throw new Error(d.error);
