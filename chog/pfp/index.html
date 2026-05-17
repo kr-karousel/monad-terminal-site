@@ -26,18 +26,55 @@ h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-b
 .purple{color:var(--purple-light);}
 .sub{font-size:13px;color:var(--text-muted);font-family:'Space Mono',monospace;}
 
+/* ── HOWTO ───────────────────────── */
+.howto{background:rgba(109,40,217,0.08);border:1px solid rgba(138,92,246,0.2);border-radius:14px;padding:16px 20px;margin-bottom:20px;}
+.howto-title{font-size:11px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:10px;}
+.step{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.step:last-child{margin-bottom:0;}
+.step-num{width:22px;height:22px;background:rgba(138,92,246,0.25);border:1px solid rgba(138,92,246,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c4b5fd;flex-shrink:0;margin-top:1px;}
+.step-text{font-size:12.5px;color:#a89ec0;line-height:1.5;}
+
+/* ── AUTH ROW ────────────────────── */
+.auth-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+
+.x-login-btn{display:flex;align-items:center;gap:8px;background:#000;border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 18px;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.x-login-btn:hover{background:#111;border-color:rgba(255,255,255,.4);}
+.x-icon-sm{font-family:'Space Mono',monospace;font-weight:700;font-size:14px;}
+
+.x-session{display:none;align-items:center;gap:10px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px 14px;flex:1;min-width:0;}
+.x-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.x-username{font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.x-free-badge{font-size:10px;font-family:'Space Mono',monospace;color:#86efac;background:rgba(134,239,172,.12);border:1px solid rgba(134,239,172,.3);border-radius:999px;padding:3px 10px;flex-shrink:0;white-space:nowrap;}
+.x-used-badge{font-size:10px;font-family:'Space Mono',monospace;color:#7c6fa0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:3px 10px;flex-shrink:0;white-space:nowrap;}
+.x-logout{background:none;border:none;color:#4a3d6b;font-size:16px;cursor:pointer;padding:2px 4px;flex-shrink:0;}
+.x-logout:hover{color:#7c6fa0;}
+
+.wallet-row{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+.wallet-btn{background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;flex-shrink:0;}
+.wallet-info{display:none;flex:1;min-width:0;background:rgba(138,92,246,.08);border:1px solid rgba(138,92,246,.25);border-radius:12px;padding:9px 14px;font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;align-items:center;gap:10px;}
+.pay-btn{display:none;background:rgba(138,92,246,.15);border:1px solid rgba(138,92,246,.4);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;white-space:nowrap;}
+.pay-btn:hover{background:rgba(138,92,246,.25);}
+
+/* ── CREDIT DOTS ─────────────────── */
+.credit-dots{display:flex;gap:4px;align-items:center;flex-shrink:0;}
+.cdot{width:7px;height:7px;border-radius:50%;transition:background .2s;}
+.cdot.on{background:var(--purple);}
+.cdot.off{background:rgba(138,92,246,.15);}
+
 /* ── PANELS ──────────────────────── */
-.panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:6px;}
 .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px;position:relative;overflow:hidden;}
 .panel::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(138,92,246,0.04),transparent 55%);pointer-events:none;}
 .panel-label{font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;}
+.panel-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.use-x-pfp{font-size:10px;font-family:'Space Mono',monospace;color:var(--purple);background:rgba(138,92,246,.1);border:1px solid rgba(138,92,246,.25);border-radius:6px;padding:3px 10px;cursor:pointer;transition:all .15s;}
+.use-x-pfp:hover{background:rgba(138,92,246,.2);}
 
 .drop-zone{border:1.5px dashed rgba(138,92,246,0.3);border-radius:10px;height:205px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
 .drop-zone:hover{border-color:rgba(138,92,246,.7);}
 .drop-zone.dragging{border-color:var(--purple);background:rgba(138,92,246,.08);}
 .drop-zone.has-img{border-style:solid;border-color:rgba(138,92,246,.45);}
-.drop-zone.has-img img.uploaded{width:100%;height:100%;object-fit:cover;border-radius:9px;display:block;}
-.dz-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(10,10,18,.38);transition:background .2s;}
+.dz-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(10,10,18,.38);}
 .dz-icon{font-size:28px;}
 .dz-text{font-size:13px;color:#e0d8ff;font-weight:600;}
 .dz-sub{font-size:11px;color:#a78bfa;font-family:'Space Mono',monospace;}
@@ -53,9 +90,15 @@ h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-b
 .spinner-text{font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;animation:blink 1.4s ease-in-out infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
 
+/* ── STYLE SWITCHER ──────────────── */
+.style-row{display:flex;gap:10px;align-items:center;margin-bottom:16px;}
+.style-thumb{cursor:pointer;border-radius:10px;overflow:hidden;width:52px;height:52px;border:2px solid rgba(138,92,246,.25);flex-shrink:0;transition:all .2s;opacity:.6;}
+.style-thumb.active{border-color:var(--purple);box-shadow:0 0 10px rgba(138,92,246,.5);opacity:1;}
+.style-thumb img{width:100%;height:100%;object-fit:cover;}
+
 /* ── BUTTONS ─────────────────────── */
-.btn-row{display:flex;gap:10px;align-items:center;}
-.gen-btn{flex:1;height:46px;background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .2s;letter-spacing:-.2px;position:relative;overflow:hidden;}
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:12px;}
+.gen-btn{flex:1;height:46px;background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .2s;position:relative;overflow:hidden;}
 .gen-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);pointer-events:none;}
 .gen-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(139,92,246,.42);}
 .gen-btn:active:not(:disabled){transform:scale(.98);}
@@ -63,30 +106,13 @@ h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-b
 .icon-btn{width:46px;height:46px;background:rgba(255,255,255,.04);border:1px solid rgba(138,92,246,.25);border-radius:12px;color:var(--purple);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s;}
 .icon-btn:hover{background:rgba(138,92,246,.1);border-color:rgba(138,92,246,.5);}
 
-/* ── SHARE BTN ───────────────────── */
 .share-btn{display:none;width:100%;height:42px;background:rgba(0,0,0,.8);border:1px solid rgba(255,255,255,.15);border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-top:10px;}
 .share-btn:hover{background:rgba(20,20,20,.9);border-color:rgba(255,255,255,.35);}
-.x-icon{font-size:16px;font-family:'Space Mono',monospace;font-weight:700;}
 
 /* ── STATUS ──────────────────────── */
 .status{font-size:12px;color:#6b5f8a;margin-top:10px;min-height:16px;font-family:'Space Mono',monospace;}
 .status.err{color:#f87171;}
 .status.ok{color:#86efac;}
-
-/* ── CREDIT PILL ─────────────────── */
-.credit-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(138,92,246,.12);border:1px solid rgba(138,92,246,.3);border-radius:999px;padding:5px 14px;font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;}
-.credit-bar{display:flex;gap:4px;align-items:center;}
-.credit-dot{width:8px;height:8px;border-radius:50%;transition:background .2s;}
-.credit-dot.on{background:var(--purple);}
-.credit-dot.off{background:rgba(138,92,246,.18);}
-
-/* ── HOWTO ───────────────────────── */
-.howto{background:rgba(109,40,217,0.08);border:1px solid rgba(138,92,246,0.2);border-radius:14px;padding:16px 20px;margin-bottom:20px;}
-.howto-title{font-size:11px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:10px;}
-.step{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
-.step:last-child{margin-bottom:0;}
-.step-num{width:22px;height:22px;background:rgba(138,92,246,0.25);border:1px solid rgba(138,92,246,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c4b5fd;flex-shrink:0;margin-top:1px;}
-.step-text{font-size:12.5px;color:#a89ec0;line-height:1.5;}
 
 /* ── FOOTER ──────────────────────── */
 .footer{text-align:center;margin-top:28px;font-size:11px;color:#3a3055;font-family:'Space Mono',monospace;letter-spacing:1px;}
@@ -109,33 +135,44 @@ input[type=file]{display:none;}
   <!-- HOW IT WORKS -->
   <div class="howto">
     <div class="howto-title">💡 HOW IT WORKS</div>
-    <div class="step"><div class="step-num">1</div><div class="step-text">Connect your Monad wallet — get <strong>1 free generation</strong></div></div>
-    <div class="step"><div class="step-num">2</div><div class="step-text">Drop any reference image (character, outfit, NFT) → CHOG PFP auto-generates using AI</div></div>
-    <div class="step"><div class="step-num">3</div><div class="step-text">Pay <strong>100 MON</strong> to unlock <strong>10 more generations</strong></div></div>
+    <div class="step"><div class="step-num">1</div><div class="step-text">Connect your X account → get <strong>1 free generation</strong> (Sybil-resistant)</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-text">Drop any reference image (character, outfit, NFT) → CHOG PFP auto-generates</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Want more? Connect wallet and pay <strong>100 MON → +10 generations</strong></div></div>
+  </div>
+
+  <!-- X LOGIN ROW -->
+  <div class="auth-row">
+    <button id="xLoginBtn" class="x-login-btn" onclick="loginWithX()">
+      <span class="x-icon-sm">𝕏</span> Connect X for 1 free
+    </button>
+    <div id="xSession" class="x-session">
+      <img id="xAvatar" class="x-avatar" src="" alt="">
+      <span id="xUsername" class="x-username"></span>
+      <span id="xFreeBadge" class="x-free-badge">✦ 1 FREE</span>
+      <button class="x-logout" onclick="logoutX()" title="Disconnect X">✕</button>
+    </div>
   </div>
 
   <!-- WALLET ROW -->
-  <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-    <button id="walletBtn" onclick="pfpConnectWallet()" style="background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;flex-shrink:0;">🔗 Connect Wallet</button>
-
-    <div id="walletInfo" style="display:none;flex:1;min-width:0;background:rgba(138,92,246,.08);border:1px solid rgba(138,92,246,.25);border-radius:12px;padding:10px 14px;font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;display:none;align-items:center;gap:10px;">
+  <div class="wallet-row">
+    <button id="walletBtn" class="wallet-btn" onclick="pfpConnectWallet()">🔗 Connect Wallet</button>
+    <div id="walletInfo" class="wallet-info">
       <span id="walletAddr" style="color:#7c6fa0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
       <span style="color:#3a3055;flex-shrink:0;">·</span>
-      <span id="creditDisplay" style="color:#a78bfa;flex-shrink:0;font-weight:700;"></span>
-      <div id="creditDots" class="credit-bar" style="flex-shrink:0;"></div>
+      <span id="creditDisplay" style="color:#a78bfa;font-weight:700;flex-shrink:0;"></span>
+      <div id="creditDots" class="credit-dots"></div>
     </div>
-
-    <button id="payBtn" onclick="pfpPay()" style="display:none;background:rgba(138,92,246,.15);border:1px solid rgba(138,92,246,.4);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;white-space:nowrap;">💎 Pay 100 MON → +10</button>
+    <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 100 MON → +10</button>
   </div>
 
   <!-- CHOG STYLE SWITCHER -->
-  <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;">
+  <div class="style-row">
     <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">BASE STYLE</div>
-    <div id="style2Btn" onclick="setChogStyle(2)" style="cursor:pointer;border-radius:10px;overflow:hidden;width:56px;height:56px;border:2px solid rgba(138,92,246,.25);flex-shrink:0;opacity:.6;transition:all .2s;">
-      <img src="/chog/pfp/IMG_20260516_025404_862.jpg" style="width:100%;height:100%;object-fit:cover;" alt="Style 2">
+    <div id="style2Btn" class="style-thumb" onclick="setChogStyle(2)">
+      <img src="/chog/pfp/IMG_20260516_025404_862.jpg" alt="Style 2">
     </div>
-    <div id="style1Btn" onclick="setChogStyle(1)" style="cursor:pointer;border-radius:10px;overflow:hidden;width:56px;height:56px;border:2px solid var(--purple);box-shadow:0 0 10px rgba(138,92,246,.5);flex-shrink:0;transition:all .2s;">
-      <img src="/chog/pfp/CHOG.jpg" style="width:100%;height:100%;object-fit:cover;" alt="Style 1">
+    <div id="style1Btn" class="style-thumb active" onclick="setChogStyle(1)">
+      <img src="/chog/pfp/CHOG.jpg" alt="Style 1">
     </div>
     <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← pick CHOG art style</div>
   </div>
@@ -143,9 +180,12 @@ input[type=file]{display:none;}
   <!-- PANELS -->
   <div class="panels">
     <div class="panel">
-      <div class="panel-label">Reference image · drop here</div>
+      <div class="panel-label-row">
+        <div class="panel-label" style="margin-bottom:0;">Reference image</div>
+        <button id="useXPfpBtn" class="use-x-pfp" onclick="useXPfp()" style="display:none;">Use my X PFP</button>
+      </div>
       <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
-        <div class="dz-overlay" id="dzOverlay">
+        <div class="dz-overlay">
           <div class="dz-icon">🖼</div>
           <div class="dz-text">Drop your reference image</div>
           <div class="dz-sub">any character · outfit · PFP</div>
@@ -162,15 +202,15 @@ input[type=file]{display:none;}
   </div>
 
   <!-- BUTTONS -->
-  <div class="btn-row" style="margin-top:4px;">
+  <div class="btn-row">
     <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate CHOG PFP</button>
-    <button class="icon-btn" id="dlBtn" onclick="openResult()" style="display:none" title="Open / Download">⬇</button>
+    <button class="icon-btn" id="dlBtn" onclick="openResult()" style="display:none" title="Open image">⬇</button>
     <button class="icon-btn" onclick="resetAll()" title="Reset">↺</button>
   </div>
 
   <!-- SHARE ON X -->
   <button class="share-btn" id="shareBtn" onclick="shareOnX()">
-    <span class="x-icon">𝕏</span> Share your CHOG PFP
+    <span style="font-family:'Space Mono',monospace;font-weight:700;">𝕏</span> Share your CHOG PFP
   </button>
 
   <div class="status" id="statusMsg"></div>
@@ -184,196 +224,260 @@ const CHOG_STYLE2 = 'https://monad-terminal.xyz/chog/pfp/IMG_20260516_025404_862
 const DEV_WALLET  = '0x38A7d00c3494ACFF01c0d216A6115A2af1A72162';
 const MONAD_CHAIN = '0x8F';
 const API_BASE    = '/api/pfp-generate';
-const MAX_CREDITS = 10;
 
 let chogBaseUrl = CHOG_STYLE1;
 let b64 = null, resultUrl = null;
-let pfpWallet = null, pfpCredits = 0;
+let pfpWallet = null;
+let xSession = null; // { id, username, avatar, usedFree }
+let totalCredits = 0;
+
+/* ── INIT: check session on load ── */
+window.addEventListener('DOMContentLoaded', async () => {
+  const params = new URLSearchParams(location.search);
+  if (params.get('login') === 'ok') history.replaceState({}, '', '/chog/pfp');
+  if (params.get('error')) setStatus('✗ X login failed: ' + params.get('error'), true);
+
+  try {
+    const r = await fetch('/api/pfp-session');
+    const d = await r.json();
+    if (d.loggedIn) setXSession(d);
+  } catch {}
+});
+
+/* ── X LOGIN ── */
+function loginWithX() {
+  window.location.href = '/api/twitter-auth';
+}
+
+function logoutX() {
+  document.cookie = 'pfp_session=; Path=/; Max-Age=0';
+  xSession = null;
+  document.getElementById('xLoginBtn').style.display = 'flex';
+  document.getElementById('xSession').style.display = 'none';
+  document.getElementById('useXPfpBtn').style.display = 'none';
+  updateGenBtn();
+}
+
+function setXSession(d) {
+  xSession = d;
+  document.getElementById('xLoginBtn').style.display = 'none';
+  const ses = document.getElementById('xSession');
+  ses.style.display = 'flex';
+  document.getElementById('xAvatar').src = d.avatar || '';
+  document.getElementById('xUsername').textContent = '@' + d.username;
+  const badge = document.getElementById('xFreeBadge');
+  badge.textContent = d.usedFree ? 'FREE USED' : '✦ 1 FREE';
+  badge.className = d.usedFree ? 'x-used-badge' : 'x-free-badge';
+  // Show "Use my X PFP" button if avatar exists
+  if (d.avatar) document.getElementById('useXPfpBtn').style.display = 'block';
+  refreshCredits();
+}
+
+/* ── USE X PFP AS REFERENCE ── */
+async function useXPfp() {
+  if (!xSession?.avatar) return;
+  setStatus('⏳ Loading your X profile picture...');
+  try {
+    // Fetch avatar via proxy to avoid CORS
+    const proxyUrl = `/api/pfp-session?proxy=${encodeURIComponent(xSession.avatar)}`;
+    // Fallback: load directly (may work if Twitter allows)
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      b64 = canvas.toDataURL('image/jpeg', 0.9);
+      setDropImage(b64);
+      setStatus('✦ X profile picture loaded!', 'ok');
+      updateGenBtn();
+    };
+    img.onerror = () => setStatus('✗ Could not load X avatar — please drag & drop instead', true);
+    img.src = xSession.avatar;
+  } catch (e) { setStatus('✗ ' + e.message, true); }
+}
 
 /* ── WALLET ── */
-async function pfpConnectWallet(){
-  if(!window.ethereum){alert('MetaMask or compatible wallet required');return;}
-  try{
-    const accounts = await window.ethereum.request({method:'eth_requestAccounts'});
+async function pfpConnectWallet() {
+  if (!window.ethereum) { alert('MetaMask or compatible wallet required'); return; }
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     pfpWallet = accounts[0];
-    await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD_CHAIN}]}).catch(()=>{});
+    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] }).catch(() => {});
     document.getElementById('walletBtn').style.display = 'none';
-    const wi = document.getElementById('walletInfo');
-    wi.style.display = 'flex';
-    document.getElementById('walletAddr').textContent = pfpWallet.slice(0,6)+'...'+pfpWallet.slice(-4);
+    document.getElementById('walletInfo').style.display = 'flex';
+    document.getElementById('walletAddr').textContent = pfpWallet.slice(0,6) + '...' + pfpWallet.slice(-4);
     await refreshCredits();
-  }catch(e){setStatus('✗ '+e.message,true);}
+  } catch (e) { setStatus('✗ ' + e.message, true); }
 }
 
-async function refreshCredits(){
-  const r = await fetch(API_BASE,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({action:'credits', wallet:pfpWallet})
+async function refreshCredits() {
+  const r = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'credits', wallet: pfpWallet }),
   });
   const d = await r.json();
-  pfpCredits = d.credits ?? 1;
-  updateCreditUI();
+  totalCredits = d.total ?? 0;
+  updateCreditUI(d);
 }
 
-function updateCreditUI(){
-  const total = pfpCredits <= MAX_CREDITS ? MAX_CREDITS : MAX_CREDITS;
-  document.getElementById('creditDisplay').textContent = `${pfpCredits}/${MAX_CREDITS}`;
-
-  // dot indicators (up to 10)
-  const dotsEl = document.getElementById('creditDots');
-  const show = Math.min(pfpCredits, MAX_CREDITS);
-  dotsEl.innerHTML = Array.from({length:MAX_CREDITS},(_,i)=>
-    `<div class="credit-dot ${i < pfpCredits ? 'on' : 'off'}"></div>`
-  ).join('');
-
-  document.getElementById('payBtn').style.display = pfpCredits < 3 ? 'block' : 'none';
-  if(b64 && pfpCredits > 0) document.getElementById('genBtn').disabled = false;
+function updateCreditUI(d) {
+  if (!d) return;
+  // Update X free badge
+  if (xSession) {
+    const badge = document.getElementById('xFreeBadge');
+    badge.textContent = d.twitterFree ? '✦ 1 FREE' : 'FREE USED';
+    badge.className = d.twitterFree ? 'x-free-badge' : 'x-used-badge';
+    xSession.usedFree = !d.twitterFree;
+  }
+  // Wallet credits display
+  if (pfpWallet && d.walletCredits !== undefined) {
+    const wc = d.walletCredits;
+    document.getElementById('creditDisplay').textContent = `${wc}/10`;
+    const dots = document.getElementById('creditDots');
+    dots.innerHTML = Array.from({length:10},(_,i) =>
+      `<div class="cdot ${i < wc ? 'on' : 'off'}"></div>`
+    ).join('');
+    document.getElementById('payBtn').style.display = wc < 3 ? 'block' : 'none';
+  }
+  totalCredits = d.total ?? 0;
+  updateGenBtn();
 }
 
-async function pfpPay(){
-  if(!pfpWallet){setStatus('⚠ Connect wallet first',true);return;}
+function updateGenBtn() {
+  const canGen = b64 && (totalCredits > 0 || (xSession && !xSession.usedFree));
+  document.getElementById('genBtn').disabled = !canGen;
+}
+
+async function pfpPay() {
+  if (!pfpWallet) { setStatus('⚠ Connect wallet first', true); return; }
   setStatus('💎 Sending 100 MON...');
-  try{
+  try {
     const txHash = await window.ethereum.request({
-      method:'eth_sendTransaction',
-      params:[{
-        from: pfpWallet,
-        to: DEV_WALLET,
-        value: '0x16345785D3A00000',
-        gas: '0x5208',
-      }]
+      method: 'eth_sendTransaction',
+      params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D3A00000', gas: '0x5208' }]
     });
     setStatus('⏳ Verifying payment on-chain...');
-    await new Promise(r=>setTimeout(r,4000));
-    const r = await fetch(API_BASE,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({action:'pay', wallet:pfpWallet, txHash})
+    await new Promise(r => setTimeout(r, 4000));
+    const r = await fetch(API_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'pay', wallet: pfpWallet, txHash }),
     });
     const d = await r.json();
-    if(!r.ok) throw new Error(d.error);
-    pfpCredits = d.credits;
-    updateCreditUI();
-    setStatus('✦ Payment confirmed! +10 generations unlocked 🦔','ok');
-  }catch(e){setStatus('✗ '+e.message,true);}
+    if (!r.ok) throw new Error(d.error);
+    await refreshCredits();
+    setStatus('✦ Payment confirmed! +10 generations unlocked 🦔', 'ok');
+  } catch (e) { setStatus('✗ ' + e.message, true); }
 }
 
 /* ── STYLE SWITCHER ── */
-function setChogStyle(n){
-  chogBaseUrl = n===1 ? CHOG_STYLE1 : CHOG_STYLE2;
-  const s1=document.getElementById('style1Btn'), s2=document.getElementById('style2Btn');
-  s1.style.border = n===1 ? '2px solid var(--purple)' : '2px solid rgba(138,92,246,.25)';
-  s1.style.opacity = n===1 ? '1' : '.6';
-  s1.style.boxShadow = n===1 ? '0 0 10px rgba(138,92,246,.5)' : 'none';
-  s2.style.border = n===2 ? '2px solid var(--purple)' : '2px solid rgba(138,92,246,.25)';
-  s2.style.opacity = n===2 ? '1' : '.6';
-  s2.style.boxShadow = n===2 ? '0 0 10px rgba(138,92,246,.5)' : 'none';
+function setChogStyle(n) {
+  chogBaseUrl = n === 1 ? CHOG_STYLE1 : CHOG_STYLE2;
+  document.getElementById('style1Btn').classList.toggle('active', n === 1);
+  document.getElementById('style2Btn').classList.toggle('active', n === 2);
 }
 
 /* ── FILE INPUT ── */
-function handleFile(e){
-  const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    b64=ev.target.result;
-    setDropImage(b64);
-    if(!pfpWallet){setStatus('⚠ Connect wallet first to generate',true);return;}
-    runAll();
-  };
-  r.readAsDataURL(f);
+function handleFile(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => { b64 = ev.target.result; setDropImage(b64); runAll(); };
+  reader.readAsDataURL(f);
 }
 
-function setDropImage(src){
-  const dz=document.getElementById('dropZone');
-  dz.innerHTML=`<img class="uploaded" src="${src}" alt="ref" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block;">`;
+function setDropImage(src) {
+  const dz = document.getElementById('dropZone');
+  dz.innerHTML = `<img src="${src}" alt="ref" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block;">`;
   dz.classList.add('has-img');
 }
 
 /* ── DRAG & DROP ── */
-const dz=document.getElementById('dropZone');
-dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragging');});
-dz.addEventListener('dragleave',()=>dz.classList.remove('dragging'));
-dz.addEventListener('drop',e=>{
-  e.preventDefault();dz.classList.remove('dragging');
-  const f=e.dataTransfer.files[0];
-  if(f&&f.type.startsWith('image/')){
-    const r=new FileReader();
-    r.onload=ev=>{b64=ev.target.result;setDropImage(b64);if(pfpWallet)runAll();else setStatus('⚠ Connect wallet to generate',true);};
-    r.readAsDataURL(f);
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('dragging');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = ev => { b64 = ev.target.result; setDropImage(b64); runAll(); };
+    reader.readAsDataURL(f);
   }
 });
 
 /* ── GENERATE ── */
-async function runAll(){
-  if(!pfpWallet){setStatus('⚠ Connect wallet first',true);return;}
-  if(!b64){setStatus('⚠ Drop a reference image first',true);return;}
-  if(pfpCredits < 1){
-    setStatus('⚠ No generations left — pay 100 MON for 10 more',true);
-    document.getElementById('payBtn').style.display='block';
+async function runAll() {
+  if (!b64) { setStatus('⚠ Drop a reference image first', true); return; }
+
+  const canUseXFree = xSession && !xSession.usedFree;
+  const canUseWallet = pfpWallet && totalCredits > 0;
+
+  if (!canUseXFree && !canUseWallet) {
+    if (!xSession) setStatus('⚠ Connect X for 1 free generation, or connect wallet', true);
+    else setStatus('⚠ No credits left — pay 100 MON for 10 more', true);
+    document.getElementById('payBtn').style.display = 'block';
     return;
   }
-  const btn=document.getElementById('genBtn');
-  btn.disabled=true;
-  document.getElementById('dlBtn').style.display='none';
-  document.getElementById('shareBtn').style.display='none';
-  document.getElementById('resultBox').innerHTML='<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true;
+  document.getElementById('dlBtn').style.display = 'none';
+  document.getElementById('shareBtn').style.display = 'none';
+  document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
   setStatus('🔍 GPT-4o analyzing your reference image...');
 
-  try{
-    const res=await fetch(API_BASE,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'generate', wallet:pfpWallet, image:b64, chogStyle:chogBaseUrl})
+  try {
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl }),
     });
-    const d=await res.json();
-    if(!res.ok) throw new Error(d.error);
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error);
 
-    resultUrl=d.url;
-    pfpCredits=d.credits;
-    updateCreditUI();
-    document.getElementById('resultBox').innerHTML=`<img src="${resultUrl}" alt="CHOG PFP" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
-    document.getElementById('dlBtn').style.display='flex';
-    document.getElementById('shareBtn').style.display='flex';
-    setStatus('✦ Your CHOG PFP is ready! GM fren 🦔','ok');
-    btn.disabled=false;
-
-  }catch(err){
-    document.getElementById('resultBox').innerHTML='<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
-    if(err.message.includes('No credits')) document.getElementById('payBtn').style.display='block';
-    setStatus('✗ '+err.message,true);
-    btn.disabled=false;
+    resultUrl = d.url;
+    updateCreditUI(d);
+    document.getElementById('resultBox').innerHTML = `<img src="${resultUrl}" alt="CHOG PFP" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    document.getElementById('dlBtn').style.display = 'flex';
+    document.getElementById('shareBtn').style.display = 'flex';
+    setStatus('✦ Your CHOG PFP is ready! GM fren 🦔', 'ok');
+    btn.disabled = false;
+  } catch (err) {
+    document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
+    if (err.message.includes('No credits') || err.message.includes('Pay')) {
+      document.getElementById('payBtn').style.display = 'block';
+    }
+    setStatus('✗ ' + err.message, true);
+    btn.disabled = false;
   }
 }
 
-function generatePFP(){
-  if(!b64){setStatus('⚠ Drop a reference image first',true);return;}
-  runAll();
-}
+function generatePFP() { runAll(); }
 
 /* ── SHARE ON X ── */
-function shareOnX(){
-  const text = `just made my CHOG pfp on monad-terminal.xyz/chog/pfp 🦔\n\n#CHOG #Monad #onchain`;
-  const url = 'https://monad-terminal.xyz/chog/pfp';
-  const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-  window.open(intent,'_blank','width=550,height=480');
+function shareOnX() {
+  const text = 'just turned my PFP into a CHOG 🦔\n\ntry it at monad-terminal.xyz/chog/pfp\n\n#CHOG #Monad';
+  const intent = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
+  window.open(intent, '_blank', 'width=550,height=480');
 }
 
-function setStatus(msg,type){
-  const el=document.getElementById('statusMsg');
-  el.textContent=msg;
-  el.className='status'+(type===true?' err':type==='ok'?' ok':'');
+function setStatus(msg, type) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status' + (type === true ? ' err' : type === 'ok' ? ' ok' : '');
 }
-function openResult(){if(resultUrl)window.open(resultUrl,'_blank');}
-function resetAll(){
-  b64=null;resultUrl=null;
-  const dz2=document.getElementById('dropZone');
-  dz2.className='drop-zone';
-  dz2.innerHTML='<div class="dz-overlay" id="dzOverlay"><div class="dz-icon">🖼</div><div class="dz-text">Drop your reference image</div><div class="dz-sub">any character · outfit · PFP</div></div>';
-  document.getElementById('resultBox').innerHTML='<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
-  document.getElementById('dlBtn').style.display='none';
-  document.getElementById('shareBtn').style.display='none';
-  document.getElementById('genBtn').disabled=true;
+function openResult() { if (resultUrl) window.open(resultUrl, '_blank'); }
+function resetAll() {
+  b64 = null; resultUrl = null;
+  const dz2 = document.getElementById('dropZone');
+  dz2.className = 'drop-zone';
+  dz2.innerHTML = '<div class="dz-overlay"><div class="dz-icon">🖼</div><div class="dz-text">Drop your reference image</div><div class="dz-sub">any character · outfit · PFP</div></div>';
+  document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
+  document.getElementById('dlBtn').style.display = 'none';
+  document.getElementById('shareBtn').style.display = 'none';
+  document.getElementById('genBtn').disabled = true;
   setStatus('');
 }
 </script>
