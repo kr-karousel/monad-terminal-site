@@ -211,12 +211,12 @@ module.exports = async function handler(req, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', max_tokens: 200,
+        model: 'gpt-4o', max_tokens: 250,
         messages: [{
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: 'Describe ONLY the outfit and accessories visible in this image. Be specific: hat type and color, sunglasses/eyewear style, jacket/shirt/suit color and style, tie/bow, held objects, jewelry, badges, shoes if visible. Do NOT mention face features, hair color, skin tone, background, or expressions. Comma-separated list only, max 60 words.' }
+            { type: 'text', text: 'List every clothing item and accessory worn in this image. Be very specific and include: hair accessories (bows, ribbons, clips), hats, eyewear, top/jacket/dress/cape color and style, undershirt/collar details, tie/bow-tie, belt, held items, jewelry, shoes. Do NOT mention face, hair color, skin, background, or expressions. Comma-separated list, max 80 words.' }
           ]
         }]
       }),
