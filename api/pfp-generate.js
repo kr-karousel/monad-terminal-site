@@ -204,27 +204,38 @@ module.exports = async function handler(req, res) {
       await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
     }
 
-    // Load both images: base CHOG + user reference (no vision text step — same as ChatGPT)
+    // STEP 1: GPT-4o-mini vision — semantic extraction only (avoid latent contamination from direct image input)
+    const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini', max_tokens: 150,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: image } },
+            { type: 'text', text: `Look at this image. Extract ONLY the wearable outfit and accessory tokens as a short comma-separated list. Include hat/headwear (type+color), eyewear (sunglasses/glasses style+color), top clothing (jacket/suit/shirt type+color), held items (cash/phone/etc), and any small accessories. Skip skin, hair, face, body, background. Max 40 words. Example: "black fedora hat, round black sunglasses, black hanbok robe, white collar, fan of dollar bills in pocket".` }
+          ]
+        }]
+      }),
+    });
+    const vd = await visionRes.json();
+    if (vd.error) return res.status(500).json({ error: vd.error.message });
+    const outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
+
+    // Load base CHOG + mask (no reference image — text only avoids style contamination)
     const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
     const baseRes = await fetch(baseUrl);
     if (!baseRes.ok) return res.status(500).json({ error: 'Failed to load CHOG base image' });
     const baseBuf = Buffer.from(await baseRes.arrayBuffer());
 
-    // Load mask: transparent zones = editable (hat top + clothing bottom), opaque = preserve (face/hair middle)
     const maskRes = await fetch('https://monad-terminal.xyz/chog/pfp/chog_mask.png');
     const maskBuf = maskRes.ok ? Buffer.from(await maskRes.arrayBuffer()) : null;
 
-    // image is a base64 data URL like "data:image/jpeg;base64,..."
-    const refMatch = image.match(/^data:(image\/[^;]+);base64,(.+)$/);
-    if (!refMatch) return res.status(400).json({ error: 'Reference image must be a base64 data URL' });
-    const refMime = refMatch[1];
-    const refBuf = Buffer.from(refMatch[2], 'base64');
-
-    // Simple direct prompt — like ChatGPT's working prompt
-    const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background of the first image.';
+    const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background.';
     const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
-    const chogPrompt = `Edit ONLY the transparent regions of the mask. Add the outfit from the second image: hat, sunglasses, clothing, held items. Match the crude hand-drawn cartoon style of the first image — flat colors, simple lines, no extra shading or polish. Keep everything in the opaque (preserved) regions untouched.${bgPart}${stylePart}${extraPart}`;
+    const chogPrompt = `Inside the transparent mask regions only, add this outfit and accessories to the character: ${outfit}${extraPart}. Match the crude hand-drawn cartoon style of the base image — flat colors, simple uneven lines, naive childish look, no extra shading, no polish, no vector cleanup. Keep the opaque regions completely untouched.${bgPart}${stylePart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
@@ -233,10 +244,8 @@ module.exports = async function handler(req, res) {
     form.append('size', '1024x1024');
     form.append('quality', 'medium');
     form.append('input_fidelity', 'high');
-    // Pass BOTH images — base CHOG first, then user reference
-    form.append('image[]', new Blob([baseBuf], { type: 'image/png' }), 'chog_base.png');
-    form.append('image[]', new Blob([refBuf], { type: refMime }), 'reference.' + refMime.split('/')[1]);
-    // Mask constrains editing to hat zone (top) + clothing zone (bottom). Face/hair preserved.
+    // Single base image + mask (reference is text-only via vision extraction)
+    form.append('image', new Blob([baseBuf], { type: 'image/png' }), 'chog_base.png');
     if (maskBuf) {
       form.append('mask', new Blob([maskBuf], { type: 'image/png' }), 'mask.png');
     }
