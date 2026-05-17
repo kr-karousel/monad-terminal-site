@@ -657,7 +657,12 @@ function updateCreditUI(d) {
   // Wallet credits display
   if (pfpWallet && d.walletCredits !== undefined) {
     const wc = d.walletCredits;
-    document.getElementById('creditDisplay').textContent = `${wc}/5`;
+    const disp = document.getElementById('creditDisplay');
+    if (wc > 0) {
+      disp.innerHTML = `<span style="color:#86efac;">✦ ${wc} credit${wc === 1 ? '' : 's'} available</span>`;
+    } else {
+      disp.innerHTML = `<span style="color:#fca5a5;">✗ 0 credits — pay to unlock</span>`;
+    }
     const dots = document.getElementById('creditDots');
     dots.innerHTML = Array.from({length:5},(_,i) =>
       `<div class="cdot ${i < wc ? 'on' : 'off'}"></div>`
