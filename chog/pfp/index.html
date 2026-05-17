@@ -744,7 +744,7 @@ function statusAfterUpload() {
   const hasFree = xSession && !xSession.usedFree;
   const hasWallet = pfpWallet && totalCredits > 0;
   if (hasFree || hasWallet) {
-    statusAfterUpload();
+    setStatus('✓ Image loaded — click Generate when ready', 'ok');
     return;
   }
   // No credits left

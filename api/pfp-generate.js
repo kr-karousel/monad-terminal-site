@@ -220,75 +220,22 @@ module.exports = async function handler(req, res) {
     const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background of the first image.';
     const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
-    const chogPrompt = `The FIRST image is the ABSOLUTE base image. It is an IMMUTABLE ANCHOR.
+    const chogPrompt = `The FIRST image is the base character. Keep its art style exactly:
+- crude amateur hand-drawn quality
+- awkward linework, uneven shapes, imperfect proportions
+- childish naive cartoon feeling
+- flat simple coloring with no shading
+- same face, eyes, expression, blush, hair shape
+- same framing and background color
+- charming badly-drawn look
 
-IMPORTANT: Preserve the crude amateur drawing quality of the FIRST image.
-Keep:
-- awkward linework
-- uneven shapes
-- imperfect proportions
-- childish hand-drawn feeling
-- messy/simple coloring
-- low-detail rendering
-- same face proportions
-- same line thickness
-- same flat coloring
-- same facial expression
-- same hair shape and silhouette
-- same framing and crop
-- same background color
-- same drawing imperfections
+The SECOND image is only a fashion reference. Take only its outfit and items:
+- hat or headwear
+- sunglasses or glasses
+- jacket, suit, shirt colors
+- held items like cash or accessories
 
-DO NOT:
-- polish the drawing
-- clean up the lines
-- make it symmetrical
-- make it professional
-- make it vector-clean
-- make it high-detail
-- make it look like modern AI art
-- convert it to vector art
-- convert it to mascot logo art
-- convert it to polished digital illustration
-- convert it to smooth modern cartoon style
-- add realism
-- add rendering
-- add texture
-- add gradients
-- add detailed shading
-- change proportions
-- redesign the character
-- reinterpret the composition
-
-The final image should STILL look badly hand-drawn in a charming way.
-
-The SECOND image is ONLY a clothing/accessory reference.
-ONLY replace clothing-related regions. Transfer ONLY:
-- hat/headwear
-- glasses/sunglasses
-- clothing colors and outfit
-- accessories/items
-- fashion concept
-
-Do not redesign the character itself. Do not modify:
-- face structure
-- eyes
-- mouth
-- cheeks
-- head shape
-- hair silhouette
-
-Keep the FIRST image visually dominant.
-
-The final image should look like: "the FIRST image character wearing the SECOND image outfit."
-NOT: "a fusion of both images."
-NOT: "a polished AI illustration of the character."
-
-If any conflict occurs between the two images, ALWAYS prioritize the FIRST image.
-The SECOND image must never affect: face structure, drawing style, rendering style, composition, camera framing, character proportions.
-
-This is IDENTITY LOCK + ATTRIBUTE REPLACEMENT — not style transfer.
-The character's crude hand-drawn identity is fixed by the FIRST image. Only the outfit is replaced from the SECOND image.${bgPart}${stylePart}${extraPart}`;
+Render the FIRST image character wearing the SECOND image outfit. Style stays from the first, outfit comes from the second. Keep the same crude childish drawing style as the first image — avoid polishing, avoid vector art look, avoid adding realism or detailed shading. The result should still look hand-drawn and a bit messy in a cute way.${bgPart}${stylePart}${extraPart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
