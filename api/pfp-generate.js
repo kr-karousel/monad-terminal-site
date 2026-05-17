@@ -204,7 +204,7 @@ module.exports = async function handler(req, res) {
       await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
     }
 
-    // Vision: extract outfit/accessories text from reference image only
+    // Step 1: extract outfit from reference image via vision
     const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
@@ -214,7 +214,7 @@ module.exports = async function handler(req, res) {
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: 'List ONLY the outfit and accessories worn in this image. Include: hat style/color, eyewear, top/jacket/suit color and style, any held items, jewelry, special accessories. Do NOT mention face, hair, skin, expression, or background. Short comma-separated list, max 50 words.' }
+            { type: 'text', text: 'List only the clothing and accessories in this image. Include: hats, eyewear, jacket/top/dress color and style, tie, cape, bow/ribbon in hair, held items, jewelry. Exclude face, skin, hair color, background. Short comma-separated list, max 50 words.' }
           ]
         }]
       }),
@@ -223,42 +223,25 @@ module.exports = async function handler(req, res) {
     if (vd.error) return res.status(500).json({ error: vd.error.message });
     const outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
 
-    const bgPart = bgTemplate
-      ? `Background: ${bgTemplate}.`
-      : 'Background: solid bright vivid blue (#4488EE), flat color, no gradients.';
-    const stylePart = artStyle ? `\nExtra art direction: ${artStyle}.` : '';
-    const extraPart = customPrompt ? `\nAdditional details: ${customPrompt.trim()}.` : '';
+    const bgPart = bgTemplate || 'solid flat bright blue background #00AAFF, no gradients';
+    const stylePart = artStyle ? `, ${artStyle}` : '';
+    const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
-    // Text-only generation — no input image means no face contamination
-    // Full CHOG character spec locks in the face identity precisely
-    const chogPrompt = `Create a 2D flat cartoon NFT profile picture of the character CHOG.
+    // Step 2: text-only generation — no style reference image contamination
+    // Full character spec produces consistent CHOG NFT style every time
+    const chogPrompt = `Flat 2D chibi cartoon NFT profile picture of CHOG character. Large round head filling most of the frame, tiny small body. Flat peach skin. Dark purple spiky hair with multiple sharp triangular spikes pointing up and outward, thick black outlines. Eyes: exactly two small solid black oval dots side by side, NO white sclera, NO shine, NO iris — just flat black dots. Round pink blush circle on each cheek. Tiny simple curved smile, no teeth. Bold thick solid black cartoon outlines on all shapes.
 
-CHARACTER SPECS — follow exactly, do not deviate:
-- Chibi proportions: very large round head, tiny stubby body
-- Skin: flat light cream/peach color
-- Hair: dark purple-violet, multiple sharp spiky tufts pointing upward and outward, thick black outlines
-- Eyes: ONLY two small solid black oval dots, side by side, horizontally centered on face — NO white sclera, NO iris, NO shine, NO pupils — just two flat solid black dots
-- Cheeks: one round soft pink blush circle on each cheek
-- Mouth: tiny simple curved line, calm neutral gentle smile, no teeth
-- All shapes enclosed in thick solid black cartoon outlines
+Outfit: ${outfit}.${extraPart}
 
-OUTFIT — dress the character in these:
-${outfit}${extraPart}
+Background: ${bgPart}.
 
-${bgPart}${stylePart}
-
-STYLE — mandatory:
-- Flat 2D illustration. Zero gradients. Zero shading. Zero texture. Zero realism.
-- Bold flat solid colors inside thick black cartoon outlines
-- Clean crisp edges, no blur, no anti-alias artifacts
-- Square frame, character centered, filling most of the frame
-- Must match the art style of the official CHOG NFT collection`;
+Style: flat 2D illustration${stylePart}, zero gradients, zero shading, zero texture, bold solid colors only, clean crisp edges, square frame, character centered, CHOG NFT collection art style.`;
 
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'gpt-image-1',
+        model: 'gpt-image-2',
         prompt: chogPrompt,
         n: 1,
         size: '1024x1024',
