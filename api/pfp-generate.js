@@ -227,7 +227,15 @@ module.exports = async function handler(req, res) {
     const bgPart = bgTemplate ? ` Background: ${bgTemplate}.` : ' Keep the original background of the source image.';
     const stylePart = artStyle ? ` Render in art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? `, ${customPrompt.trim()}` : '';
-    const chogPrompt = `Dress this CHOG character with: ${outfit}${extraPart}. Render in clean, polished cartoon illustration style — smooth solid color fills, crisp thick black outlines, soft cel-shading, vibrant saturated colors, professional NFT art finish (like an official PFP collection). High-quality polished look, NOT rough sketch or messy linework.${bgPart}${stylePart}`.trim();
+    const chogPrompt = `Add ONLY the following clothing and accessories to this character: ${outfit}${extraPart}.
+
+CRITICAL — DO NOT MODIFY:
+- The character's face, eyes, eyebrows, blush marks, mouth, or expression (must be 100% identical to source)
+- The character's hair shape, color, or style
+- The character's body shape or proportions
+- The art style, line weight, color palette, or rendering technique of the source image
+
+ONLY add the clothing/accessories on top of the existing character. Treat this like putting stickers/clothes on a paper doll — the doll itself never changes, only what's placed on it.${bgPart}${stylePart}`.trim();
 
     // Step 3: gpt-image-1 EDIT the CHOG base — preserves silhouette/form
     const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
