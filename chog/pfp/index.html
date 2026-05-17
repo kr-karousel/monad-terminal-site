@@ -394,26 +394,36 @@ async function useXPfp() {
 
 /* ── WALLET ── */
 async function pfpConnectWallet() {
-  if (!window.ethereum) { alert('MetaMask or compatible wallet required'); return; }
+  const btn = document.getElementById('walletBtn');
+  if (!window.ethereum) {
+    alert('No wallet detected. Please install MetaMask or Rabby.');
+    return;
+  }
+  btn.textContent = '⏳ Connecting...';
+  btn.disabled = true;
   try {
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    if (!accounts?.length) throw new Error('No accounts returned');
     pfpWallet = accounts[0];
-    // Switch to Monad, add chain if not present
-    try {
-      await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] });
-    } catch (sw) {
-      if (sw.code === 4902) {
-        await window.ethereum.request({
+
+    // Chain switch — fire and forget, never blocks wallet connect
+    window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] })
+      .catch(() =>
+        window.ethereum.request({
           method: 'wallet_addEthereumChain',
           params: [{ chainId: MONAD_CHAIN, chainName: 'Monad Mainnet', nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 }, rpcUrls: ['https://rpc.monad.xyz'], blockExplorerUrls: ['https://explorer.monad.xyz'] }]
-        });
-      }
-    }
-    document.getElementById('walletBtn').style.display = 'none';
+        }).catch(() => {})
+      );
+
+    btn.style.display = 'none';
     document.getElementById('walletInfo').style.display = 'flex';
     document.getElementById('walletAddr').textContent = pfpWallet.slice(0,6) + '...' + pfpWallet.slice(-4);
     await refreshCredits();
-  } catch (e) { setStatus('✗ ' + e.message, true); }
+  } catch (e) {
+    btn.textContent = '🔗 Connect Wallet';
+    btn.disabled = false;
+    setStatus('✗ ' + (e.message || 'Wallet connection failed'), true);
+  }
 }
 
 async function refreshCredits() {
