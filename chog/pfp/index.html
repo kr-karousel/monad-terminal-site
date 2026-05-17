@@ -316,7 +316,7 @@ const ART_STYLES = [
 
 let chogBaseUrl = CHOG_STYLE1;
 let b64 = null, resultUrl = null;
-let pfpWallet = null;
+let pfpWallet = null, pfpProvider = null;
 let xSession = null;
 let totalCredits = 0;
 let selectedBg = BG_TEMPLATES[0];
@@ -449,6 +449,7 @@ async function pfpConnectWallet() {
     const accounts = await provider.request({ method: 'eth_requestAccounts' });
     if (!accounts?.length) throw new Error('No accounts returned');
     pfpWallet = accounts[0];
+    pfpProvider = provider; // store for later use in pay/send
 
     // Chain switch — fire and forget
     provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] })
@@ -471,12 +472,10 @@ async function pfpConnectWallet() {
 }
 
 async function pfpPay() {
-  if (!pfpWallet) { setStatus('⚠ Connect wallet first', true); return; }
-  const provider = getProvider();
-  if (!provider) return;
+  if (!pfpWallet || !pfpProvider) { setStatus('⚠ Connect wallet first', true); return; }
   setStatus('💎 Sending 100 MON...');
   try {
-    const txHash = await provider.request({
+    const txHash = await pfpProvider.request({
       method: 'eth_sendTransaction',
       params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D3A00000', gas: '0x5208' }]
     });
