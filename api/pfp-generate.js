@@ -229,13 +229,18 @@ module.exports = async function handler(req, res) {
     if (!baseRes.ok) return res.status(500).json({ error: 'Failed to load CHOG base image' });
     const baseBuf = Buffer.from(await baseRes.arrayBuffer());
 
-    // No mask — full redraw mode (base image acts as style anchor)
-    const maskBuf = null;
+    const maskRes = await fetch('https://monad-terminal.xyz/chog/pfp/chog_mask.png');
+    const maskBuf = maskRes.ok ? Buffer.from(await maskRes.arrayBuffer()) : null;
 
     const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background.';
     const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
-    const chogPrompt = `Redraw the input character in EXACTLY the same art style as the input image — preserve every visual quality: the same uneven hand-drawn line work, the same flat solid colors with no gradients, the same naive amateur cartoon feeling, the same face proportions and expression, the same hair silhouette, the same childish drawing charm, the same low-detail rendering. The character should be wearing: ${outfit}${extraPart}. The redrawn version must visually match the input image so closely that someone could mistake the new version for the original — only the outfit is different.${bgPart}${stylePart}`;
+    const outfitList = outfit.split(',').map(s => '- ' + s.trim()).filter(s => s.length > 2).join('\n');
+    const chogPrompt = `Add the following items inside the transparent mask regions only:
+
+${outfitList}${extraPart ? '\n' + extraPart : ''}
+
+Preserve the original crude amateur drawing exactly. Do not clean up lines. Do not improve the drawing. Do not make it symmetrical. Do not redraw the character. Match the input's flat childish hand-drawn style.${bgPart}${stylePart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
