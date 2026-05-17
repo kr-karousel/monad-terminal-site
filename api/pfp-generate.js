@@ -1,5 +1,5 @@
 // Vercel serverless — CHOG PFP Studio
-// Free: 1 per X account · Paid: 100 MON = 10 credits (wallet)
+// Free: 1 per X account · Paid: 0.1 MON = 10 credits (wallet)
 const crypto = require('crypto');
 
 const SB_URL = 'https://phjolzvyewacjqausmxx.supabase.co';
@@ -99,7 +99,7 @@ async function verifyPayment(txHash, fromWallet) {
   const to   = (tx.to || '').toLowerCase();
   const from = (tx.from || '').toLowerCase();
   const val  = BigInt(tx.value || '0x0');
-  const required = BigInt('0x56BC75E2D63100000'); // 100 MON
+  const required = BigInt('0x16345785D8A0000'); // 0.1 MON
 
   if (to !== DEV_WALLET.toLowerCase()) return { ok: false, reason: 'Wrong recipient' };
   if (from !== fromWallet.toLowerCase()) return { ok: false, reason: 'Sender mismatch' };
@@ -130,7 +130,7 @@ module.exports = async function handler(req, res) {
     return res.json({ twitterFree, walletCredits, total: (twitterFree ? 1 : 0) + walletCredits });
   }
 
-  // ── ADD CREDITS (100 MON payment) ────────────────
+  // ── ADD CREDITS (0.1 MON payment) ────────────────
   if (action === 'pay') {
     if (!wallet) return res.status(400).json({ error: 'wallet required' });
     if (!txHash) return res.status(400).json({ error: 'txHash required' });
@@ -170,10 +170,10 @@ module.exports = async function handler(req, res) {
     }
 
     if (!useTwitterFree) {
-      if (!wallet) return res.status(402).json({ error: 'Connect X for 1 free generation, or pay 100 MON for more.' });
+      if (!wallet) return res.status(402).json({ error: 'Connect X for 1 free generation, or pay 0.1 MON for more.' });
       walletRow = await getWalletRow(wallet);
       if (!walletRow || walletRow.credits < 1) {
-        return res.status(402).json({ error: 'No credits left. Pay 100 MON to get 5 more.' });
+        return res.status(402).json({ error: 'No credits left. Pay 0.1 MON to get 5 more.' });
       }
     }
 
