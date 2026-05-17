@@ -206,33 +206,13 @@ module.exports = async function handler(req, res) {
       await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
     }
 
-    // Vision: extract outfit/accessories text from reference image only
-    const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
-      body: JSON.stringify({
-        model: 'gpt-4o', max_tokens: 250,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: 'List every clothing item and accessory worn in this image. Be very specific and include: hair accessories (bows, ribbons, clips), hats, eyewear, top/jacket/dress/cape color and style, undershirt/collar details, tie/bow-tie, belt, held items, jewelry, shoes. Do NOT mention face, hair color, skin, background, or expressions. Comma-separated list, max 80 words.' }
-          ]
-        }]
-      }),
-    });
-    const vd = await visionRes.json();
-    if (vd.error) return res.status(500).json({ error: vd.error.message });
-    const outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
-
     const bgPart = bgTemplate
       ? `Solid flat background color: ${bgTemplate}.`
       : 'Solid flat background: bright blue #00AAFF.';
     const stylePart = artStyle ? `Art direction: ${artStyle}.` : '';
-    const extraPart = customPrompt ? `Extra details: ${customPrompt.trim()}.` : '';
+    const extraPart = customPrompt ? `Additional details: ${customPrompt.trim()}.` : '';
 
-    // Read the CHOG style image directly from disk (reliable, no network issues)
-    // Default: IMG_20260516_025404_862.jpg (style 2, 125KB) — same as frontend default
+    // Read CHOG style image from disk
     let styleFilename = 'IMG_20260516_025404_862.jpg';
     if (chogStyle) {
       if (chogStyle.includes('IMG_20260516')) styleFilename = 'IMG_20260516_025404_862.jpg';
@@ -243,19 +223,18 @@ module.exports = async function handler(req, res) {
     console.log('[generate] chogStyle param:', chogStyle, '→ file:', styleFilename);
     const styleBuffer = fs.readFileSync(stylePath);
 
-    const editPrompt = `This is a CHOG NFT character. Keep the character's face, head shape, spiky purple hair, dot eyes, pink blush cheeks, thick black cartoon outlines, and flat 2D chibi art style EXACTLY the same. Only change the outfit and accessories.
+    // Decode user reference image from base64
+    const refBase64 = image.replace(/^data:image\/\w+;base64,/, '');
+    const refBuffer = Buffer.from(refBase64, 'base64');
 
-OUTFIT TO APPLY:
-${outfit}${extraPart ? '\n' + extraPart : ''}
+    // Pass both images directly to gpt-image-2 — no separate vision call needed
+    // Image 1: CHOG style reference (locks character identity + art style)
+    // Image 2: user reference (model reads outfit/accessories directly)
+    const editPrompt = `The first image is a CHOG NFT character. The second image is a reference showing an outfit and accessories. Redraw the CHOG character from the first image wearing the outfit and accessories visible in the second image. Keep the CHOG character's face shape, spiky purple hair, dot eyes, pink blush cheeks, chibi proportions, thick black cartoon outlines, and flat 2D art style EXACTLY the same — only the clothing and accessories should change.${extraPart ? ' ' + extraPart : ''}
 
-BACKGROUND: ${bgPart}
-${stylePart}
+${bgPart}${stylePart ? ' ' + stylePart : ''}
 
-STYLE RULES — do not break:
-- Flat 2D cartoon illustration, bold solid colors, thick black outlines
-- No gradients, no shading, no realistic textures
-- Clean crisp edges, square frame, character centered
-- Identical art style to the official CHOG NFT collection`;
+Style rules: flat 2D illustration, bold solid colors, thick black outlines, no gradients, no shading, square frame, character centered.`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-2');
@@ -263,7 +242,8 @@ STYLE RULES — do not break:
     form.append('n', '1');
     form.append('size', '1024x1024');
     form.append('quality', 'high');
-    form.append('image[]', new Blob([styleBuffer], { type: 'image/jpeg' }), 'chog.jpg');
+    form.append('image[]', new Blob([styleBuffer], { type: 'image/jpeg' }), 'chog_style.jpg');
+    form.append('image[]', new Blob([refBuffer], { type: 'image/jpeg' }), 'reference.jpg');
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
