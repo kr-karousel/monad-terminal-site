@@ -96,15 +96,23 @@ h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-b
 .style-thumb.active{border-color:var(--purple);box-shadow:0 0 10px rgba(138,92,246,.5);opacity:1;}
 .style-thumb img{width:100%;height:100%;object-fit:cover;}
 
-/* ── BG + ART STYLE ──────────────── */
-.option-section{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:12px;}
-.option-label{font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;}
-.bg-grid-sel{display:flex;flex-wrap:wrap;gap:8px;}
-.bg-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .18s;flex-shrink:0;position:relative;}
+/* ── COLLAPSIBLE SECTIONS ────────── */
+.option-section{background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;}
+.option-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;user-select:none;}
+.option-header:hover{background:rgba(138,92,246,.05);}
+.option-header-left{display:flex;align-items:center;gap:8px;}
+.option-label{font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;text-transform:uppercase;}
+.option-optional{font-size:9px;font-family:'Space Mono',monospace;color:#4a3d6b;letter-spacing:0;text-transform:none;}
+.option-chevron{font-size:11px;color:#4a3d6b;transition:transform .2s;}
+.option-section.open .option-chevron{transform:rotate(180deg);}
+.option-body{display:none;padding:0 14px 14px;}
+.option-section.open .option-body{display:block;}
+.bg-grid-sel{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px;}
+.bg-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .18s;flex-shrink:0;}
 .bg-swatch:hover{transform:scale(1.12);}
 .bg-swatch.active{border-color:#fff;box-shadow:0 0 0 2px var(--purple);}
 .bg-swatch[data-id="white"]{border-color:rgba(138,92,246,.3);}
-.style-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.style-chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:4px;}
 .style-chip{font-size:11px;padding:5px 12px;border-radius:999px;border:1px solid rgba(138,92,246,.25);color:var(--text-muted);cursor:pointer;transition:all .15s;font-family:'Space Mono',monospace;background:transparent;}
 .style-chip:hover{border-color:rgba(138,92,246,.5);color:var(--purple-light);}
 .style-chip.active{background:rgba(138,92,246,.25);border-color:var(--purple);color:#dbb8ff;}
@@ -194,21 +202,41 @@ input[type=file]{display:none;}
   </div>
 
   <!-- BACKGROUND TEMPLATES -->
-  <div class="option-section">
-    <div class="option-label">Background</div>
-    <div class="bg-grid-sel" id="bgGrid"></div>
+  <div class="option-section" id="bgSection">
+    <div class="option-header" onclick="toggleSection('bgSection')">
+      <div class="option-header-left">
+        <span class="option-label">Background</span>
+        <span class="option-optional">(optional)</span>
+      </div>
+      <span class="option-chevron">▼</span>
+    </div>
+    <div class="option-body"><div class="bg-grid-sel" id="bgGrid"></div></div>
   </div>
 
   <!-- ART STYLE -->
-  <div class="option-section">
-    <div class="option-label">Art Style</div>
-    <div class="style-chips" id="styleChips"></div>
+  <div class="option-section" id="styleSection">
+    <div class="option-header" onclick="toggleSection('styleSection')">
+      <div class="option-header-left">
+        <span class="option-label">Art Style</span>
+        <span class="option-optional">(optional)</span>
+      </div>
+      <span class="option-chevron">▼</span>
+    </div>
+    <div class="option-body"><div class="style-chips" id="styleChips"></div></div>
   </div>
 
   <!-- CUSTOM PROMPT -->
-  <div class="option-section">
-    <div class="option-label">Additional Prompt <span style="color:#4a3d6b;font-size:9px;letter-spacing:0;">(optional)</span></div>
-    <textarea id="customPrompt" placeholder="e.g. holding a sword, sitting on a throne, laughing..." style="width:100%;min-height:60px;background:rgba(255,255,255,.03);border:1px solid rgba(138,92,246,.2);border-radius:10px;padding:10px 13px;color:#d4c8f0;font-family:'Outfit',sans-serif;font-size:13px;line-height:1.55;resize:none;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(138,92,246,.52)'" onblur="this.style.borderColor='rgba(138,92,246,.2)'"></textarea>
+  <div class="option-section" id="promptSection">
+    <div class="option-header" onclick="toggleSection('promptSection')">
+      <div class="option-header-left">
+        <span class="option-label">Additional Prompt</span>
+        <span class="option-optional">(optional)</span>
+      </div>
+      <span class="option-chevron">▼</span>
+    </div>
+    <div class="option-body">
+      <textarea id="customPrompt" placeholder="e.g. holding a sword, sitting on a throne, laughing..." style="width:100%;min-height:60px;background:rgba(255,255,255,.03);border:1px solid rgba(138,92,246,.2);border-radius:10px;padding:10px 13px;color:#d4c8f0;font-family:'Outfit',sans-serif;font-size:13px;line-height:1.55;resize:none;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(138,92,246,.52)'" onblur="this.style.borderColor='rgba(138,92,246,.2)'"></textarea>
+    </div>
   </div>
 
   <!-- PANELS -->
@@ -293,6 +321,11 @@ let xSession = null;
 let totalCredits = 0;
 let selectedBg = BG_TEMPLATES[0];
 let selectedStyle = ART_STYLES[0];
+
+/* ── COLLAPSIBLE SECTIONS ── */
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('open');
+}
 
 /* ── BUILD BG + STYLE SELECTORS ── */
 function buildSelectors() {
