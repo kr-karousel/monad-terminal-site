@@ -204,17 +204,17 @@ module.exports = async function handler(req, res) {
       await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
     }
 
-    // Vision extract outfit text from reference (no direct ref image input → no style/face contamination)
+    // Vision: extract outfit/accessories text from reference image only
     const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', max_tokens: 200,
+        model: 'gpt-4o-mini', max_tokens: 150,
         messages: [{
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: `Describe ONLY the outfit, accessories, and held items of the character in this image. Be specific and visual: hat type/color/shape (e.g. "tall black gat hat", "yellow crown with red gems"), eyewear, clothing pieces with colors and trim/frills/patterns, all held items, ribbons, bows, scarves, jewelry, anything wearable. Skip skin, hair, face, body, expression, background. Comma-separated, max 60 words.` }
+            { type: 'text', text: 'List ONLY the outfit and accessories worn in this image. Include: hat style/color, eyewear, top/jacket/suit color and style, any held items, jewelry, special accessories. Do NOT mention face, hair, skin, expression, or background. Short comma-separated list, max 50 words.' }
           ]
         }]
       }),
@@ -223,39 +223,51 @@ module.exports = async function handler(req, res) {
     if (vd.error) return res.status(500).json({ error: vd.error.message });
     const outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
 
-    const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
-    const baseRes = await fetch(baseUrl);
-    if (!baseRes.ok) return res.status(500).json({ error: 'Failed to load CHOG base image' });
-    const baseBuf = Buffer.from(await baseRes.arrayBuffer());
+    const bgPart = bgTemplate
+      ? `Background: ${bgTemplate}.`
+      : 'Background: solid bright vivid blue (#4488EE), flat color, no gradients.';
+    const stylePart = artStyle ? `\nExtra art direction: ${artStyle}.` : '';
+    const extraPart = customPrompt ? `\nAdditional details: ${customPrompt.trim()}.` : '';
 
-    const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background.';
-    const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
-    const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
-    const chogPrompt = `Re-render the input CHOG character so they are wearing: ${outfit}${extraPart}.
+    // Text-only generation — no input image means no face contamination
+    // Full CHOG character spec locks in the face identity precisely
+    const chogPrompt = `Create a 2D flat cartoon NFT profile picture of the character CHOG.
 
-CRITICAL: The character's face must remain EXACTLY identical to the input — same eye shape, same eye direction, same blush placement, same calm smile, same nose, same hair shape and color, same skin tone, same proportions. Do not change the facial expression. Do not change the eye style. The face must be 100% the same as the input image's face.
+CHARACTER SPECS — follow exactly, do not deviate:
+- Chibi proportions: very large round head, tiny stubby body
+- Skin: flat light cream/peach color
+- Hair: dark purple-violet, multiple sharp spiky tufts pointing upward and outward, thick black outlines
+- Eyes: ONLY two small solid black oval dots, side by side, horizontally centered on face — NO white sclera, NO iris, NO shine, NO pupils — just two flat solid black dots
+- Cheeks: one round soft pink blush circle on each cheek
+- Mouth: tiny simple curved line, calm neutral gentle smile, no teeth
+- All shapes enclosed in thick solid black cartoon outlines
 
-Match the input's clean flat cartoon style with thick black outlines and bold flat colors. No realism, no gradients, no extra shading. The result should look like an official PFP from the same collection as the input.${bgPart}${stylePart}`;
+OUTFIT — dress the character in these:
+${outfit}${extraPart}
 
-    const form = new FormData();
-    form.append('model', 'chatgpt-image-latest');
-    form.append('prompt', chogPrompt);
-    form.append('n', '1');
-    form.append('size', '1024x1024');
-    form.append('quality', 'medium');
-    form.append('input_fidelity', 'high');
-    // Single base image — reference is text-only via vision (avoids style/face latent leak)
-    form.append('image', new Blob([baseBuf], { type: 'image/png' }), 'chog_base.png');
+${bgPart}${stylePart}
 
-    const genRes = await fetch('https://api.openai.com/v1/images/edits', {
+STYLE — mandatory:
+- Flat 2D illustration. Zero gradients. Zero shading. Zero texture. Zero realism.
+- Bold flat solid colors inside thick black cartoon outlines
+- Clean crisp edges, no blur, no anti-alias artifacts
+- Square frame, character centered, filling most of the frame
+- Must match the art style of the official CHOG NFT collection`;
+
+    const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
-      body: form,
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-image-1',
+        prompt: chogPrompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'medium',
+      }),
     });
     const gd = await genRes.json();
     if (gd.error) return res.status(500).json({ error: gd.error.message });
 
-    // gpt-image-1 returns b64_json by default; dall-e-3 returns url
     const img = gd.data[0];
     const imageUrl = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
