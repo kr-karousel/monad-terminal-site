@@ -451,36 +451,34 @@ async function useXPfp() {
 function getAllProviders() {
   const found = [];
   const seen = new Set();
-
   function add(p) {
-    if (!p || seen.has(p)) return;
-    seen.add(p);
-    found.push(p);
+    if (!p || typeof p.request !== 'function' || seen.has(p)) return;
+    seen.add(p); found.push(p);
   }
-
-  // EIP-5749 providers array (MetaMask + others coexisting)
-  if (window.ethereum?.providers?.length) {
-    window.ethereum.providers.forEach(add);
-  }
-
-  // Wallet-specific globals (bypass evmAsk aggregator)
-  if (window.rabby)                    add(window.rabby);
-  if (window.okxwallet)                add(window.okxwallet);
-  if (window.coinbaseWalletExtension)  add(window.coinbaseWalletExtension);
-  if (window.bybitWallet)              add(window.bybitWallet);
-
-  // window.ethereum itself (only if not already added)
+  // EIP-5749 multi-provider array
+  if (window.ethereum?.providers?.length) window.ethereum.providers.forEach(add);
+  // Wallet-specific globals — bypasses evmAsk aggregator
+  if (window.backpack?.request)            add(window.backpack);
+  if (window.phantom?.ethereum?.request)   add(window.phantom.ethereum);
+  if (window.rabby?.request)               add(window.rabby);
+  if (window.okxwallet?.request)           add(window.okxwallet);
+  if (window.coinbaseWalletExtension)      add(window.coinbaseWalletExtension);
+  if (window.bybitWallet?.request)         add(window.bybitWallet);
+  if (window.trustwallet?.request)         add(window.trustwallet);
+  // window.ethereum last (may be aggregator)
   if (window.ethereum) add(window.ethereum);
-
   return found;
 }
 
 function getWalletName(p) {
-  if (p === window.rabby || p.isRabby)          return { name: 'Rabby',    icon: '🐰' };
-  if (p === window.okxwallet || p.isOKExWallet) return { name: 'OKX',      icon: '⭕' };
-  if (p.isCoinbaseWallet)                        return { name: 'Coinbase', icon: '🔵' };
-  if (p.isBybit)                                 return { name: 'Bybit',    icon: '🟡' };
-  if (p.isMetaMask)                              return { name: 'MetaMask', icon: '🦊' };
+  if (p.isBackpack || p === window.backpack)          return { name: 'Backpack',  icon: '🎒' };
+  if (p.isPhantom  || p === window.phantom?.ethereum) return { name: 'Phantom',   icon: '👻' };
+  if (p.isRabby    || p === window.rabby)             return { name: 'Rabby',     icon: '🐰' };
+  if (p.isOKExWallet || p === window.okxwallet)       return { name: 'OKX',       icon: '⭕' };
+  if (p.isCoinbaseWallet)                             return { name: 'Coinbase',  icon: '🔵' };
+  if (p.isBybit)                                      return { name: 'Bybit',     icon: '🟡' };
+  if (p.isTrust)                                      return { name: 'Trust',     icon: '🛡️' };
+  if (p.isMetaMask)                                   return { name: 'MetaMask',  icon: '🦊' };
   return { name: 'Wallet', icon: '👛' };
 }
 
@@ -527,12 +525,17 @@ async function connectWithProvider(provider) {
     pfpWallet = accounts[0];
     pfpProvider = provider;
 
-    // Chain switch — fire and forget
-    provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] })
-      .catch(() => provider.request({
-        method: 'wallet_addEthereumChain',
-        params: [{ chainId: MONAD_CHAIN, chainName: 'Monad Mainnet', nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 }, rpcUrls: ['https://rpc.monad.xyz'], blockExplorerUrls: ['https://explorer.monad.xyz'] }]
-      }).catch(() => {}));
+    // Switch to Monad Mainnet — add chain if not found
+    try {
+      await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] });
+    } catch (sw) {
+      if (sw.code === 4902 || sw.code === -32603) {
+        await provider.request({
+          method: 'wallet_addEthereumChain',
+          params: [{ chainId: MONAD_CHAIN, chainName: 'Monad Mainnet', nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 }, rpcUrls: ['https://rpc.monad.xyz'], blockExplorerUrls: ['https://explorer.monad.xyz'] }]
+        }).catch(() => {});
+      }
+    }
 
     btn.style.display = 'none';
     btn.textContent = '🔗 Connect Wallet';
