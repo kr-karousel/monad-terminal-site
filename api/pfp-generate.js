@@ -220,7 +220,23 @@ module.exports = async function handler(req, res) {
     const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background of the first image.';
     const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
-    const chogPrompt = `Generate the first image (CHOG character) wearing the outfit and accessories from the second image. Keep the first image's character face, eyes, hair, and art style exactly the same — only transfer the clothing, hats, glasses, and items from the second image onto the first character.${bgPart}${stylePart}${extraPart}`;
+    const chogPrompt = `You are given two images.
+
+FIRST IMAGE = base style + composition (preserve everything):
+- Face proportions, line weight, simple flat coloring
+- Close-up face/bust framing
+- Hair shape, color, and style
+- Blush marks, eye shape, expression
+- Overall art style and rendering technique
+
+SECOND IMAGE = design reference (transfer ONLY these elements):
+- Headwear (hat/cap)
+- Eyewear (sunglasses/glasses)
+- Top clothing (jacket/suit/shirt and its color)
+- Held items (cash/phone/items)
+- Accessories and concept vibe
+
+TASK: Re-render the FIRST image's character wearing the SECOND image's outfit and accessories. Do not change the first character's face, hair, or art style at all — only put the second image's clothes/items on them.${bgPart}${stylePart}${extraPart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
