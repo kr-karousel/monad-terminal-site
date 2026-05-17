@@ -224,7 +224,20 @@ module.exports = async function handler(req, res) {
     const bgPart = bgTemplate ? ` Background: ${bgTemplate}.` : ' Keep the original background of the source image.';
     const stylePart = artStyle ? ` Render in art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? `, ${customPrompt.trim()}` : '';
-    const chogPrompt = `Take this exact CHOG chibi hedgehog character from the input image and dress it up with: ${outfit}${extraPart}. Keep the character's EXACT identity — same face, same purple spiky hair, same eyes, same blush marks, same body shape, same flat 2D chibi cartoon art style, same thick black outlines. Only add the clothing and accessories described.${bgPart}${stylePart} Output: square 1:1 chibi cartoon NFT profile picture. No text, no watermark, no signature.`;
+    const chogPrompt = `Transform this character to match the exact style, angle, framing, and vibe of the CHOG chibi hedgehog reference (input image): flat 2D chibi cartoon mascot style, big round head, large expressive eyes with white highlight dots, pink blush marks on cheeks, bold thick black outlines, cel-shaded vector illustration, square 1:1 bust-shot framing.
+
+Keep the EXACT character identity from the input image: same face shape, same hair style and color, same eye shape, same blush marks, same body proportions, same outline thickness, same overall chibi mascot art style.
+
+ONLY add/change the outfit and accessories to: ${outfit}${extraPart}.
+
+IMPORTANT CHARACTER PRESERVATION RULES:
+- DO NOT change the character into a different species or character
+- DO NOT change facial features, hair, or body shape
+- DO NOT make the character realistic or photorealistic
+- DO NOT add or remove the character's signature traits
+- Keep it as a flat 2D chibi cartoon mascot in the exact same art style as the input.${bgPart}${stylePart}
+
+Output: clean square 1:1 NFT profile picture, no text, no watermark, no signature, no border.`;
 
     // Step 3: gpt-image-1 EDIT the CHOG base — preserves silhouette/form
     const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';

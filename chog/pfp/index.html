@@ -112,6 +112,8 @@ h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-b
 @keyframes spin{to{transform:rotate(360deg);}}
 .spinner-text{font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;animation:blink 1.4s ease-in-out infinite;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
+@keyframes toastIn{from{transform:translateX(120%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes toastOut{from{transform:translateX(0);opacity:1;}to{transform:translateX(120%);opacity:0;}}
 
 /* ── STYLE SWITCHER ──────────────── */
 .style-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
@@ -833,6 +835,19 @@ async function runAll() {
     updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: newWalletCredits, total: newWalletCredits + (xSession && !xSession.usedFree ? 1 : 0) });
   }
 
+  // Spinner progress text simulation (visual feedback during long request)
+  const stages = [
+    { delay: 0,     text: 'analyzing outfit...',           toast: '🔍 GPT-4o analyzing outfit & accessories...' },
+    { delay: 6000,  text: 'composing CHOG...',             toast: '🎨 Composing CHOG with your outfit...' },
+    { delay: 15000, text: 'rendering details...',          toast: '✨ gpt-image-1 rendering details (this takes 30-60s)...' },
+    { delay: 35000, text: 'finalizing...',                 toast: '🦔 Almost there...' },
+  ];
+  const stageTimers = stages.map(s => setTimeout(() => {
+    const spinTxt = document.querySelector('.spinner-text');
+    if (spinTxt) spinTxt.textContent = s.text;
+    if (s.delay > 0) showToast(s.toast, '');
+  }, s.delay));
+
   try {
     const res = await fetch(API_BASE, {
       method: 'POST',
@@ -847,6 +862,7 @@ async function runAll() {
         customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '',
       }),
     });
+    stageTimers.forEach(clearTimeout);
     const d = await res.json();
     if (!res.ok) throw new Error(d.error);
 
@@ -858,6 +874,7 @@ async function runAll() {
     setStatus('✦ Your CHOG PFP is ready! GM fren 🦔', 'ok');
     btn.disabled = false;
   } catch (err) {
+    stageTimers.forEach(clearTimeout);
     document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
     if (err.message.includes('No credits') || err.message.includes('Pay')) {
       document.getElementById('payBtn').style.display = 'block';
@@ -870,16 +887,61 @@ async function runAll() {
 function generatePFP() { runAll(); }
 
 /* ── SHARE ON X ── */
-function shareOnX() {
+async function shareOnX() {
   const text = 'just turned my PFP into a CHOG 🦔\n\ntry it at monad-terminal.xyz/chog/pfp\n\n#CHOG #Monad';
+  // Try to copy the generated image to clipboard so user can paste into X composer
+  if (resultUrl) {
+    try {
+      const blob = await fetch(resultUrl).then(r => r.blob());
+      // Some clipboards reject non-PNG; convert if needed
+      const pngBlob = blob.type === 'image/png' ? blob : await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width; canvas.height = img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          canvas.toBlob(resolve, 'image/png');
+        };
+        img.src = URL.createObjectURL(blob);
+      });
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
+      showToast('📋 Image copied to clipboard — paste it in the X composer (Ctrl+V)', 'ok');
+    } catch (e) {
+      console.warn('clipboard copy failed', e);
+      showToast('⚠ Could not auto-copy — please download the image first, then attach manually in X', true);
+    }
+  }
   const intent = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
-  window.open(intent, '_blank', 'width=550,height=480');
+  setTimeout(() => window.open(intent, '_blank', 'width=550,height=480'), 600);
 }
 
 function setStatus(msg, type) {
   const el = document.getElementById('statusMsg');
   el.textContent = msg;
   el.className = 'status' + (type === true ? ' err' : type === 'ok' ? ' ok' : '');
+  showToast(msg, type);
+}
+
+function showToast(msg, type) {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:360px;';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  const color = type === true ? '#fca5a5' : type === 'ok' ? '#86efac' : '#c4b5fd';
+  const bg    = type === true ? 'rgba(220,38,38,.12)' : type === 'ok' ? 'rgba(34,197,94,.12)' : 'rgba(138,92,246,.15)';
+  const bord  = type === true ? 'rgba(220,38,38,.4)'  : type === 'ok' ? 'rgba(34,197,94,.45)' : 'rgba(138,92,246,.45)';
+  toast.style.cssText = `pointer-events:auto;background:${bg};border:1px solid ${bord};color:${color};padding:11px 16px;border-radius:11px;font-family:'Space Mono',monospace;font-size:12px;backdrop-filter:blur(10px);box-shadow:0 6px 18px rgba(0,0,0,.35);max-width:340px;line-height:1.45;animation:toastIn .25s ease;`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toastOut .25s ease forwards';
+    setTimeout(() => toast.remove(), 250);
+  }, type === true ? 6000 : 4000);
 }
 function openResult() { if (resultUrl) window.open(resultUrl, '_blank'); }
 function resetAll() {
