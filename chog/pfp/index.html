@@ -515,7 +515,7 @@ function openWalletModal() {
   const list = document.getElementById('walletList');
   list.innerHTML = '';
 
-  const priority = ['metamask','backpack','phantom'];
+  const priority = ['backpack','metamask','phantom'];
   const main = providers.filter(p => priority.includes(getWalletType(p)));
   const others = providers.filter(p => !priority.includes(getWalletType(p)));
 
