@@ -596,6 +596,10 @@ async function connectWithProvider(provider) {
 
 async function pfpPay() {
   if (!pfpWallet || !pfpProvider) { setStatus('⚠ Connect wallet first', true); return; }
+  if (pfpWallet.toLowerCase() === DEV_WALLET.toLowerCase()) {
+    setStatus('✗ Cannot pay to yourself (dev wallet detected). Use a different wallet.', true);
+    return;
+  }
   setStatus('💎 Sending 100 MON... (confirm in wallet)');
   try {
     const txHash = await pfpProvider.request({
