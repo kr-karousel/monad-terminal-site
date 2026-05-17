@@ -255,7 +255,7 @@ STYLE RULES — do not break:
     form.append('prompt', editPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
-    form.append('quality', 'medium');
+    form.append('quality', 'high');
     form.append('image[]', new Blob([styleBuffer], { type: 'image/jpeg' }), 'chog.jpg');
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
