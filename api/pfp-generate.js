@@ -266,14 +266,15 @@ async function _handler(req, res) {
     } catch {}
     console.log('[generate] semantics:', JSON.stringify(semantics));
 
-    // STEP 2: load base CHOG image from disk
+    // STEP 2: fetch base CHOG image via URL (fs.readFileSync not available in Vercel runtime)
     let styleFilename = 'CHOG.jpg';
     if (chogStyle) {
       if (chogStyle.includes('IMG_20260516')) styleFilename = 'IMG_20260516_025404_862.jpg';
       else if (chogStyle.includes('CH_og'))   styleFilename = 'CH_og.jpg';
     }
-    const basePath = path.join(__dirname, '../chog/pfp', styleFilename);
-    const baseBuffer = fs.readFileSync(basePath);
+    const baseImgRes = await fetch(`https://monad-terminal.xyz/chog/pfp/${styleFilename}`);
+    if (!baseImgRes.ok) throw new Error(`Failed to load base image: ${baseImgRes.status}`);
+    const baseBuffer = Buffer.from(await baseImgRes.arrayBuffer());
     console.log('[generate] base:', styleFilename, baseBuffer.length, 'bytes');
 
     // STEP 3: build tiny mask — only regions that need editing
