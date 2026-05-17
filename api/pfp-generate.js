@@ -76,12 +76,12 @@ function makeMaskPng(w, h, zones) {
   ]);
 }
 
-/* ── CHOG body zones (1024×1024 proportions) ──────────────────────────── */
+/* ── CHOG body zones (proportions relative to image size) ──────────────── */
 const CHOG_ZONES = {
-  hat:         [0.20, 0.00, 0.80, 0.20],
+  hat:         [0.10, 0.00, 0.90, 0.42], // expanded: covers full hair area
   glasses:     [0.18, 0.36, 0.82, 0.52],
-  clothing:    [0.12, 0.60, 0.88, 0.93],
-  accessories: [0.08, 0.62, 0.92, 0.96],
+  clothing:    [0.08, 0.55, 0.92, 0.95],
+  accessories: [0.05, 0.55, 0.95, 0.98],
 };
 
 /* ── image dimension parser (JPEG + PNG, no deps) ── */
@@ -272,7 +272,7 @@ async function _handler(req, res) {
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: 'Return ONLY a JSON object with these keys (null if not present): hat (headwear type and color), glasses (eyewear type and color), clothing (top/jacket/suit/dress color and type), accessories (held items, jewelry, other). No markdown, just raw JSON.' }
+            { type: 'text', text: 'Analyze the character\'s WORN/STYLED elements only. Return ONLY a JSON object: {"hair": "describe hair color and style shape", "hat": "headwear if any, else null", "glasses": "eyewear if any, else null", "clothing": "describe the outfit/jacket/top — color, style, notable details like epaulettes/patterns"}. Do NOT include weapons, held props, or items in hands. Focus on what is physically on the body. No markdown, raw JSON only.' }
           ]
         }]
       }),
@@ -302,28 +302,25 @@ async function _handler(req, res) {
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     console.log('[generate] image dims:', IMG_W, 'x', IMG_H);
 
-    const editZones = [];
-    if (semantics.hat)         editZones.push(CHOG_ZONES.hat);
-    if (semantics.glasses)     editZones.push(CHOG_ZONES.glasses);
-    if (semantics.clothing)    editZones.push(CHOG_ZONES.clothing);
-    if (semantics.accessories) editZones.push(CHOG_ZONES.accessories);
-    if (!editZones.length)     editZones.push(CHOG_ZONES.clothing);
+    // Always edit hair+hat zone and clothing zone; add glasses only if present
+    const editZones = [CHOG_ZONES.hat, CHOG_ZONES.clothing];
+    if (semantics.glasses) editZones.push(CHOG_ZONES.glasses);
 
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    // STEP 4: surgical prompt — DO NOT REDRAW
+    // STEP 4: build prompt from worn elements only (no weapons/held props)
     const itemParts = [
-      semantics.hat         && `hat: ${semantics.hat}`,
-      semantics.glasses     && `glasses: ${semantics.glasses}`,
-      semantics.clothing    && `clothing: ${semantics.clothing}`,
-      semantics.accessories && `accessories: ${semantics.accessories}`,
+      semantics.hair     && `hair style: ${semantics.hair}`,
+      semantics.hat      && `headwear: ${semantics.hat}`,
+      semantics.glasses  && `eyewear: ${semantics.glasses}`,
+      semantics.clothing && `outfit: ${semantics.clothing}`,
     ].filter(Boolean);
     const semanticDesc = itemParts.join('; ');
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
     const bgPart    = bgTemplate   ? `Background: ${bgTemplate}.` : '';
     const stylePart = artStyle     ? ` Style: ${artStyle}.` : '';
 
-    const prompt = `Edit ONLY the transparent masked regions. Do NOT redraw the character. Do NOT clean up the art. Preserve the original flat cartoon drawing style exactly — keep uneven lines, thick black outlines, flat solid colors, hand-drawn quality.\n\nAdd ONLY in the masked areas: ${semanticDesc}.${extraPart}\n\nDO NOT: redraw the face, change proportions, add gradients, vectorize, or reinterpret the character. Character identity and drawing style must remain completely unchanged.\n${bgPart}${stylePart}`;
+    const prompt = `You are editing a cute cartoon hedgehog character (CHOG). Edit ONLY the transparent masked areas.\n\nPreserve EXACTLY: the character's face, eyes, nose, mouth, cheeks, body shape, and proportions. Keep the flat cartoon style, thick black outlines, and hand-drawn quality.\n\nIn the masked hair/top area: give the character this hair style — ${semantics.hair || 'styled hair'}.\nIn the masked clothing area: dress the character in — ${semantics.clothing || 'stylish outfit'}.\n${semantics.hat ? `Add headwear: ${semantics.hat}.\n` : ''}${semantics.glasses ? `Add eyewear: ${semantics.glasses}.\n` : ''}\nDO NOT add weapons, swords, guns, or any held items. DO NOT change the face. DO NOT add extra limbs or change the pose.\n${bgPart}${extraPart}${stylePart}`;
 
     // STEP 5: gpt-image-1 surgical edit (base image + mask at matching dimensions)
     const form = new FormData();
