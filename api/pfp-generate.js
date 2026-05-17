@@ -220,38 +220,61 @@ module.exports = async function handler(req, res) {
     const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background of the first image.';
     const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
-    const chogPrompt = `You are given two images. Perform THREE operations simultaneously:
-  1) STYLE TRANSFER — keep the FIRST image's exact art style
-  2) COMPOSITION PRESERVATION — keep the FIRST image's exact framing and pose
-  3) ATTRIBUTE INJECTION — inject ONLY the outfit/items from the SECOND image
+    const chogPrompt = `The FIRST image is the ABSOLUTE base image. It is an IMMUTABLE ANCHOR.
 
-FIRST IMAGE = base style + composition (preserve everything):
-- Face proportions, line weight, simple flat coloring
-- Close-up face/bust framing
-- Hair shape, color, and style
-- Blush marks, eye shape, expression
-- Overall art style and rendering technique
+Preserve the FIRST image almost entirely:
+- same face proportions
+- same line thickness
+- same flat coloring
+- same facial expression
+- same hair shape and silhouette
+- same framing and crop
+- same background color
+- same hand-drawn simplicity
+- same overall drawing imperfections
 
-SECOND IMAGE = design reference (transfer ONLY these elements):
-- Headwear (hat/cap)
-- Eyewear (sunglasses/glasses)
-- Top clothing (jacket/suit/shirt and its color)
-- Held items (cash/phone/items)
-- Accessories and concept vibe
+DO NOT:
+- change the art style
+- add realism
+- add rendering
+- add texture
+- add gradients
+- add detailed shading
+- change proportions
+- redesign the character
+- reinterpret the composition
 
-CRITICAL STYLE RULES:
-- Do NOT make it realistic.
-- Keep the same naive hand-drawn cartoon feeling as the FIRST image.
-- Do NOT add extra rendering detail, shading, or texture beyond what's in the FIRST image.
+The SECOND image is ONLY a clothing/accessory reference.
+Transfer ONLY:
+- hat/headwear
+- glasses/sunglasses
+- clothing colors and outfit
+- accessories/items
+- fashion concept
 
-TASK: Re-render the FIRST image's character wearing the SECOND image's outfit and accessories. Style stays left, items come from right, composition stays left.${bgPart}${stylePart}${extraPart}`;
+Keep the FIRST image visually dominant.
+
+The final image should look like: "the FIRST image character wearing the SECOND image outfit."
+NOT: "a fusion of both images."
+
+If any conflict occurs between the two images, ALWAYS prioritize the FIRST image.
+The SECOND image must never affect:
+- face structure
+- drawing style
+- rendering style
+- composition
+- camera framing
+- character proportions
+
+This is IDENTITY LOCK + ATTRIBUTE REPLACEMENT — not style transfer.
+The character identity is fixed by the FIRST image. Only the outfit is replaced from the SECOND image.${bgPart}${stylePart}${extraPart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
     form.append('prompt', chogPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
-    form.append('quality', 'medium');
+    form.append('quality', 'high');
     form.append('input_fidelity', 'high');
     // Pass BOTH images — base CHOG first, then user reference
     form.append('image[]', new Blob([baseBuf], { type: 'image/png' }), 'chog_base.png');
