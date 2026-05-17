@@ -238,7 +238,7 @@ CRITICAL: The character's face must remain EXACTLY identical to the input — sa
 Match the input's clean flat cartoon style with thick black outlines and bold flat colors. No realism, no gradients, no extra shading. The result should look like an official PFP from the same collection as the input.${bgPart}${stylePart}`;
 
     const form = new FormData();
-    form.append('model', 'gpt-image-1');
+    form.append('model', 'chatgpt-image-latest');
     form.append('prompt', chogPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
