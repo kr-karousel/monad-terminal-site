@@ -7,7 +7,7 @@ const SB_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const SESSION_SECRET = process.env.SESSION_SECRET || 'chog-pfp-fallback-secret';
 const MONAD_RPC  = 'https://rpc.monad.xyz';
-const DEV_WALLET = '0x38A7d00c3494ACFF01c0d216A6115A2af1A72162';
+const DEV_WALLET = '0xf9bb715c1DC21EB661FCaC75d45BCf470235e0d8';
 const CREDITS_PER_PAYMENT = 10;
 
 const SB_HEADERS = {
