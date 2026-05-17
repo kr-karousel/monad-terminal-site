@@ -201,8 +201,32 @@ input[type=file]{display:none;}
     <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← pick CHOG art style</div>
   </div>
 
+  <!-- PANELS -->
+  <div class="panels">
+    <div class="panel">
+      <div class="panel-label-row">
+        <div class="panel-label" style="margin-bottom:0;">Reference image</div>
+        <button id="useXPfpBtn" class="use-x-pfp" onclick="useXPfp()" style="display:none;">Use my X PFP</button>
+      </div>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
+        <div class="dz-overlay">
+          <div class="dz-icon">🖼</div>
+          <div class="dz-text">Drop your reference image</div>
+          <div class="dz-sub">any character · outfit · PFP</div>
+        </div>
+      </div>
+      <input type="file" id="fileIn" accept="image/*" onchange="handleFile(event)">
+    </div>
+    <div class="panel">
+      <div class="panel-label">Generated CHOG PFP</div>
+      <div class="result-box" id="resultBox">
+        <div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>
+      </div>
+    </div>
+  </div>
+
   <!-- BACKGROUND TEMPLATES -->
-  <div class="option-section" id="bgSection">
+  <div class="option-section" id="bgSection" style="margin-top:10px;">
     <div class="option-header" onclick="toggleSection('bgSection')">
       <div class="option-header-left">
         <span class="option-label">Background</span>
@@ -236,30 +260,6 @@ input[type=file]{display:none;}
     </div>
     <div class="option-body">
       <textarea id="customPrompt" placeholder="e.g. holding a sword, sitting on a throne, laughing..." style="width:100%;min-height:60px;background:rgba(255,255,255,.03);border:1px solid rgba(138,92,246,.2);border-radius:10px;padding:10px 13px;color:#d4c8f0;font-family:'Outfit',sans-serif;font-size:13px;line-height:1.55;resize:none;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(138,92,246,.52)'" onblur="this.style.borderColor='rgba(138,92,246,.2)'"></textarea>
-    </div>
-  </div>
-
-  <!-- PANELS -->
-  <div class="panels">
-    <div class="panel">
-      <div class="panel-label-row">
-        <div class="panel-label" style="margin-bottom:0;">Reference image</div>
-        <button id="useXPfpBtn" class="use-x-pfp" onclick="useXPfp()" style="display:none;">Use my X PFP</button>
-      </div>
-      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
-        <div class="dz-overlay">
-          <div class="dz-icon">🖼</div>
-          <div class="dz-text">Drop your reference image</div>
-          <div class="dz-sub">any character · outfit · PFP</div>
-        </div>
-      </div>
-      <input type="file" id="fileIn" accept="image/*" onchange="handleFile(event)">
-    </div>
-    <div class="panel">
-      <div class="panel-label">Generated CHOG PFP</div>
-      <div class="result-box" id="resultBox">
-        <div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>
-      </div>
     </div>
   </div>
 
@@ -426,23 +426,34 @@ async function useXPfp() {
 }
 
 /* ── WALLET ── */
+function getProvider() {
+  // If multiple wallets installed (evmAsk aggregator), pick a real provider directly
+  if (window.ethereum?.providers?.length) {
+    return window.ethereum.providers.find(p => p.isRabby)
+        || window.ethereum.providers.find(p => p.isMetaMask)
+        || window.ethereum.providers[0];
+  }
+  return window.ethereum || null;
+}
+
 async function pfpConnectWallet() {
   const btn = document.getElementById('walletBtn');
-  if (!window.ethereum) {
+  const provider = getProvider();
+  if (!provider) {
     alert('No wallet detected. Please install MetaMask or Rabby.');
     return;
   }
   btn.textContent = '⏳ Connecting...';
   btn.disabled = true;
   try {
-    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const accounts = await provider.request({ method: 'eth_requestAccounts' });
     if (!accounts?.length) throw new Error('No accounts returned');
     pfpWallet = accounts[0];
 
-    // Chain switch — fire and forget, never blocks wallet connect
-    window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] })
+    // Chain switch — fire and forget
+    provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] })
       .catch(() =>
-        window.ethereum.request({
+        provider.request({
           method: 'wallet_addEthereumChain',
           params: [{ chainId: MONAD_CHAIN, chainName: 'Monad Mainnet', nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 }, rpcUrls: ['https://rpc.monad.xyz'], blockExplorerUrls: ['https://explorer.monad.xyz'] }]
         }).catch(() => {})
@@ -455,8 +466,32 @@ async function pfpConnectWallet() {
   } catch (e) {
     btn.textContent = '🔗 Connect Wallet';
     btn.disabled = false;
-    setStatus('✗ ' + (e.message || 'Wallet connection failed'), true);
+    setStatus('✗ ' + (e.message || 'Connection failed — try unlocking your wallet'), true);
   }
+}
+
+async function pfpPay() {
+  if (!pfpWallet) { setStatus('⚠ Connect wallet first', true); return; }
+  const provider = getProvider();
+  if (!provider) return;
+  setStatus('💎 Sending 100 MON...');
+  try {
+    const txHash = await provider.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D3A00000', gas: '0x5208' }]
+    });
+    setStatus('⏳ Verifying payment on-chain...');
+    await new Promise(r => setTimeout(r, 4000));
+    const r = await fetch(API_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'pay', wallet: pfpWallet, txHash }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    await refreshCredits();
+    setStatus('✦ Payment confirmed! +10 generations unlocked 🦔', 'ok');
+  } catch (e) { setStatus('✗ ' + e.message, true); }
 }
 
 async function refreshCredits() {
