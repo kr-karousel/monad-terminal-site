@@ -204,38 +204,38 @@ module.exports = async function handler(req, res) {
       await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
     }
 
-    // Load base + mask + reference (option A: dual image with mask protecting face)
+    // Vision extract outfit text from reference (no direct ref image input → no style/face contamination)
+    const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini', max_tokens: 200,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: image } },
+            { type: 'text', text: `Describe ONLY the outfit, accessories, and held items of the character in this image. Be specific and visual: hat type/color/shape (e.g. "tall black gat hat", "yellow crown with red gems"), eyewear, clothing pieces with colors and trim/frills/patterns, all held items, ribbons, bows, scarves, jewelry, anything wearable. Skip skin, hair, face, body, expression, background. Comma-separated, max 60 words.` }
+          ]
+        }]
+      }),
+    });
+    const vd = await visionRes.json();
+    if (vd.error) return res.status(500).json({ error: vd.error.message });
+    const outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
+
     const baseUrl = chogStyle || 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
     const baseRes = await fetch(baseUrl);
     if (!baseRes.ok) return res.status(500).json({ error: 'Failed to load CHOG base image' });
     const baseBuf = Buffer.from(await baseRes.arrayBuffer());
 
-    const maskRes = await fetch('https://monad-terminal.xyz/chog/pfp/chog_mask.png');
-    const maskBuf = maskRes.ok ? Buffer.from(await maskRes.arrayBuffer()) : null;
-
-    // Reference image decode
-    const refMatch = image.match(/^data:(image\/[^;]+);base64,(.+)$/);
-    if (!refMatch) return res.status(400).json({ error: 'Reference image must be a base64 data URL' });
-    const refMime = refMatch[1];
-    const refBuf = Buffer.from(refMatch[2], 'base64');
-
     const bgPart = bgTemplate ? ` Use this background: ${bgTemplate}.` : ' Keep the original blue background.';
     const stylePart = artStyle ? ` Apply art style: ${artStyle}.` : '';
     const extraPart = customPrompt ? ` Also: ${customPrompt.trim()}.` : '';
-    const chogPrompt = `You are given two images and a mask. The FIRST image is the CHOG character (identity anchor). The SECOND image is a reference for outfit and accessories ONLY.
+    const chogPrompt = `Re-render the input CHOG character so they are wearing: ${outfit}${extraPart}.
 
-TASK: Re-render the FIRST image's character wearing the outfit and accessories from the SECOND image. Apply the changes ONLY inside the transparent regions of the mask. The opaque regions (face, eyes, mouth, cheeks, hair silhouette) must stay locked from the FIRST image.
+CRITICAL: The character's face must remain EXACTLY identical to the input — same eye shape, same eye direction, same blush placement, same calm smile, same nose, same hair shape and color, same skin tone, same proportions. Do not change the facial expression. Do not change the eye style. The face must be 100% the same as the input image's face.
 
-From the SECOND image, transfer accurately:
-- All headwear/hats (including ribbons, bows, crowns)
-- All eyewear (sunglasses, glasses)
-- Full clothing (jackets, dresses, robes, suits — with color, frills, trim, patterns)
-- All held items and pocket items
-- All small accessories
-
-Match the FIRST image's art style — flat colors, thick black outlines, naive hand-drawn cartoon feel. Do NOT polish, vectorize, or AI-clean the drawing. Keep the awkward charm of the FIRST image.
-
-The FIRST image controls identity and style. The SECOND image controls only the outfit/accessories.${extraPart}${bgPart}${stylePart}`;
+Match the input's clean flat cartoon style with thick black outlines and bold flat colors. No realism, no gradients, no extra shading. The result should look like an official PFP from the same collection as the input.${bgPart}${stylePart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
@@ -244,12 +244,8 @@ The FIRST image controls identity and style. The SECOND image controls only the 
     form.append('size', '1024x1024');
     form.append('quality', 'medium');
     form.append('input_fidelity', 'high');
-    // Dual image: base CHOG (identity anchor) + reference (outfit donor), mask protects face
-    form.append('image[]', new Blob([baseBuf], { type: 'image/png' }), 'chog_base.png');
-    form.append('image[]', new Blob([refBuf], { type: refMime }), 'reference.' + refMime.split('/')[1]);
-    if (maskBuf) {
-      form.append('mask', new Blob([maskBuf], { type: 'image/png' }), 'mask.png');
-    }
+    // Single base image — reference is text-only via vision (avoids style/face latent leak)
+    form.append('image', new Blob([baseBuf], { type: 'image/png' }), 'chog_base.png');
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
