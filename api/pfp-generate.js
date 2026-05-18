@@ -313,13 +313,13 @@ async function _handler(req, res) {
     let imageUrl;
 
     // Mask zones: transparent = editable, opaque = preserved
-    // Face zone (eyes/nose/cheeks) is always protected — only hair + outfit change
+    // Keep zones SMALL — large masks let diffusion resample nearby contours and destroy identity
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.05, 0.00, 0.95, 0.38], // hair / hat area (top)
-      [0.05, 0.58, 0.95, 1.00], // outfit area (bottom)
+      [0.15, 0.00, 0.85, 0.26], // hat / top of hair only (not face contour)
+      [0.15, 0.60, 0.85, 0.92], // outfit chest/torso center only
     ];
-    if (semantics.glasses) editZones.push([0.15, 0.36, 0.85, 0.52]); // glasses strip
+    if (semantics.glasses) editZones.push([0.25, 0.36, 0.75, 0.46]); // narrow glasses strip only
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const styleDesc = [
@@ -329,14 +329,14 @@ async function _handler(req, res) {
       `outfit: ${semantics.clothing || 'casual outfit'}`,
     ].filter(Boolean).join(', ');
 
-    const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. Do NOT redraw or touch the face, eyes, nose, or cheeks. Preserve the exact drawing style: keep the thick black outlines as-is, flat solid colors, same proportions, same crude cartoon feel. Do NOT clean up lines, do NOT add shading or gradients, do NOT polish or vectorize. In the editable (masked) regions apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+    const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. Do NOT redraw or touch the face, eyes, nose, cheeks, or hair silhouette. Preserve the exact drawing style: keep thick black outlines as-is, flat solid colors, same proportions, same crude cartoon feel. Do NOT clean up lines, do NOT add shading or gradients, do NOT polish, do NOT vectorize, do NOT make symmetrical, do NOT fix proportions, preserve all imperfections and uneven shapes. In the masked regions ONLY apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
     form.append('prompt', editPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
-    form.append('quality', 'medium');
+    form.append('quality', 'high');
     form.append('input_fidelity', 'high');
     form.append('image', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
     form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
