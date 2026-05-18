@@ -197,9 +197,6 @@ input[type=file]{display:none;}
   <div class="model-row">
     <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">MODEL</div>
     <div class="model-chip active" data-model="gpt-image-1" onclick="setGenModel('gpt-image-1')">gpt-image-1</div>
-    <div class="model-chip" data-model="gpt-image-2" onclick="setGenModel('gpt-image-2')">gpt-image-2</div>
-    <div class="model-chip" data-model="dall-e-3" onclick="setGenModel('dall-e-3')">dall-e-3</div>
-    <div class="model-chip" data-model="dall-e-2" onclick="setGenModel('dall-e-2')">dall-e-2</div>
   </div>
   <div class="style-row">
     <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">BASE STYLE</div>
@@ -300,17 +297,12 @@ const ART_STYLES = [
   { id:'sketch',     label:'Sketch',     prompt:'pencil sketch style, hand-drawn rough graphite lines' },
 ];
 let chogBaseUrl = CHOG_STYLE2;
-let selectedGenModel = 'gpt-image-1';
 let b64 = null, resultUrl = null;
 let pfpWallet = null, pfpProvider = null;
 let xSession = null;
 let totalCredits = 0;
 let selectedBg = BG_TEMPLATES[0];
 let selectedStyle = ART_STYLES[0];
-function setGenModel(id) {
-  selectedGenModel = id;
-  document.querySelectorAll('.model-chip').forEach(c => c.classList.toggle('active', c.dataset.model === id));
-}
 function toggleSection(id) { document.getElementById(id).classList.toggle('open'); }
 function buildSelectors() {
   const bgGrid = document.getElementById('bgGrid');
@@ -638,7 +630,7 @@ async function runAll() {
     if (s.delay > 0) showToast(s.toast, '');
   }, s.delay));
   try {
-    const res = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, genModel: selectedGenModel, bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '', artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '', customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '' }) });
+    const res = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '', artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '', customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '' }) });
     stageTimers.forEach(clearTimeout);
     const d = await res.json();
     if (!res.ok) throw new Error(d.error);

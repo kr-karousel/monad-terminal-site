@@ -77,14 +77,6 @@ function makeMaskPng(w, h, zones) {
   ]);
 }
 
-/* ── CHOG body zones (proportions relative to image size) ──────────────── */
-const CHOG_ZONES = {
-  hat:         [0.10, 0.00, 0.90, 0.42], // expanded: covers full hair area
-  glasses:     [0.18, 0.36, 0.82, 0.52],
-  clothing:    [0.08, 0.55, 0.92, 0.95],
-  accessories: [0.05, 0.55, 0.95, 0.98],
-};
-
 /* ── image dimension parser (JPEG + PNG, no deps) ── */
 function getImageDimensions(buf) {
   // PNG: 8-byte sig + IHDR (width @ 16, height @ 20)
@@ -211,7 +203,7 @@ module.exports = async function handler(req, res) {
 };
 
 async function _handler(req, res) {
-  const { action, wallet, txHash, image, chogStyle, genModel, bgTemplate, artStyle, customPrompt } = req.body || {};
+  const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle, customPrompt } = req.body || {};
   const session = getSession(req);
 
   if (action === 'credits') {
@@ -317,8 +309,7 @@ async function _handler(req, res) {
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
     const bgPart    = bgTemplate   ? `Background: ${bgTemplate}.` : '';
 
-    // STEP 4: generate — all models use edits+mask (CHOG is the skeleton, never reinterpreted)
-    const model = genModel || 'gpt-image-1';
+    // STEP 4: generate — gpt-image-1 edits+mask (CHOG is the skeleton, never reinterpreted)
     let imageUrl;
 
     // Mask zones: transparent = editable, opaque = preserved
@@ -341,15 +332,13 @@ async function _handler(req, res) {
     const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. Do NOT redraw or touch the face, eyes, nose, or cheeks. Preserve the exact drawing style: keep the thick black outlines as-is, flat solid colors, same proportions, same crude cartoon feel. Do NOT clean up lines, do NOT add shading or gradients, do NOT polish or vectorize. In the editable (masked) regions apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
     const form = new FormData();
-    form.append('model', model === 'dall-e-2' ? 'dall-e-2' : 'gpt-image-1');
+    form.append('model', 'gpt-image-1');
     form.append('prompt', editPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
-    if (model !== 'dall-e-2') {
-      form.append('quality', 'medium');
-      form.append('input_fidelity', 'high');
-      form.append('response_format', 'b64_json');
-    }
+    form.append('quality', 'medium');
+    form.append('input_fidelity', 'high');
+    form.append('response_format', 'b64_json');
     form.append('image', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
     form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
 
@@ -362,7 +351,7 @@ async function _handler(req, res) {
       const rawText2 = await genRes.text();
       let gd2;
       try { gd2 = JSON.parse(rawText2); }
-      catch { return res.status(500).json({ error: `OpenAI non-JSON (dall-e-2): ${rawText2.slice(0, 200)}` }); }
+      catch { return res.status(500).json({ error: `OpenAI non-JSON response: ${rawText2.slice(0, 200)}` }); }
       if (gd2.error) return res.status(500).json({ error: gd2.error.message });
       const img = gd2.data[0];
       imageUrl = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
