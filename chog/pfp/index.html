@@ -130,11 +130,13 @@ h1{font-size:44px;font-weight:900;letter-spacing:-1.8px;line-height:1;margin-bot
 .crop-modal.open{display:flex;}
 .crop-modal-inner{background:#0e0c1a;border:1px solid rgba(138,92,246,.35);border-radius:14px;padding:20px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:14px;}
 .crop-modal-title{font-size:13px;font-family:'Space Mono',monospace;color:#a78bfa;letter-spacing:1.2px;}
-.crop-canvas-wrap{position:relative;width:100%;aspect-ratio:1;background:#000;border-radius:8px;overflow:hidden;cursor:crosshair;touch-action:none;}
+.crop-canvas-wrap{position:relative;width:100%;aspect-ratio:1;background:#111;border-radius:8px;overflow:hidden;cursor:ew-resize;touch-action:none;}
 .crop-canvas-wrap canvas{width:100%;height:100%;display:block;}
-.crop-handle{position:absolute;top:0;bottom:0;width:4px;background:rgba(139,92,246,.9);cursor:ew-resize;touch-action:none;}
+.crop-handle{position:absolute;top:0;width:4px;background:rgba(139,92,246,.9);cursor:ew-resize;touch-action:none;z-index:3;}
 .crop-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:18px;height:36px;border-radius:9px;background:rgba(139,92,246,.75);border:1.5px solid #c4b5fd;}
-.crop-shade{position:absolute;top:0;bottom:0;background:rgba(0,0,0,.52);pointer-events:none;}
+.crop-shade-r{position:absolute;top:0;bottom:0;background:rgba(0,0,0,.6);pointer-events:none;z-index:2;}
+.crop-shade-b{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);pointer-events:none;z-index:2;}
+.crop-square-outline{position:absolute;top:0;left:0;border:1.5px solid rgba(139,92,246,.7);pointer-events:none;z-index:3;}
 .crop-btns{display:flex;gap:10px;}
 .crop-btn-dl{flex:1;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:none;border-radius:9px;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;padding:12px;cursor:pointer;letter-spacing:.5px;}
 .crop-btn-dl:hover{background:linear-gradient(135deg,#8b5cf6,#6d28d9);}
@@ -468,10 +470,12 @@ input[type=file]{display:none;}
     <div class="crop-modal-title">✂ CROP YOUR PFP</div>
     <div class="crop-canvas-wrap" id="cropWrap">
       <canvas id="cropCanvas"></canvas>
-      <div class="crop-shade" id="cropShadeR"></div>
+      <div class="crop-square-outline" id="cropOutline"></div>
+      <div class="crop-shade-r" id="cropShadeR"></div>
+      <div class="crop-shade-b" id="cropShadeB"></div>
       <div class="crop-handle" id="cropHandleR"></div>
     </div>
-    <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">drag the handle to set the right crop edge</div>
+    <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">drag the handle · output is always square (1:1)</div>
     <div class="crop-btns">
       <button class="crop-btn-dl" onclick="downloadCropped()">⬇ Download Cropped</button>
       <button class="crop-btn-cancel" onclick="closeCropModal()">Cancel</button>
@@ -1314,19 +1318,23 @@ function downloadResult() {
 
 /* ── Crop modal ────────────────────────────────────────────────── */
 let cropImg = null;
-let cropRightPct = 1.0; // right edge as fraction of image width (0..1)
+let cropSizePct = 0.75; // square side as fraction of image width (drag handle sets this)
 
 function openCropModal() {
   if (!resultUrl) return;
   const modal = document.getElementById('cropModal');
   modal.classList.add('open');
-  cropRightPct = 0.75; // default start position — user can drag
+  cropSizePct = 0.75;
 
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => {
     cropImg = img;
-    drawCropPreview();
+    const canvas = document.getElementById('cropCanvas');
+    canvas.width  = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    updateCropOverlay();
   };
   img.src = resultUrl;
   initCropDrag();
@@ -1336,24 +1344,33 @@ function closeCropModal() {
   document.getElementById('cropModal').classList.remove('open');
 }
 
-function drawCropPreview() {
-  if (!cropImg) return;
-  const wrap = document.getElementById('cropWrap');
-  const canvas = document.getElementById('cropCanvas');
-  const wrapW = wrap.clientWidth;
-  const wrapH = wrap.clientHeight;
-  canvas.width  = cropImg.naturalWidth;
-  canvas.height = cropImg.naturalHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(cropImg, 0, 0);
+function updateCropOverlay() {
+  // square side = cropSizePct of image width; height may be taller than crop
+  const pct = cropSizePct * 100;
+  // image is square (1024×1024) so 1px = 1% in both axes inside the canvas-wrap
+  // shade right: covers x > pct%
+  const shadeR   = document.getElementById('cropShadeR');
+  shadeR.style.left  = `${pct}%`;
+  shadeR.style.right = '0';
+  shadeR.style.top   = '0';
+  shadeR.style.bottom = '0';
 
-  // Position shade and handle
-  const handleEl  = document.getElementById('cropHandleR');
-  const shadeEl   = document.getElementById('cropShadeR');
-  const pct = cropRightPct * 100;
-  handleEl.style.left  = `calc(${pct}% - 2px)`;
-  shadeEl.style.left   = `${pct}%`;
-  shadeEl.style.right  = '0';
+  // shade bottom: covers y > pct% (only within the non-shaded left part)
+  const shadeB   = document.getElementById('cropShadeB');
+  shadeB.style.top   = `${pct}%`;
+  shadeB.style.left  = '0';
+  shadeB.style.right = `${100 - pct}%`; // stop where right shade begins
+
+  // outline: square crop region
+  const outline = document.getElementById('cropOutline');
+  outline.style.width  = `${pct}%`;
+  outline.style.height = `${pct}%`;
+
+  // handle: sits on the right edge of the square, only as tall as the square
+  const handle = document.getElementById('cropHandleR');
+  handle.style.left   = `calc(${pct}% - 2px)`;
+  handle.style.top    = '0';
+  handle.style.height = `${pct}%`;
 }
 
 function initCropDrag() {
@@ -1361,25 +1378,21 @@ function initCropDrag() {
   const handle = document.getElementById('cropHandleR');
   let dragging = false;
 
-  function startDrag(e) {
-    dragging = true;
-    e.preventDefault();
-  }
+  function startDrag(e) { dragging = true; e.preventDefault(); }
   function moveDrag(e) {
     if (!dragging) return;
     const rect = wrap.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     let pct = (clientX - rect.left) / rect.width;
-    pct = Math.max(0.35, Math.min(0.98, pct));
-    cropRightPct = pct;
-    drawCropPreview();
+    // min 30%, max 100% (but cap at 1.0 so full image is possible)
+    pct = Math.max(0.30, Math.min(1.0, pct));
+    cropSizePct = pct;
+    updateCropOverlay();
   }
   function endDrag() { dragging = false; }
 
-  // Remove previous listeners by cloning
   const newHandle = handle.cloneNode(true);
   handle.parentNode.replaceChild(newHandle, handle);
-  const newWrap = wrap; // keep wrap reference
 
   newHandle.addEventListener('mousedown',  startDrag);
   newHandle.addEventListener('touchstart', startDrag, { passive: false });
@@ -1391,16 +1404,16 @@ function initCropDrag() {
 
 async function downloadCropped() {
   if (!cropImg) return;
-  const sw = Math.round(cropImg.naturalWidth * cropRightPct);
-  const sh = cropImg.naturalHeight;
+  // square: take top-left square of side = cropSizePct * naturalWidth
+  const side = Math.round(cropImg.naturalWidth * cropSizePct);
   const out = document.createElement('canvas');
-  out.width  = sw;
-  out.height = sh;
-  out.getContext('2d').drawImage(cropImg, 0, 0, sw, sh, 0, 0, sw, sh);
+  out.width  = side;
+  out.height = side;
+  out.getContext('2d').drawImage(cropImg, 0, 0, side, side, 0, 0, side, side);
   const blob = await new Promise(r => out.toBlob(r, 'image/png'));
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `chog-pfp-cropped-${Date.now()}.png`;
+  a.download = `chog-pfp-${Date.now()}.png`;
   a.click();
   URL.revokeObjectURL(a.href);
   closeCropModal();
