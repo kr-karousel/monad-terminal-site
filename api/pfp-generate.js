@@ -336,34 +336,61 @@ async function _handler(req, res) {
       if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
       const fluxAdditions = [
-        semantics.hair        ? `hair color and style: ${semantics.hair}`                     : null,
-        semantics.hairpin     ? `hair decoration (bow/ribbon/clip on hair): ${semantics.hairpin}` : null,
-        semantics.hat         ? `hat on head: ${semantics.hat}`                               : null,
-        semantics.face        ? `face detail: ${semantics.face}`                              : null,
+        semantics.hair        ? `hair color and style: ${semantics.hair}`                         : null,
+        semantics.hairpin     ? `hair decoration (bow/ribbon/clip): ${semantics.hairpin}`         : null,
+        semantics.hat         ? `hat on head: ${semantics.hat}`                                   : null,
+        semantics.face        ? `face detail: ${semantics.face}`                                  : null,
         semantics.outfit || semantics.clothing
-                              ? `outfit (must be visible on chest/shoulders): ${semantics.outfit || semantics.clothing}` : null,
-        semantics.accessories ? `accessories: ${semantics.accessories}`                       : null,
-        (bgTemplate || semantics.background) ? `background: ${bgTemplate || semantics.background}` : null,
+                              ? `outfit visible on chest/shoulders: ${semantics.outfit || semantics.clothing}` : null,
+        semantics.accessories ? `accessories: ${semantics.accessories}`                           : null,
       ].filter(Boolean).join('\n- ');
 
-      const fluxPrompt = `This is a pixel-preserving accessory edit of the input image. Do NOT change the composition or framing.
+      // Build composite: [base CHOG 1024x1024] | [example grid 1024x1024]
+      // Upload to fal.ai storage → use URL as image_url for Flux
+      let fluxImageUrl = `https://monad-terminal.xyz/chog/pfp/${styleFilename}`;
+      let useComposite = false;
+      try {
+        const exRes = await fetch('https://monad-terminal.xyz/chog/pfp/example.jpg');
+        if (exRes.ok) {
+          const exBuf  = Buffer.from(await exRes.arrayBuffer());
+          const exImg  = await Jimp.read(exBuf);
+          exImg.resize(1024, 1024, Jimp.RESIZE_BICUBIC);
+          const baseImg = await Jimp.read(baseBuffer);
+          const canvas  = new Jimp(2048, 1024, 0xFFFFFFFF);
+          canvas.composite(baseImg, 0, 0);
+          canvas.composite(exImg, 1024, 0);
+          const canvasBuf = await canvas.getBufferAsync(Jimp.MIME_PNG);
+          const upForm = new FormData();
+          upForm.append('file', new Blob([canvasBuf], { type: 'image/png' }), 'ref.png');
+          const upRes  = await fetch('https://storage.fal.run/', {
+            method: 'POST',
+            headers: { 'Authorization': `Key ${FAL_KEY}` },
+            body: upForm,
+          });
+          if (upRes.ok) {
+            const upData = await upRes.json();
+            const uploaded = upData.url || upData.access_url;
+            if (uploaded) { fluxImageUrl = uploaded; useComposite = true; }
+            console.log('[flux] composite upload:', uploaded || 'failed');
+          }
+        }
+      } catch (e) { console.warn('[flux] composite skipped:', e.message); }
 
-CRITICAL FRAMING — must match input image exactly:
-- Extreme close-up portrait: the face fills 70-80% of the frame
-- The top of the head and hair are cropped/cut off at the top edge of the image
-- Only face and upper chest/shoulders are visible — NO full body, NO legs
-- Character is centered, face occupies most of the canvas
-- Same tight portrait crop as the input image
+      const fluxPrompt = useComposite
+        ? `This image has TWO PANELS side by side.
+LEFT PANEL: The CHOG character to edit — preserve face, eyes, cheeks, proportions, and background color exactly.
+RIGHT PANEL: 9 style reference examples — use as art style and framing guide only.
 
-Keep EXACTLY:
-- same crop, same camera distance, same face position and head size
-- same chibi cartoon art style: thick black outlines, flat solid colors, no gradients
-- same face features: large black eyes, pink blush circles on cheeks, small nose and mouth
+Edit ONLY the LEFT PANEL. Keep the same close-up portrait framing as the right panel examples show (face fills frame, head slightly cropped at top, shoulders/outfit visible).
 
-ONLY apply these changes on top of the existing character:
+ONLY apply these on the left character:
 - ${fluxAdditions}
 
-DO NOT zoom out or show the full body. DO NOT redraw or re-render. DO NOT smooth lines or add shading. This is an accessory-only edit — the face and composition must remain unchanged.${extraPart}`;
+Do NOT zoom out. Do NOT alter the background color. Do NOT change face features.${extraPart}`
+        : `Edit this CHOG character in-place. Keep face, eyes, cheeks, proportions, background color, and close-up portrait framing exactly as-is.
+ONLY apply:
+- ${fluxAdditions}
+Do NOT zoom out. Do NOT redraw.${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
@@ -371,7 +398,7 @@ DO NOT zoom out or show the full body. DO NOT redraw or re-render. DO NOT smooth
         headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: fluxPrompt,
-          image_url: `https://monad-terminal.xyz/chog/pfp/${styleFilename}`,
+          image_url: fluxImageUrl,
           guidance_scale: 3,
           num_images: 1,
           output_format: 'png',
@@ -416,20 +443,25 @@ DO NOT zoom out or show the full body. DO NOT redraw or re-render. DO NOT smooth
         try {
           const fluxImgRes = await fetch(rawFluxUrl);
           const fluxImgBuf = Buffer.from(await fluxImgRes.arrayBuffer());
-          const fluxImg = await Jimp.read(fluxImgBuf);
+          const fluxImg    = await Jimp.read(fluxImgBuf);
           const fw = fluxImg.getWidth();
           const fh = fluxImg.getHeight();
-          // Square crop from top-center: shows face + shoulders/outfit, no legs
-          // 75% of the shorter side → centered horizontally, starts from top
-          const size = Math.floor(Math.min(fw, fh) * 0.75);
-          const x = Math.floor((fw - size) / 2);
-          fluxImg.crop(x, 0, size, size);
+          // If composite output (wider than tall): take left half (edited CHOG)
+          if (useComposite && fw >= fh * 1.5) {
+            fluxImg.crop(0, 0, Math.floor(fw / 2), fh);
+          }
+          // Portrait square crop: 75% from top-center
+          const cw   = fluxImg.getWidth();
+          const ch   = fluxImg.getHeight();
+          const size = Math.floor(Math.min(cw, ch) * 0.75);
+          const cx   = Math.floor((cw - size) / 2);
+          fluxImg.crop(cx, 0, size, size);
           fluxImg.resize(1024, 1024, Jimp.RESIZE_BICUBIC);
           const croppedBuf = await fluxImg.getBufferAsync(Jimp.MIME_PNG);
           imageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
-          console.log('[flux] post-crop applied:', fw, 'x', fh, '→ square', size, 'x', size, 'at x:', x, '→ 1024x1024');
+          console.log('[flux] crop:', fw, 'x', fh, useComposite ? '→ left-half' : '', '→', size, 'sq → 1024');
         } catch (e) {
-          console.warn('[flux] post-crop failed, using raw URL:', e.message);
+          console.warn('[flux] post-crop failed:', e.message);
           imageUrl = rawFluxUrl;
         }
       }

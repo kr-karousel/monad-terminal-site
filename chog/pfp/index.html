@@ -225,12 +225,6 @@ input[type=file]{display:none;}
       </div>
     </div>
   </div>
-  <div class="option-section" id="bgSection" style="margin-top:10px;">
-    <div class="option-header" onclick="toggleSection('bgSection')">
-      <div class="option-header-left"><div class="option-checkbox"></div><span class="option-label">Background</span><span class="option-optional">(check to customize)</span></div>
-    </div>
-    <div class="option-body"><div class="bg-grid-sel" id="bgGrid"></div></div>
-  </div>
   <div class="option-section" id="styleSection">
     <div class="option-header" onclick="toggleSection('styleSection')">
       <div class="option-header-left"><div class="option-checkbox"></div><span class="option-label">Art Style</span><span class="option-optional">(check to customize)</span></div>
@@ -629,7 +623,7 @@ async function runAll() {
     if (s.delay > 0) showToast(s.toast, '');
   }, s.delay));
   try {
-    const res = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, genModel: selectedGenModel, bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '', artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '', customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '' }) });
+    const res = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, genModel: selectedGenModel, bgTemplate: '', artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '', customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '' }) });
     stageTimers.forEach(clearTimeout);
     const d = await res.json();
     if (!res.ok) throw new Error(d.error);
