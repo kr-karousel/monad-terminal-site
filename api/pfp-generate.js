@@ -123,7 +123,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle, customPrompt } = req.body || {};
+  const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle, customPrompt, model } = req.body || {};
   const session = getSession(req);
 
   // ── GET CREDITS ──────────────────────────────────
@@ -277,7 +277,7 @@ STYLE: Flat 2D NFT cartoon${styleSep}, bold black outlines, vivid saturated flat
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'gpt-image-2',
+        model: model || 'gpt-image-2',
         prompt: chogPrompt,
         n: 1,
         size: '1024x1024',
