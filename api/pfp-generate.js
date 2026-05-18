@@ -332,7 +332,7 @@ async function _handler(req, res) {
     const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. The purple spiky hedgehog hair crown is CHOG's identity — NEVER touch or alter the hair spikes. Do NOT redraw face, eyes, nose, cheeks, or any unmasked area. Preserve the exact drawing style: keep thick black outlines as-is, flat solid colors, same proportions, same crude cartoon feel. Do NOT clean up lines, do NOT polish, do NOT vectorize, do NOT make symmetrical, do NOT fix proportions, preserve all imperfections. In the masked regions ONLY apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
     const form = new FormData();
-    form.append('model', 'gpt-image-1');
+    form.append('model', 'gpt-image-1.5');
     form.append('prompt', editPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
