@@ -1,6 +1,6 @@
 {
   "functions": {
-    "api/pfp-generate.js": { "maxDuration": 60 }
+    "api/pfp-generate.js": { "maxDuration": 300 }
   },
   "headers": [
     {

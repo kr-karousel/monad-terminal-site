@@ -349,7 +349,7 @@ async function _handler(req, res) {
       // Use URLs from submit response
       const statusUrl  = submitData.status_url  || `https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${submitData.request_id}/status`;
       const resultUrl  = submitData.response_url || `https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${submitData.request_id}`;
-      const deadline   = Date.now() + 54000; // 54s — leave 6s buffer before Vercel kills at 60s
+      const deadline   = Date.now() + 270000; // 270s — leave 30s buffer before Vercel kills at 300s
 
       await new Promise(r => setTimeout(r, 3000)); // initial wait before first poll
 
