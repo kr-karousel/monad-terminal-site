@@ -199,6 +199,28 @@ h1{font-size:44px;font-weight:900;letter-spacing:-1.8px;line-height:1;margin-bot
 .gen-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
 .gen-btn-wrap{flex:1;position:relative;border-radius:14px;}
 .gen-btn-wrap .gen-btn{width:100%;}
+/* ×10 batch button */
+.batch-btn{height:48px;padding:0 16px;background:linear-gradient(135deg,#1e1035,#2d1b69);border:1.5px solid rgba(138,92,246,.45);border-radius:13px;color:#c4b5fd;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;transition:all .2s;flex-shrink:0;}
+.batch-btn:hover:not(:disabled){background:linear-gradient(135deg,#2d1b69,#4c1d95);border-color:rgba(138,92,246,.8);color:#ede9fe;box-shadow:0 6px 20px rgba(109,40,217,.35);}
+.batch-btn:disabled{opacity:.3;cursor:not-allowed;}
+/* Batch result modal */
+.batch-modal{display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;}
+.batch-modal.open{display:flex;}
+.batch-modal-inner{background:#0b0918;border:1px solid rgba(138,92,246,.35);border-radius:16px;padding:22px;width:100%;max-width:640px;margin:auto;display:flex;flex-direction:column;gap:16px;}
+.batch-modal-header{display:flex;align-items:center;justify-content:space-between;}
+.batch-modal-title{font-size:13px;font-family:'Space Mono',monospace;color:#a78bfa;letter-spacing:1.2px;}
+.batch-modal-close{background:transparent;border:1px solid rgba(138,92,246,.25);border-radius:8px;color:#7c6fa0;font-size:14px;padding:5px 12px;cursor:pointer;}
+.batch-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.batch-cell{position:relative;aspect-ratio:1;border-radius:9px;overflow:hidden;background:rgba(138,92,246,.05);border:1px solid rgba(138,92,246,.15);}
+.batch-cell img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;}
+.batch-cell .batch-dl{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.7);border:none;border-radius:6px;color:#fff;font-size:13px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.batch-cell .batch-crop{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.7);border:none;border-radius:6px;color:#c4b5fd;font-size:11px;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.batch-cell .batch-num{position:absolute;top:4px;left:5px;font-size:10px;font-family:'Space Mono',monospace;color:rgba(255,255,255,.55);}
+.batch-cell.pending{display:flex;align-items:center;justify-content:center;}
+.batch-cell.pending .mini-spin{width:20px;height:20px;border:2px solid rgba(138,92,246,.15);border-top-color:#8b5cf6;border-radius:50%;animation:spin .7s linear infinite;}
+.batch-cell.err{display:flex;align-items:center;justify-content:center;font-size:18px;}
+.batch-dl-all{background:linear-gradient(135deg,#7c3aed,#5b21b6);border:none;border-radius:10px;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;padding:12px;cursor:pointer;width:100%;}
+.batch-dl-all:hover{background:linear-gradient(135deg,#8b5cf6,#6d28d9);}
 body.generating .gen-btn{
   opacity:1 !important;
   pointer-events:none !important;
@@ -443,6 +465,7 @@ input[type=file]{display:none;}
     <div class="gen-btn-wrap">
       <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate CHOG PFP</button>
     </div>
+    <button class="batch-btn" id="batchBtn" onclick="generateBatch()" disabled title="Generate 10 — costs 10 credits">🦔×10</button>
     <button class="icon-btn" id="dlBtn" onclick="downloadResult()" style="display:none" title="Download image">⬇</button>
     <button class="icon-btn" id="cropBtn" onclick="openCropModal()" style="display:none" title="Crop image">✂</button>
     <button class="icon-btn" onclick="resetAll()" title="Reset">↺</button>
@@ -458,7 +481,7 @@ input[type=file]{display:none;}
   <!-- RECENT HISTORY -->
   <div id="historySection" style="display:none;margin-top:18px;">
     <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;margin-bottom:8px;">RECENT GENERATIONS</div>
-    <div id="historyGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;"></div>
+    <div id="historyGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;"></div>
   </div>
 
   <div class="footer">made by <span>Karousel</span> · monad-terminal.xyz/chog/pfp</div>
@@ -480,6 +503,18 @@ input[type=file]{display:none;}
       <button class="crop-btn-dl" onclick="downloadCropped()">⬇ Download Cropped</button>
       <button class="crop-btn-cancel" onclick="closeCropModal()">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- BATCH RESULT MODAL -->
+<div class="batch-modal" id="batchModal">
+  <div class="batch-modal-inner">
+    <div class="batch-modal-header">
+      <div class="batch-modal-title" id="batchModalTitle">🦔 GENERATING 10 PFPs...</div>
+      <button class="batch-modal-close" id="batchCloseBtn" onclick="closeBatchModal()" style="display:none">✕ Close</button>
+    </div>
+    <div class="batch-grid" id="batchGrid"></div>
+    <button class="batch-dl-all" id="batchDlAll" onclick="downloadAllBatch()" style="display:none">⬇ Download All (10)</button>
   </div>
 </div>
 
@@ -876,11 +911,11 @@ function updateCreditUI(d) {
       disp.innerHTML = `<span style="color:#fca5a5;">0</span>`;
     }
     const dots = document.getElementById('creditDots');
-    const maxDots = Math.max(total, 5);
+    const maxDots = Math.max(total, 10);
     dots.innerHTML = Array.from({length: maxDots}, (_, i) =>
       `<div class="cdot ${i < total ? 'on' : 'off'}"></div>`
     ).join('');
-    document.getElementById('payBtn').style.display = wc < 3 ? 'block' : 'none';
+    document.getElementById('payBtn').style.display = wc < 5 ? 'block' : 'none';
   }
   updateGenBtn();
 }
@@ -894,7 +929,7 @@ function updateGenBtn() {
     btn.innerHTML = '🦔 Drop a reference image first';
   } else if (!hasCredits) {
     btn.disabled = false;
-    btn.innerHTML = '💎 Pay 0.1 MON to unlock 5 generations';
+    btn.innerHTML = '💎 Pay 0.1 MON to unlock 10 generations';
     btn.onclick = () => {
       if (!pfpWallet) { setStatus('⚠ Connect wallet first', true); return; }
       pfpPay();
@@ -904,6 +939,9 @@ function updateGenBtn() {
     btn.innerHTML = '🦔 Generate CHOG PFP';
     btn.onclick = generatePFP;
   }
+  // Batch button: needs image + 10 wallet credits
+  const batchBtn = document.getElementById('batchBtn');
+  if (batchBtn) batchBtn.disabled = !(b64 && pfpWallet && totalCredits >= 10);
 }
 
 function statusAfterUpload() {
@@ -915,15 +953,15 @@ function statusAfterUpload() {
   }
   // No credits left
   if (xSession && xSession.usedFree && !pfpWallet) {
-    setStatus('✗ Free generation already used. Connect wallet and pay 0.1 MON for 5 more.', true);
+    setStatus('✗ Free generation already used. Connect wallet and pay 0.1 MON for 10 more.', true);
     document.getElementById('payBtn').style.display = 'block';
   } else if (xSession && xSession.usedFree && pfpWallet) {
-    setStatus('✗ No credits left. Pay 0.1 MON to get 5 more generations.', true);
+    setStatus('✗ No credits left. Pay 0.1 MON to get 10 more generations.', true);
     document.getElementById('payBtn').style.display = 'block';
   } else if (!xSession && !pfpWallet) {
-    setStatus('⚠ Connect X for 1 free generation, or connect wallet to pay 0.1 MON for 5.', true);
+    setStatus('⚠ Connect X for 1 free generation, or connect wallet to pay 0.1 MON for 10.', true);
   } else if (!xSession && pfpWallet) {
-    setStatus('✗ No credits. Pay 0.1 MON for 5 generations, or connect X for 1 free.', true);
+    setStatus('✗ No credits. Pay 0.1 MON for 10 generations, or connect X for 1 free.', true);
     document.getElementById('payBtn').style.display = 'block';
   }
 }
@@ -1089,6 +1127,114 @@ async function runAll() {
 }
 
 function generatePFP() { runAll(); }
+
+/* ── Batch generate (×10) ─────────────────────────────────────── */
+let batchResults = [];
+
+async function generateBatch() {
+  if (!b64) { setStatus('⚠ Drop a reference image first', true); return; }
+  if (!pfpWallet || totalCredits < 10) {
+    setStatus('⚠ Need 10 credits to use batch generate', true); return;
+  }
+
+  const BATCH = 10;
+  batchResults = [];
+
+  // Open modal immediately and pre-fill pending cells
+  const modal   = document.getElementById('batchModal');
+  const grid    = document.getElementById('batchGrid');
+  const title   = document.getElementById('batchModalTitle');
+  const closeBtn = document.getElementById('batchCloseBtn');
+  const dlAllBtn = document.getElementById('batchDlAll');
+  title.textContent = '🦔 GENERATING 10 PFPs...';
+  closeBtn.style.display = 'none';
+  dlAllBtn.style.display = 'none';
+  grid.innerHTML = Array.from({length: BATCH}, (_, i) =>
+    `<div class="batch-cell pending" id="bcell${i}"><div class="mini-spin"></div></div>`
+  ).join('');
+  modal.classList.add('open');
+
+  // Lock buttons
+  const genBtn   = document.getElementById('genBtn');
+  const batchBtn = document.getElementById('batchBtn');
+  genBtn.disabled   = true;
+  batchBtn.disabled = true;
+  document.body.classList.add('generating');
+
+  // Optimistic credit deduction display
+  const optimisticCredits = Math.max(0, totalCredits - BATCH);
+  updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: optimisticCredits, total: optimisticCredits });
+
+  const customPrompt = document.getElementById('promptSection').classList.contains('open')
+    ? document.getElementById('customPrompt').value.trim() : '';
+
+  let doneCount = 0;
+  let lastHistory = null;
+
+  for (let i = 0; i < BATCH; i++) {
+    title.textContent = `🦔 GENERATING ${i + 1} / ${BATCH}...`;
+    try {
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle, customPrompt }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error);
+
+      batchResults.push(d.url);
+      if (d.history) lastHistory = d.history;
+      if (d.walletCredits !== undefined) updateCreditUI(d);
+
+      // Fill the cell
+      const cell = document.getElementById('bcell' + i);
+      cell.className = 'batch-cell';
+      cell.innerHTML = `
+        <span class="batch-num">${i + 1}</span>
+        <img src="${d.url}" onclick="window.open('${d.url}','_blank')">
+        <button class="batch-crop" onclick="openCropModalUrl('${d.url}')" title="Crop">✂</button>
+        <button class="batch-dl"  onclick="downloadImage('${d.url}','chog-pfp-batch-${i+1}.png')" title="Download">↓</button>
+      `;
+      doneCount++;
+    } catch (err) {
+      const cell = document.getElementById('bcell' + i);
+      cell.className = 'batch-cell err';
+      cell.innerHTML = '✗';
+      cell.title = err.message;
+      if (err.message.includes('No credits')) break; // stop if out of credits
+    }
+  }
+
+  // Done
+  title.textContent = `✦ ${doneCount} / ${BATCH} PFPs GENERATED`;
+  closeBtn.style.display = '';
+  if (doneCount > 0) dlAllBtn.style.display = '';
+  document.body.classList.remove('generating');
+  genBtn.disabled = false;
+  batchBtn.disabled = totalCredits < 10;
+  genBtn.onclick = generatePFP;
+
+  // Update history
+  if (lastHistory) { genHistory = lastHistory; renderHistory(); }
+  else if (batchResults.length) { batchResults.forEach(u => addToHistory(u)); }
+}
+
+function closeBatchModal() {
+  document.getElementById('batchModal').classList.remove('open');
+}
+
+async function downloadAllBatch() {
+  for (let i = 0; i < batchResults.length; i++) {
+    await downloadImage(batchResults[i], `chog-pfp-batch-${i + 1}.png`);
+    await new Promise(r => setTimeout(r, 300)); // stagger to avoid browser block
+  }
+}
+
+function openCropModalUrl(url) {
+  // Allow crop modal to work with any URL, not just resultUrl
+  resultUrl = url;
+  openCropModal();
+}
 
 /* ── Monad particle network background ──────────────────────── */
 (function() {
@@ -1421,7 +1567,7 @@ async function downloadCropped() {
 
 function addToHistory(url) {
   genHistory.unshift(url);
-  if (genHistory.length > 4) genHistory.pop();
+  if (genHistory.length > 10) genHistory.pop();
   renderHistory();
 }
 

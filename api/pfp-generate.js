@@ -9,7 +9,7 @@ const OPENAI_KEY      = process.env.OPENAI_API_KEY;
 const SESSION_SECRET  = process.env.SESSION_SECRET || 'chog-pfp-fallback-secret';
 const MONAD_RPC       = 'https://rpc.monad.xyz';
 const DEV_WALLET      = '0xf9bb715c1DC21EB661FCaC75d45BCf470235e0d8';
-const CREDITS_PER_PAYMENT = 5;
+const CREDITS_PER_PAYMENT = 10;
 
 const SB_HEADERS = {
   'apikey': SB_KEY,
@@ -154,7 +154,7 @@ async function uploadToStorage(imageData, wallet) {
 async function addToWalletHistory(wallet, imageUrl) {
   const row = await getWalletRow(wallet);
   const prev = Array.isArray(row?.recent_history) ? row.recent_history : [];
-  const next = [imageUrl, ...prev].slice(0, 4);
+  const next = [imageUrl, ...prev].slice(0, 10);
   await fetch(`${SB_URL}/rest/v1/pfp_credits`, {
     method: 'POST',
     headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
@@ -282,7 +282,7 @@ async function _handler(req, res) {
       if (!wallet) return res.status(402).json({ error: 'Connect X for 1 free generation, or pay 0.1 MON for more.' });
       walletRow = await getWalletRow(wallet);
       if (!walletRow || walletRow.credits < 1)
-        return res.status(402).json({ error: 'No credits left. Pay 0.1 MON to get 5 more.' });
+        return res.status(402).json({ error: 'No credits left. Pay 0.1 MON to get 10 more.' });
     }
 
     if (useTwitterFree) await markFreeUsed(session.id);
