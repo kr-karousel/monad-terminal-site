@@ -370,17 +370,18 @@ async function _handler(req, res) {
 
     } else {
       // gpt-image-1.5 edits+mask path
-      // Hair zone is opened but the spike crown silhouette should stay — model layers new hair over spikes
+      // Zones: hair (above face) | face gap PROTECTED | outfit (below face)
+      // Face band y=0.32~0.58 is always opaque — eyes/nose/cheeks/mouth never touched
       const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
       const editZones = [
-        [0.08, 0.55, 0.92, 0.95], // outfit incl. shoulders + chest
-        [0.05, 0.05, 0.95, 0.45], // hair area (front + sides), layer over spikes
+        [0.05, 0.03, 0.95, 0.32], // hair only — stops well above eyes
+        [0.08, 0.58, 0.92, 0.95], // outfit incl. shoulders, starts below chin
       ];
-      if (semantics.hat)     editZones.push([0.18, 0.00, 0.82, 0.22]);
-      if (semantics.glasses) editZones.push([0.25, 0.36, 0.75, 0.46]);
+      if (semantics.hat)     editZones.push([0.15, 0.00, 0.85, 0.20]); // hat on top
+      if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses strip (tight)
       const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-      const editPrompt = `Edit the transparent masked regions of this CHOG hedgehog cartoon to apply: ${styleDesc}. Apply the described HAIR layered ON TOP of and AROUND CHOG's existing purple spiky hair — the purple spikes must remain visible behind/around the new hair. Apply the described OUTFIT including any shoulder armor, epaulettes, collars, or layered clothing details. Do NOT touch face, eyes, nose, cheeks, or any unmasked area. Preserve the exact CHOG drawing style: thick black outlines, flat solid colors, simple cartoon feel. Do NOT polish, vectorize, smooth, or restyle. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+      const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. The face band (eyes, nose, cheeks, mouth) is fully protected — DO NOT alter the face in any way. Apply the described HAIR in the masked top region, layering it over/around the existing purple spikes. Apply the described OUTFIT including shoulder details in the masked bottom region. Strictly preserve the CHOG cartoon drawing style: thick black outlines, flat solid colors. Do NOT polish, smooth, vectorize, or restyle. Apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
       const form = new FormData();
       form.append('model', 'gpt-image-1.5');
