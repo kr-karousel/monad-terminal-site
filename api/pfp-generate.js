@@ -313,23 +313,23 @@ async function _handler(req, res) {
     let imageUrl;
 
     // Mask zones: transparent = editable, opaque = preserved
-    // Keep zones SMALL — large masks let diffusion resample nearby contours and destroy identity
+    // NEVER open the hair spike crown — it is CHOG's core identity
+    // Only open hat zone (if hat detected) + outfit zone
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.15, 0.00, 0.85, 0.26], // hat / top of hair only (not face contour)
       [0.15, 0.60, 0.85, 0.92], // outfit chest/torso center only
     ];
+    if (semantics.hat)     editZones.push([0.22, 0.02, 0.78, 0.18]); // tiny hat placement zone only
     if (semantics.glasses) editZones.push([0.25, 0.36, 0.75, 0.46]); // narrow glasses strip only
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const styleDesc = [
-      semantics.hair    ? `hair: ${semantics.hair}`       : null,
       semantics.hat     ? `headwear: ${semantics.hat}`    : null,
       semantics.glasses ? `glasses: ${semantics.glasses}` : null,
       `outfit: ${semantics.clothing || 'casual outfit'}`,
     ].filter(Boolean).join(', ');
 
-    const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. Do NOT redraw or touch the face, eyes, nose, cheeks, or hair silhouette. Preserve the exact drawing style: keep thick black outlines as-is, flat solid colors, same proportions, same crude cartoon feel. Do NOT clean up lines, do NOT add shading or gradients, do NOT polish, do NOT vectorize, do NOT make symmetrical, do NOT fix proportions, preserve all imperfections and uneven shapes. In the masked regions ONLY apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+    const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. The purple spiky hedgehog hair crown is CHOG's identity — NEVER touch or alter the hair spikes. Do NOT redraw face, eyes, nose, cheeks, or any unmasked area. Preserve the exact drawing style: keep thick black outlines as-is, flat solid colors, same proportions, same crude cartoon feel. Do NOT clean up lines, do NOT polish, do NOT vectorize, do NOT make symmetrical, do NOT fix proportions, preserve all imperfections. In the masked regions ONLY apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
