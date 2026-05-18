@@ -412,11 +412,11 @@ function openWalletModal() {
   if (!providers.length) { if (isMobile()) { showMobileWalletOptions(); } else { alert('No wallet detected. Please install MetaMask or Rabby.'); } return; }
   const list = document.getElementById('walletList'); list.innerHTML = '';
   const hasBackpack = providers.some(p => getWalletType(p) === 'backpack');
-  // On mobile, always show Backpack deeplink first if not already detected
-  if (isMobile() && !hasBackpack) {
+  // Always show Backpack first — deeplink on mobile, extension install link on desktop
+  if (!hasBackpack) {
     const btn = document.createElement('button'); btn.className = 'wallet-option';
     btn.innerHTML = `<span class="wallet-icon">🎒</span>Backpack`;
-    btn.onclick = () => { closeWalletModal(); window.location.href = `https://backpack.app/`; };
+    btn.onclick = () => { closeWalletModal(); window.open(isMobile() ? 'https://backpack.app/' : 'https://chromewebstore.google.com/detail/backpack/aflkmfhebedbjioipglgcbcmnbpgliof', '_blank'); };
     list.appendChild(btn);
   }
   const priority = ['backpack','metamask','phantom'];
