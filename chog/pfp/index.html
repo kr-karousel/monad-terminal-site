@@ -304,13 +304,22 @@ input[type=file]{display:none;}
     </div>
   </div>
 
-  <!-- MODEL SELECTOR -->
-  <div style="background:rgba(138,92,246,0.06);border:1px solid rgba(138,92,246,0.18);border-radius:14px;padding:12px 14px;margin-bottom:12px;">
-    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:8px;">MODEL</div>
-    <div style="display:flex;gap:6px;">
-      <button class="model-chip" onclick="setModel('gpt-image-1',this)">GPT-1</button>
-      <button class="model-chip" onclick="setModel('gpt-image-1-5',this)">GPT-1.5</button>
-      <button class="model-chip active" onclick="setModel('gpt-image-2',this)">GPT-2</button>
+  <!-- MODEL + PROMPT SELECTOR -->
+  <div style="background:rgba(138,92,246,0.06);border:1px solid rgba(138,92,246,0.18);border-radius:14px;padding:12px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px;">
+    <div>
+      <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:8px;">MODEL</div>
+      <div style="display:flex;gap:6px;">
+        <button class="model-chip" onclick="setModel('gpt-image-1',this)">GPT-1</button>
+        <button class="model-chip" onclick="setModel('gpt-image-1-5',this)">GPT-1.5</button>
+        <button class="model-chip active" onclick="setModel('gpt-image-2',this)">GPT-2</button>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:8px;">PROMPT</div>
+      <div style="display:flex;gap:6px;">
+        <button class="model-chip active" id="promptExBtn" onclick="setPrompt('ex',this)">prompt(ex)</button>
+        <button class="model-chip" id="promptNewBtn" onclick="setPrompt('new',this)">new</button>
+      </div>
     </div>
   </div>
 
@@ -446,10 +455,17 @@ let totalCredits = 0;
 let selectedBg = BG_TEMPLATES[0];
 let selectedStyle = ART_STYLES[0];
 let selectedModel = 'gpt-image-2';
+let selectedPrompt = 'ex';
 
 function setModel(id, el) {
   selectedModel = id;
-  document.querySelectorAll('.model-chip').forEach(c => c.classList.remove('active'));
+  el.closest('div').querySelectorAll('.model-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function setPrompt(id, el) {
+  selectedPrompt = id;
+  el.closest('div').querySelectorAll('.model-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
 }
 
@@ -958,6 +974,7 @@ async function runAll() {
         image: b64,
         chogStyle: chogBaseUrl,
         model: selectedModel,
+        promptMode: selectedPrompt,
         bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '',
         artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '',
         customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '',

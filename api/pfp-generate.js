@@ -123,7 +123,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle, customPrompt, model } = req.body || {};
+  const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle, customPrompt, model, promptMode } = req.body || {};
   const session = getSession(req);
 
   // ── GET CREDITS ──────────────────────────────────
@@ -232,13 +232,11 @@ module.exports = async function handler(req, res) {
     }
 
     const bgPart = bgTemplate || 'solid flat bright blue background #00AAFF, no gradients';
-    const stylePart = artStyle ? `, ${artStyle}` : '';
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
-
-    // Step 2: text-only generation — no style reference image contamination
-    // Full character spec produces consistent CHOG NFT style every time
     const styleSep = artStyle ? `, ${artStyle}` : '';
-    const chogPrompt = `High-quality CHOG NFT collection profile picture. Flat 2D chibi cartoon, professional NFT art.
+
+    // prompt(ex) — original detailed spec
+    const promptEx = `High-quality CHOG NFT collection profile picture. Flat 2D chibi cartoon, professional NFT art.
 
 VISUAL STYLE (critical — match CHOG NFT collection exactly):
 - Bold thick black outlines on every single shape and detail
@@ -272,6 +270,11 @@ OUTFIT (recreate faithfully — fills lower half and bleeds off right/bottom edg
 BACKGROUND: ${bgPart}.
 
 STYLE: Flat 2D NFT cartoon${styleSep}, bold black outlines, vivid saturated flat colors, zero gradients, professional CHOG NFT collection quality.`;
+
+    // prompt(new) — minimal, example-driven
+    const promptNew = `CHOG NFT chibi character. Flat 2D cartoon, bold black outlines, vivid flat colors. Apply this outfit exactly: ${outfit}. Background: ${bgPart}.`;
+
+    const chogPrompt = promptMode === 'new' ? promptNew : promptEx;
 
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
