@@ -300,76 +300,43 @@ async function _handler(req, res) {
     const baseBuffer = Buffer.from(await baseImgRes.arrayBuffer());
     console.log('[generate] base:', styleFilename, baseBuffer.length, 'bytes');
 
-    // STEP 3: build prompt parts from semantic extraction
+    // STEP 3: build prompt
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
     const bgPart    = bgTemplate   ? `Background: ${bgTemplate}.` : '';
-    const stylePart = artStyle     ? ` Style: ${artStyle}.` : '';
 
-    // STEP 4: generate image (model-dependent)
+    // STEP 4: generate — all models use edits+mask (CHOG is the skeleton, never reinterpreted)
     const model = genModel || 'gpt-image-1';
     let imageUrl;
 
-    // Shared CHOG description for generate-mode models
-    const chogDesc = `A cute kawaii cartoon CHOG hedgehog character — small round pudgy body, large flat solid black circle eyes, tiny pink button nose, round rosy cheeks, thick black outlines, flat solid colors, no shading or gradients, clean kawaii cartoon style. Give this CHOG: ${semantics.hair ? `hair: ${semantics.hair}` : 'styled hair'}${semantics.hat ? `, headwear: ${semantics.hat}` : ''}, outfit: ${semantics.clothing || 'casual outfit'}${semantics.glasses ? `, glasses: ${semantics.glasses}` : ''}. NO weapons, NO held items, NO extra limbs.${bgPart ? ' ' + bgPart : ''}${extraPart}${stylePart}`;
+    // Mask zones: transparent = editable, opaque = preserved
+    // Face zone (eyes/nose/cheeks) is always protected — only hair + outfit change
+    const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
+    const editZones = [
+      [0.05, 0.00, 0.95, 0.38], // hair / hat area (top)
+      [0.05, 0.58, 0.95, 1.00], // outfit area (bottom)
+    ];
+    if (semantics.glasses) editZones.push([0.15, 0.36, 0.85, 0.52]); // glasses strip
+    const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    if (model === 'dall-e-3') {
-      const d3Res = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
-        body: JSON.stringify({ model: 'dall-e-3', prompt: chogDesc, n: 1, size: '1024x1024', quality: 'standard' }),
-      });
-      const d3 = await d3Res.json();
-      if (d3.error) return res.status(500).json({ error: d3.error.message });
-      imageUrl = d3.data[0].url;
+    const styleDesc = [
+      semantics.hair    ? `hair: ${semantics.hair}`       : null,
+      semantics.hat     ? `headwear: ${semantics.hat}`    : null,
+      semantics.glasses ? `glasses: ${semantics.glasses}` : null,
+      `outfit: ${semantics.clothing || 'casual outfit'}`,
+    ].filter(Boolean).join(', ');
 
-    } else if (model === 'gpt-image-1' || model === 'gpt-image-2') {
-      // gpt-image-1/2: edits endpoint — pass CHOG base + reference image together
-      let refBuffer;
-      if (image.startsWith('data:')) {
-        refBuffer = Buffer.from(image.split(',')[1], 'base64');
-      } else {
-        const refRes = await fetch(image);
-        refBuffer = Buffer.from(await refRes.arrayBuffer());
-      }
+    const editPrompt = `Edit only the masked (transparent) regions of this CHOG hedgehog cartoon. The face, eyes, nose, and cheeks are NOT masked — do not touch them. In the editable regions apply: ${styleDesc}. Keep thick black outlines, flat colors, kawaii cartoon style. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
-      const editPrompt = `Transform the CHOG hedgehog character (first image) inspired by the style in the second image. Keep all core CHOG features: round pudgy body, large flat solid black circle eyes, tiny pink button nose, round rosy cheeks, thick black outlines, flat solid colors, kawaii cartoon style. Apply style: ${semantics.hair ? `hair ${semantics.hair}` : ''}${semantics.hat ? `, headwear: ${semantics.hat}` : ''}, outfit: ${semantics.clothing || 'casual outfit'}${semantics.glasses ? `, glasses: ${semantics.glasses}` : ''}. NO weapons, NO held items.${bgPart ? ' ' + bgPart : ''}${extraPart}${stylePart}`;
+    const form = new FormData();
+    form.append('model', model === 'dall-e-2' ? 'dall-e-2' : 'gpt-image-1');
+    form.append('prompt', editPrompt);
+    form.append('n', '1');
+    form.append('size', '1024x1024');
+    if (model !== 'dall-e-2') form.append('quality', 'medium');
+    form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'chog.jpg');
+    form.append('mask',  new Blob([maskBuffer], { type: 'image/png'  }), 'mask.png');
 
-      const form = new FormData();
-      form.append('model', model);
-      form.append('prompt', editPrompt);
-      form.append('n', '1');
-      form.append('size', '1024x1024');
-      form.append('quality', 'medium');
-      form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'chog.jpg');
-      form.append('image', new Blob([refBuffer], { type: 'image/jpeg' }), 'reference.jpg');
-
-      const genRes = await fetch('https://api.openai.com/v1/images/edits', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
-        body: form,
-      });
-      const rawText = await genRes.text();
-      let gd;
-      try { gd = JSON.parse(rawText); }
-      catch { return res.status(500).json({ error: `OpenAI non-JSON response: ${rawText.slice(0, 200)}` }); }
-      if (gd.error) return res.status(500).json({ error: gd.error.message });
-      const img = gd.data[0];
-      imageUrl = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
-
-    } else {
-      // dall-e-2: edit endpoint with mask
-      const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
-      const editZones = [CHOG_ZONES.hat, CHOG_ZONES.clothing];
-      if (semantics.glasses) editZones.push(CHOG_ZONES.glasses);
-      const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
-      const editPrompt = `Edit the CHOG hedgehog cartoon character. Preserve the face exactly. Change hair to: ${semantics.hair || 'styled'}. Change outfit to: ${semantics.clothing || 'casual'}. No weapons.${bgPart ? ' ' + bgPart : ''}`;
-      const form = new FormData();
-      form.append('model', 'dall-e-2');
-      form.append('prompt', editPrompt);
-      form.append('n', '1');
-      form.append('size', '1024x1024');
-      form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'base.jpg');
-      form.append('mask',  new Blob([maskBuffer], { type: 'image/png'  }), 'mask.png');
+    {
       const genRes = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
