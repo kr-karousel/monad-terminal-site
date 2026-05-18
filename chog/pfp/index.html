@@ -368,6 +368,7 @@ input[type=file]{display:none;}
   </button>
 
   <div class="status" id="statusMsg"></div>
+  <div id="genWarning" style="display:none;text-align:center;font-size:11px;font-family:'Space Mono',monospace;color:#f59e0b;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.22);border-radius:8px;padding:8px 12px;margin-top:6px;">⚠ 생성 완료 전까지 새로고침 / 뒤로가기 금지</div>
 
   <!-- RECENT HISTORY -->
   <div id="historySection" style="display:none;margin-top:18px;">
@@ -885,6 +886,7 @@ async function runAll() {
   const btn = document.getElementById('genBtn');
   btn.disabled = true;
   btn.innerHTML = '✦ now generating...';
+  document.getElementById('genWarning').style.display = 'block';
   if (window.setBgGenerating) window.setBgGenerating(true);
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('shareBtn').style.display = 'none';
@@ -938,11 +940,13 @@ async function runAll() {
     document.getElementById('shareBtn').style.display = 'flex';
     setStatus('✦ Your CHOG PFP is ready! GM fren 🦔', 'ok');
     if (window.setBgGenerating) window.setBgGenerating(false);
+    document.getElementById('genWarning').style.display = 'none';
     btn.innerHTML = '🦔 Generate CHOG PFP';
     btn.disabled = false;
   } catch (err) {
     stageTimers.forEach(clearTimeout);
     if (window.setBgGenerating) window.setBgGenerating(false);
+    document.getElementById('genWarning').style.display = 'none';
     document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
     if (err.message.includes('No credits') || err.message.includes('Pay')) {
       document.getElementById('payBtn').style.display = 'block';
