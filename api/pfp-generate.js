@@ -323,11 +323,10 @@ async function _handler(req, res) {
     if (genModel === 'flux') {
       if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
-      // Flux Kontext handles identity preservation internally — no mask needed.
-      // Prompt focuses on describing what to apply, with a soft preserve hint.
       const fluxPrompt = `Take this CHOG hedgehog cartoon character and dress it with: ${styleDesc}. Keep the character's identity intact — same face, same eyes, same pink cheeks, same purple spiky hedgehog crown of hair. Keep the original simple cartoon art style with thick black outlines and flat colors. Do not change the character into a different style or species. No weapons or held objects.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
-      const fluxRes = await fetch('https://fal.run/fal-ai/flux-pro/kontext', {
+      // Submit to async queue (sync endpoint exceeds Vercel 60s timeout)
+      const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
         method: 'POST',
         headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -339,15 +338,35 @@ async function _handler(req, res) {
           safety_tolerance: '5',
         }),
       });
-      const fluxText = await fluxRes.text();
-      let fluxData;
-      try { fluxData = JSON.parse(fluxText); }
-      catch { return res.status(500).json({ error: `fal.ai non-JSON: ${fluxText.slice(0, 300)}` }); }
-      if (!fluxRes.ok || fluxData.detail || fluxData.error) {
-        const msg = fluxData.detail?.[0]?.msg || fluxData.detail || fluxData.error?.message || fluxData.error || `fal.ai ${fluxRes.status}`;
-        return res.status(500).json({ error: typeof msg === 'string' ? msg : JSON.stringify(msg) });
+      const submitText = await submitRes.text();
+      let submitData;
+      try { submitData = JSON.parse(submitText); }
+      catch { return res.status(500).json({ error: `fal.ai submit non-JSON: ${submitText.slice(0, 300)}` }); }
+      if (!submitRes.ok || !submitData.request_id) {
+        return res.status(500).json({ error: submitData.detail || submitData.error || `fal.ai submit ${submitRes.status}` });
       }
-      imageUrl = fluxData.images?.[0]?.url;
+
+      const reqId = submitData.request_id;
+      const statusUrl = `https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${reqId}/status`;
+      const resultUrl = `https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${reqId}`;
+      const deadline = Date.now() + 50000; // 50s budget within Vercel 60s
+
+      let fluxResult;
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 2000));
+        const sRes = await fetch(statusUrl, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
+        const sData = await sRes.json().catch(() => ({}));
+        if (sData.status === 'COMPLETED') {
+          const rRes = await fetch(resultUrl, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
+          fluxResult = await rRes.json();
+          break;
+        }
+        if (sData.status === 'FAILED') {
+          return res.status(500).json({ error: `fal.ai FAILED: ${JSON.stringify(sData).slice(0, 300)}` });
+        }
+      }
+      if (!fluxResult) return res.status(504).json({ error: 'Flux generation timeout (>50s)' });
+      imageUrl = fluxResult.images?.[0]?.url;
 
     } else {
       // gpt-image-1.5 edits+mask path
