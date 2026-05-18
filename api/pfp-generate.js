@@ -321,11 +321,30 @@ async function _handler(req, res) {
       imageUrl = d3.data[0].url;
 
     } else if (model === 'gpt-image-1' || model === 'gpt-image-2') {
-      // GPT Image models: text-to-image generation (JSON only, no FormData)
-      const genRes = await fetch('https://api.openai.com/v1/images/generations', {
+      // gpt-image-1/2: edits endpoint — pass CHOG base + reference image together
+      let refBuffer;
+      if (image.startsWith('data:')) {
+        refBuffer = Buffer.from(image.split(',')[1], 'base64');
+      } else {
+        const refRes = await fetch(image);
+        refBuffer = Buffer.from(await refRes.arrayBuffer());
+      }
+
+      const editPrompt = `Transform the CHOG hedgehog character (first image) inspired by the style in the second image. Keep all core CHOG features: round pudgy body, large flat solid black circle eyes, tiny pink button nose, round rosy cheeks, thick black outlines, flat solid colors, kawaii cartoon style. Apply style: ${semantics.hair ? `hair ${semantics.hair}` : ''}${semantics.hat ? `, headwear: ${semantics.hat}` : ''}, outfit: ${semantics.clothing || 'casual outfit'}${semantics.glasses ? `, glasses: ${semantics.glasses}` : ''}. NO weapons, NO held items.${bgPart ? ' ' + bgPart : ''}${extraPart}${stylePart}`;
+
+      const form = new FormData();
+      form.append('model', model);
+      form.append('prompt', editPrompt);
+      form.append('n', '1');
+      form.append('size', '1024x1024');
+      form.append('quality', 'medium');
+      form.append('image[]', new Blob([baseBuffer], { type: 'image/jpeg' }), 'chog.jpg');
+      form.append('image[]', new Blob([refBuffer], { type: 'image/jpeg' }), 'reference.jpg');
+
+      const genRes = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
-        body: JSON.stringify({ model, prompt: chogDesc, n: 1, size: '1024x1024', quality: 'medium' }),
+        headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
+        body: form,
       });
       const gd = await genRes.json();
       if (gd.error) return res.status(500).json({ error: gd.error.message });
