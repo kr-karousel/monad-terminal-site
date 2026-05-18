@@ -274,7 +274,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image } },
-              { type: 'text', text: 'Analyze this character\'s visual elements. Return ONLY a JSON object: {"hair": "hair color and style", "hat": "headwear or small items sitting on top of head (e.g. rubber duck, crown) if any, else null", "glasses": "eyewear if any, else null", "clothing": "outfit/jacket — color, style, details like badges, patches, epaulettes", "accessory": "small props in mouth or on body (e.g. cigar, pipe, bandana) if any, else null"}. No markdown, raw JSON only.' }
+              { type: 'text', text: 'You are a visual style extractor. Describe every visible stylistic element of this character in detail. Return ONLY a JSON object with these fields: {"hair": "full description of hair — color, length, texture, shape, volume", "head_items": "anything sitting on or attached to the head — hats, animals, objects, ornaments, else null", "face_items": "anything on the face — glasses, sunglasses, cigar, pipe, mask, markings, else null", "expression": "facial expression and eye style", "clothing_top": "detailed description of jacket/shirt/top — material feel, color, patterns, collar, buttons, zipper", "clothing_details": "any badges, patches, insignia, logos, text on clothing — describe exact placement and appearance", "accessories": "necklaces, belts, bags, props held or worn anywhere on body, else null", "art_style": "describe the overall art style — line weight, shading technique, color palette feel, render quality", "background": "background color or environment if visible", "pose": "body angle, head tilt, shoulder position, overall composition framing"}. No markdown, raw JSON only.' }
             ]
           }]
         }),
@@ -310,13 +310,31 @@ async function _handler(req, res) {
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
     const bgPart    = bgTemplate   ? `Background: ${bgTemplate}.` : '';
 
-    const styleDesc = [
-      semantics.hair       ? `hair: ${semantics.hair}`             : null,
-      semantics.hat        ? `headwear: ${semantics.hat}`          : null,
-      semantics.glasses    ? `glasses: ${semantics.glasses}`       : null,
-      `outfit: ${semantics.clothing || 'casual outfit'} (include shoulder details, badges, patches)`,
-      semantics.accessory  ? `accessory: ${semantics.accessory}`   : null,
+    // Build styleDesc differently per engine
+    const styleDescGpt = [
+      semantics.hair            ? `hair: ${semantics.hair}`                       : null,
+      semantics.hat             ? `headwear: ${semantics.hat}`                    : null,
+      (semantics.glasses || semantics.face_items) ? `face: ${semantics.glasses || semantics.face_items}` : null,
+      `outfit: ${semantics.clothing || semantics.clothing_top || 'casual outfit'} (include shoulder details, badges, patches)`,
+      semantics.accessory       ? `accessory: ${semantics.accessory}`             : null,
     ].filter(Boolean).join(', ');
+
+    const styleDescFlux = [
+      semantics.hair            ? `Hair: ${semantics.hair}.`                      : null,
+      semantics.head_items      ? `On head: ${semantics.head_items}.`             : null,
+      semantics.face_items      ? `Face items: ${semantics.face_items}.`          : null,
+      semantics.expression      ? `Expression: ${semantics.expression}.`          : null,
+      semantics.clothing_top    ? `Top: ${semantics.clothing_top}.`               : null,
+      semantics.clothing_details? `Details: ${semantics.clothing_details}.`       : null,
+      semantics.accessories     ? `Accessories: ${semantics.accessories}.`        : null,
+      semantics.art_style       ? `Art style: ${semantics.art_style}.`            : null,
+      semantics.pose            ? `Composition: ${semantics.pose}.`               : null,
+      // fallbacks for old-format responses
+      !semantics.clothing_top && semantics.clothing ? `Top: ${semantics.clothing}.` : null,
+      !semantics.head_items    && semantics.hat     ? `On head: ${semantics.hat}.`  : null,
+    ].filter(Boolean).join(' ');
+
+    const styleDesc = genModel === 'flux' ? styleDescFlux : styleDescGpt;
 
     // STEP 4: generate — branch on engine
     let imageUrl;
@@ -324,7 +342,7 @@ async function _handler(req, res) {
     if (genModel === 'flux') {
       if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
-      const fluxPrompt = `Restyle the CHOG hedgehog cartoon character in the image with: ${styleDesc}. Follow the reference style's art direction for hair, outfit, accessories, and details like badges or patches — including weapons or props if part of the style. Keep the CHOG hedgehog face shape, pink cheeks, and overall cartoon art flow intact. Composition: close-up bust portrait, character fills the entire frame, spiky hair extends to and slightly past the top edge of the frame (cropped), face positioned in the lower-center, same tight framing as the reference image — no empty space around the character.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+      const fluxPrompt = `Transform the CHOG hedgehog cartoon character in this image into a new version with the following style: ${styleDescFlux} Preserve the character's round hedgehog face shape, large black eyes, and pink blush cheeks. Render with clean thick outlines, vibrant flat colors, high cartoon illustration quality. Framing: close-up bust portrait filling the entire canvas edge to edge, spiky hair crown bleeds slightly past the top frame edge, face in lower-center.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
