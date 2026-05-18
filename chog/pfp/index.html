@@ -203,12 +203,6 @@ input[type=file]{display:none;}
     <div id="style3Btn" class="style-thumb" onclick="setChogStyle(3)"><img src="/chog/pfp/CH_og.png" alt="Style 3"></div>
     <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← pick CHOG art style</div>
   </div>
-  <div class="style-row">
-    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">ENGINE</div>
-    <button id="modelGptBtn"  class="model-chip active" onclick="setGenModel('gpt')">gpt-image-1.5</button>
-    <button id="modelFluxBtn" class="model-chip"        onclick="setGenModel('flux')">flux-kontext</button>
-    <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← pick render engine</div>
-  </div>
   <div class="panels">
     <div class="panel">
       <div class="panel-label-row">
@@ -578,12 +572,7 @@ function setChogStyle(n) {
   document.getElementById('style2Btn').classList.toggle('active', n === 2);
   document.getElementById('style3Btn').classList.toggle('active', n === 3);
 }
-let selectedGenModel = 'gpt';
-function setGenModel(m) {
-  selectedGenModel = m;
-  document.getElementById('modelGptBtn').classList.toggle('active', m === 'gpt');
-  document.getElementById('modelFluxBtn').classList.toggle('active', m === 'flux');
-}
+const selectedGenModel = 'flux';
 function handleFile(e) {
   const f = e.target.files[0]; if (!f) return;
   const reader = new FileReader();
