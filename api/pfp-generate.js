@@ -325,14 +325,17 @@ async function _handler(req, res) {
       `outfit: ${semantics.clothing || 'casual outfit'}`,
     ].filter(Boolean).join(', ');
 
-    const editPrompt = `Edit only the masked (transparent) regions of this CHOG hedgehog cartoon. The face, eyes, nose, and cheeks are NOT masked — do not touch them. In the editable regions apply: ${styleDesc}. Keep thick black outlines, flat colors, kawaii cartoon style. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+    const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. Do NOT redraw or touch the face, eyes, nose, or cheeks. Preserve the exact drawing style: keep the thick black outlines as-is, flat solid colors, same proportions, same crude cartoon feel. Do NOT clean up lines, do NOT add shading or gradients, do NOT polish or vectorize. In the editable (masked) regions apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
     const form = new FormData();
     form.append('model', model === 'dall-e-2' ? 'dall-e-2' : 'gpt-image-1');
     form.append('prompt', editPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
-    if (model !== 'dall-e-2') form.append('quality', 'medium');
+    if (model !== 'dall-e-2') {
+      form.append('quality', 'medium');
+      form.append('input_fidelity', 'high');
+    }
     form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'chog.jpg');
     form.append('mask',  new Blob([maskBuffer], { type: 'image/png'  }), 'mask.png');
 
