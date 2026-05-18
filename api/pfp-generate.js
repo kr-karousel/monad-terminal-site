@@ -231,20 +231,23 @@ module.exports = async function handler(req, res) {
     // Full character spec produces consistent CHOG NFT style every time
     const chogPrompt = `Flat 2D chibi cartoon NFT profile picture in the exact style of the CHOG NFT collection.
 
-COMPOSITION (critical):
-- The character fills the FULL WIDTH of the square frame — hair spikes touch or bleed past the left edge, outfit/arms touch or bleed past the right edge. Minimal or zero horizontal background margin on either side.
-- Vertically: hair spikes start near the top edge (slight crop is fine), waist/torso visible at the bottom edge. Head occupies the top 50% of height, outfit fills the bottom 50%.
-- The face is centered horizontally. Do NOT shift the character to one side leaving large empty background.
+COMPOSITION (this is the signature CHOG NFT layout — follow exactly):
+- The character is deliberately positioned toward the RIGHT side of the square frame
+- LEFT side of the frame intentionally shows open background space (roughly 15-25% of width)
+- RIGHT side and BOTTOM: the outfit, arms, and body bleed OFF the frame edges — no right margin, no bottom margin
+- The head and face sit in the upper-center-to-right area
+- Hair spikes fan out to the upper-left, partially occupying the left background space
+- Top of hair spikes may be slightly cropped at the top edge
 
-CAMERA ANGLE: Slight 3/4 turn — the character faces roughly 20 degrees to one side. Both eyes visible. This is the CHOG NFT signature pose. Do NOT use a straight front-facing angle.
+CAMERA ANGLE: Slight 3/4 turn — character faces slightly to one side, both eyes visible. Classic CHOG NFT pose.
 
-CHARACTER: CHOG chibi character. Large round peach face. Dark purple spiky hair with multiple sharp triangular spikes pointing upward and fanning outward to fill horizontal space, thick black outlines. Eyes: two large solid black oval dots each with a white shine spot — both eyes visible. Small round pink nose in the center of the face — always present. Round pink blush circles on each cheek. Small smile. Thick black cartoon outlines on everything.
+CHARACTER: CHOG chibi character. Large round peach face. Dark purple spiky hair with multiple sharp triangular spikes, thick black outlines. Eyes: two large solid black oval dots each with a white shine spot. Small round pink nose — always present. Round pink blush circles on each cheek. Small smile. Bold thick black cartoon outlines on everything.
 
-OUTFIT (fills the bottom half — arms and body extend to both sides of the frame): ${outfit}.${extraPart}
+OUTFIT (large, bleeds off right and bottom edges): ${outfit}.${extraPart}
 
 BACKGROUND: ${bgPart}.
 
-STYLE: Flat 2D cartoon${stylePart}, bold solid colors, thick black outlines, zero gradients, zero shading, clean crisp edges, CHOG NFT collection art style. Character is large, filling the frame edge to edge.`;
+STYLE: Flat 2D cartoon${stylePart}, bold solid colors, thick black outlines, zero gradients, zero shading, CHOG NFT collection art style.`;
 
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
