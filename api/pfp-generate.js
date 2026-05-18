@@ -456,12 +456,13 @@ Do NOT zoom out. Do NOT change hair color or skin tone.${extraPart}`;
           if (useComposite && fw >= fh * 1.5) {
             fluxImg.crop(0, 0, Math.floor(fw / 2), fh);
           }
-          // Portrait square crop: 75% from top-center
+          // CHOG NFT framing: face fills frame, only tiny hair above forehead, rest cropped
           const cw   = fluxImg.getWidth();
           const ch   = fluxImg.getHeight();
-          const size = Math.floor(Math.min(cw, ch) * 0.75);
+          const size = Math.floor(Math.min(cw, ch) * 0.58); // tight — face occupies 90%+ of frame
           const cx   = Math.floor((cw - size) / 2);
-          fluxImg.crop(cx, 0, size, size);
+          const cy   = Math.floor(ch * 0.04);               // skip top 4% — most hair spikes cropped
+          fluxImg.crop(cx, cy, size, size);
           fluxImg.resize(1024, 1024, Jimp.RESIZE_BICUBIC);
           const croppedBuf = await fluxImg.getBufferAsync(Jimp.MIME_PNG);
           imageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
