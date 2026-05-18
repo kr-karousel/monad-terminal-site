@@ -262,24 +262,33 @@ async function _handler(req, res) {
     if (useTwitterFree) await markFreeUsed(session.id);
     else await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
 
-    // STEP 1: semantic JSON extraction — no reference image to generation model
-    const visionRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini', max_tokens: 200,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: 'Analyze the character\'s WORN/STYLED elements only. Return ONLY a JSON object: {"hair": "describe hair color and style shape", "hat": "headwear if any, else null", "glasses": "eyewear if any, else null", "clothing": "describe the outfit/jacket/top — color, style, notable details like epaulettes/patterns"}. Do NOT include weapons, held props, or items in hands. Focus on what is physically on the body. No markdown, raw JSON only.' }
-          ]
-        }]
+    // STEP 1+2 in parallel: vision extraction + base image fetch
+    let styleFilename = 'CHOG.jpg';
+    if (chogStyle) {
+      if (chogStyle.includes('IMG_20260516')) styleFilename = 'IMG_20260516_025404_862.jpg';
+      else if (chogStyle.includes('CH_og'))   styleFilename = 'CH_og.jpg';
+    }
+
+    const [visionRes, baseImgRes] = await Promise.all([
+      fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini', max_tokens: 200,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: image } },
+              { type: 'text', text: 'Analyze the character\'s WORN/STYLED elements only. Return ONLY a JSON object: {"hair": "describe hair color and style shape", "hat": "headwear if any, else null", "glasses": "eyewear if any, else null", "clothing": "describe the outfit/jacket/top — color, style, notable details like epaulettes/patterns"}. Do NOT include weapons, held props, or items in hands. Focus on what is physically on the body. No markdown, raw JSON only.' }
+            ]
+          }]
+        }),
       }),
-    });
+      fetch(`https://monad-terminal.xyz/chog/pfp/${styleFilename}`),
+    ]);
+
     const vd = await visionRes.json();
     if (vd.error) return res.status(500).json({ error: vd.error.message });
-
     let semantics = { clothing: 'casual outfit' };
     try {
       const raw = vd.choices[0].message.content.trim().replace(/^```json|^```|```$/gm, '').trim();
@@ -287,13 +296,6 @@ async function _handler(req, res) {
     } catch {}
     console.log('[generate] semantics:', JSON.stringify(semantics));
 
-    // STEP 2: fetch base CHOG image via URL (fs.readFileSync not available in Vercel runtime)
-    let styleFilename = 'CHOG.jpg';
-    if (chogStyle) {
-      if (chogStyle.includes('IMG_20260516')) styleFilename = 'IMG_20260516_025404_862.jpg';
-      else if (chogStyle.includes('CH_og'))   styleFilename = 'CH_og.jpg';
-    }
-    const baseImgRes = await fetch(`https://monad-terminal.xyz/chog/pfp/${styleFilename}`);
     if (!baseImgRes.ok) throw new Error(`Failed to load base image: ${baseImgRes.status}`);
     const baseBuffer = Buffer.from(await baseImgRes.arrayBuffer());
     console.log('[generate] base:', styleFilename, baseBuffer.length, 'bytes');
