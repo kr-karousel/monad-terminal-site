@@ -185,6 +185,7 @@ input[type=file]{display:none;}
 </head>
 <body>
 <div class="bg-grid"></div>
+<canvas id="bgCanvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;"></canvas>
 <div class="wrap">
 
   <!-- HEADER -->
@@ -824,6 +825,7 @@ async function runAll() {
 
   const btn = document.getElementById('genBtn');
   btn.disabled = true;
+  if (window.setBgGenerating) window.setBgGenerating(true);
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('shareBtn').style.display = 'none';
   document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
@@ -839,10 +841,10 @@ async function runAll() {
 
   // Spinner progress text simulation (visual feedback during long request)
   const stages = [
-    { delay: 0,     text: 'analyzing outfit...',           toast: '🔍 GPT-4o analyzing outfit & accessories...' },
-    { delay: 6000,  text: 'composing CHOG...',             toast: '🎨 Composing CHOG with your outfit...' },
-    { delay: 15000, text: 'rendering details...',          toast: '✨ gpt-image-2 rendering details (this takes 30-60s)...' },
-    { delay: 35000, text: 'finalizing...',                 toast: '🦔 Almost there...' },
+    { delay: 0,     text: '👀 checking out your style...',  toast: '👀 CHOG is checking out your style...' },
+    { delay: 6000,  text: '👗 trying on your outfit...',    toast: '👗 CHOG is trying on your outfit...' },
+    { delay: 18000, text: '💇 fresh hair appointment...',   toast: '💇 CHOG is getting a fresh hair appointment...' },
+    { delay: 40000, text: '🚪 almost out the door...',      toast: '🚪 CHOG is about to step out of the dressing room...' },
   ];
   const stageTimers = stages.map(s => setTimeout(() => {
     const spinTxt = document.querySelector('.spinner-text');
@@ -874,9 +876,11 @@ async function runAll() {
     document.getElementById('dlBtn').style.display = 'flex';
     document.getElementById('shareBtn').style.display = 'flex';
     setStatus('✦ Your CHOG PFP is ready! GM fren 🦔', 'ok');
+    if (window.setBgGenerating) window.setBgGenerating(false);
     btn.disabled = false;
   } catch (err) {
     stageTimers.forEach(clearTimeout);
+    if (window.setBgGenerating) window.setBgGenerating(false);
     document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
     if (err.message.includes('No credits') || err.message.includes('Pay')) {
       document.getElementById('payBtn').style.display = 'block';
@@ -888,7 +892,75 @@ async function runAll() {
 
 function generatePFP() { runAll(); }
 
-/* ── SHARE ON X ── */
+/* ── Background cube animation ─────────────────────────────── */
+(function() {
+  const canvas = document.getElementById('bgCanvas');
+  const ctx    = canvas.getContext('2d');
+  const SIZE   = 30, GAP = 3, STEP = SIZE + GAP;
+  const PALETTE = [
+    [138, 92, 246], // purple
+    [109, 40, 217], // purple-dark
+    [ 99,102, 241], // indigo
+    [ 79,114, 255], // blue-purple
+  ];
+  let cols, rows, cubes, t = 0, waveT = 0;
+  let generating = false;
+
+  function init() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    cols = Math.ceil(canvas.width  / STEP) + 1;
+    rows = Math.ceil(canvas.height / STEP) + 1;
+    cubes = [];
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        cubes.push({
+          x: c * STEP, y: r * STEP, c, r,
+          rgb: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          phase: Math.random() * Math.PI * 2,
+          spd:   0.06 + Math.random() * 0.08,
+        });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    t     += 0.004;
+    waveT += generating ? 0.03 : 0;
+
+    for (const cb of cubes) {
+      let alpha, glowAlpha;
+      if (generating) {
+        const norm = (cb.c * 1.2 + cb.r) / (cols * 1.2 + rows);
+        const wave = (Math.sin(norm * Math.PI * 7 - waveT * 4) + 1) / 2;
+        alpha = 0.08 + wave * 0.52;
+        glowAlpha = wave;
+      } else {
+        const pulse = (Math.sin(t * cb.spd + cb.phase) + 1) / 2;
+        alpha = 0.06 + pulse * 0.28;
+        glowAlpha = pulse * 0.7;
+      }
+
+      const [r, g, b] = cb.rgb;
+      ctx.save();
+      ctx.shadowColor = `rgba(${r},${g},${b},${glowAlpha.toFixed(2)})`;
+      ctx.shadowBlur  = generating ? 22 : 14;
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      ctx.fillRect(cb.x, cb.y, SIZE, SIZE);
+      if (alpha > 0.18) {
+        ctx.shadowBlur = generating ? 30 : 20;
+        ctx.strokeStyle = `rgba(${r},${g},${b},${Math.min(alpha * 1.6, 0.9)})`;
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(cb.x + 0.4, cb.y + 0.4, SIZE - 0.8, SIZE - 0.8);
+      }
+      ctx.restore();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.setBgGenerating = v => { generating = v; if (v) waveT = 0; };
+  window.addEventListener('resize', init);
+  init(); draw();
+})();
 async function shareOnX() {
   const text = 'just turned my PFP into a CHOG 🦔\n\ntry it at monad-terminal.xyz/chog/pfp\n\n#CHOG #Monad';
   // Try to copy the generated image to clipboard so user can paste into X composer
