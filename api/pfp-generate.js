@@ -274,7 +274,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image } },
-              { type: 'text', text: 'Analyze the character\'s WORN/STYLED elements only. Return ONLY a JSON object: {"hair": "describe hair color and style shape", "hat": "headwear if any, else null", "glasses": "eyewear if any, else null", "clothing": "describe the outfit/jacket/top — color, style, notable details like epaulettes/patterns"}. Do NOT include weapons, held props, or items in hands. Focus on what is physically on the body. No markdown, raw JSON only.' }
+              { type: 'text', text: 'Analyze this character\'s visual elements. Return ONLY a JSON object: {"hair": "hair color and style", "hat": "headwear or small items sitting on top of head (e.g. rubber duck, crown) if any, else null", "glasses": "eyewear if any, else null", "clothing": "outfit/jacket — color, style, details like badges, patches, epaulettes", "accessory": "small props in mouth or on body (e.g. cigar, pipe, bandana) if any, else null"}. No markdown, raw JSON only.' }
             ]
           }]
         }),
@@ -311,10 +311,11 @@ async function _handler(req, res) {
     const bgPart    = bgTemplate   ? `Background: ${bgTemplate}.` : '';
 
     const styleDesc = [
-      semantics.hair    ? `hair: ${semantics.hair}`       : null,
-      semantics.hat     ? `headwear: ${semantics.hat}`    : null,
-      semantics.glasses ? `glasses: ${semantics.glasses}` : null,
-      `outfit: ${semantics.clothing || 'casual outfit'} (include any shoulder armor, collar details, or layered elements)`,
+      semantics.hair       ? `hair: ${semantics.hair}`             : null,
+      semantics.hat        ? `headwear: ${semantics.hat}`          : null,
+      semantics.glasses    ? `glasses: ${semantics.glasses}`       : null,
+      `outfit: ${semantics.clothing || 'casual outfit'} (include shoulder details, badges, patches)`,
+      semantics.accessory  ? `accessory: ${semantics.accessory}`   : null,
     ].filter(Boolean).join(', ');
 
     // STEP 4: generate — branch on engine
