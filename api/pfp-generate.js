@@ -311,9 +311,10 @@ async function _handler(req, res) {
     const bgPart    = bgTemplate   ? `Background: ${bgTemplate}.` : '';
 
     const styleDesc = [
+      semantics.hair    ? `hair: ${semantics.hair}`       : null,
       semantics.hat     ? `headwear: ${semantics.hat}`    : null,
       semantics.glasses ? `glasses: ${semantics.glasses}` : null,
-      `outfit: ${semantics.clothing || 'casual outfit'}`,
+      `outfit: ${semantics.clothing || 'casual outfit'} (include any shoulder armor, collar details, or layered elements)`,
     ].filter(Boolean).join(', ');
 
     // STEP 4: generate — branch on engine
@@ -350,16 +351,17 @@ async function _handler(req, res) {
 
     } else {
       // gpt-image-1.5 edits+mask path
-      // NEVER open the hair spike crown — CHOG's core identity
+      // Hair zone is opened but the spike crown silhouette should stay — model layers new hair over spikes
       const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
       const editZones = [
-        [0.15, 0.60, 0.85, 0.92], // outfit chest/torso center only
+        [0.08, 0.55, 0.92, 0.95], // outfit incl. shoulders + chest
+        [0.05, 0.05, 0.95, 0.45], // hair area (front + sides), layer over spikes
       ];
-      if (semantics.hat)     editZones.push([0.22, 0.02, 0.78, 0.18]);
+      if (semantics.hat)     editZones.push([0.18, 0.00, 0.82, 0.22]);
       if (semantics.glasses) editZones.push([0.25, 0.36, 0.75, 0.46]);
       const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-      const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. The purple spiky hedgehog hair crown is CHOG's identity — NEVER touch or alter the hair spikes. Do NOT redraw face, eyes, nose, cheeks, or any unmasked area. Preserve the exact drawing style: keep thick black outlines as-is, flat solid colors, same proportions, same crude cartoon feel. Do NOT polish, do NOT vectorize, do NOT make symmetrical, do NOT fix proportions, preserve all imperfections. In the masked regions ONLY apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+      const editPrompt = `Edit the transparent masked regions of this CHOG hedgehog cartoon to apply: ${styleDesc}. Apply the described HAIR layered ON TOP of and AROUND CHOG's existing purple spiky hair — the purple spikes must remain visible behind/around the new hair. Apply the described OUTFIT including any shoulder armor, epaulettes, collars, or layered clothing details. Do NOT touch face, eyes, nose, cheeks, or any unmasked area. Preserve the exact CHOG drawing style: thick black outlines, flat solid colors, simple cartoon feel. Do NOT polish, vectorize, smooth, or restyle. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
       const form = new FormData();
       form.append('model', 'gpt-image-1.5');
