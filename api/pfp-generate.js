@@ -374,8 +374,8 @@ async function _handler(req, res) {
     const ART_STYLE = 'Art style: thick bold black outlines, flat solid colors, large circular anime eyes, cute chibi proportions';
 
     const COMPOSITION = chogStyle === '2'
-      ? '⚠ COMPOSITION IS THE #1 PRIORITY — copy the base image framing exactly: face turned left, strong diagonal crop, head and spikes cut off by frame edges, the RIGHT edge of the frame cuts right beside the eye — only the right eye is visible, everything beyond it (cheek, ear) is outside the frame. Character is NOT centered. Do NOT pull the camera back. Do NOT reveal more of the right side than the eye.'
-      : '⚠ COMPOSITION IS THE #1 PRIORITY — copy the base image framing exactly: head and spikes cut off by the top and left frame edges, the RIGHT edge of the frame cuts right beside the eye — only the right eye is visible, cheek and ear are cut off outside the frame. Face is off-center, pushed left. Do NOT center. Do NOT pull the camera back to reveal the right cheek or ear.';
+      ? '⚠ COMPOSITION IS THE #1 PRIORITY — face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Face angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Do NOT center. Do NOT zoom out.'
+      : '⚠ COMPOSITION IS THE #1 PRIORITY — face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Do NOT center. Do NOT zoom out.';
 
     const editPrompt = `${COMPOSITION} ${ART_STYLE}. Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
