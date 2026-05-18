@@ -6,7 +6,6 @@ const Jimp   = require('jimp');
 const SB_URL  = 'https://phjolzvyewacjqausmxx.supabase.co';
 const SB_KEY  = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoam9senZ5ZXdhY2pxYXVzbXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDY5NzIsImV4cCI6MjA5MDY4Mjk3Mn0.XDNfHWN7NdzBHffE6-YgMMR8skNMR7blTJVu1EbvPrY';
 const OPENAI_KEY      = process.env.OPENAI_API_KEY;
-const FAL_KEY         = process.env.FAL_KEY;
 const SESSION_SECRET  = process.env.SESSION_SECRET || 'chog-pfp-fallback-secret';
 const MONAD_RPC       = 'https://rpc.monad.xyz';
 const DEV_WALLET      = '0xf9bb715c1DC21EB661FCaC75d45BCf470235e0d8';
@@ -80,11 +79,9 @@ function makeMaskPng(w, h, zones) {
 
 /* ── image dimension parser (JPEG + PNG, no deps) ── */
 function getImageDimensions(buf) {
-  // PNG: 8-byte sig + IHDR (width @ 16, height @ 20)
   if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
     return { w: buf.readUInt32BE(16), h: buf.readUInt32BE(20) };
   }
-  // JPEG: scan for SOF0/SOF1/SOF2/SOF3 markers
   if (buf[0] === 0xFF && buf[1] === 0xD8) {
     let i = 2;
     while (i + 4 <= buf.length) {
@@ -98,7 +95,7 @@ function getImageDimensions(buf) {
       i += 2 + segLen;
     }
   }
-  return { w: 1024, h: 1024 }; // fallback
+  return { w: 1024, h: 1024 };
 }
 
 /* ── helpers ── */
@@ -204,7 +201,7 @@ module.exports = async function handler(req, res) {
 };
 
 async function _handler(req, res) {
-  const { action, wallet, txHash, image, chogStyle, genModel, bgTemplate, artStyle, customPrompt, quality } = req.body || {};
+  const { action, wallet, txHash, image, chogStyle, customPrompt } = req.body || {};
   const session = getSession(req);
 
   if (action === 'credits') {
@@ -294,7 +291,7 @@ async function _handler(req, res) {
     if (!baseImgRes.ok) throw new Error(`Failed to load base image: ${baseImgRes.status}`);
     const rawBaseBuffer = Buffer.from(await baseImgRes.arrayBuffer());
 
-    // Nearest-neighbor upscale to 1024x1024 PNG — prevents API from smoothing/reinterpreting
+    // Nearest-neighbor upscale to 1024x1024 PNG
     let baseBuffer;
     try {
       const img = await Jimp.read(rawBaseBuffer);
@@ -306,11 +303,7 @@ async function _handler(req, res) {
       baseBuffer = rawBaseBuffer;
     }
 
-    // STEP 3: build shared prompt parts
-    const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
-    const bgPart    = bgTemplate   ? `Background: ${bgTemplate}.` : '';
-
-    const styleDescGpt = [
+    const styleDesc = [
       semantics.hair        ? `hair: ${semantics.hair}`                                       : null,
       semantics.hat         ? `headwear: ${semantics.hat}`                                    : null,
       semantics.face        ? `face item: ${semantics.face}`                                  : null,
@@ -318,201 +311,50 @@ async function _handler(req, res) {
       semantics.accessories ? `accessories: ${semantics.accessories}`                         : null,
     ].filter(Boolean).join(', ');
 
-    const styleDescFlux = [
-      semantics.hair        ? `Hair: ${semantics.hair}.`                                      : null,
-      semantics.hat         ? `On the head: ${semantics.hat}.`                                : null,
-      semantics.face        ? `On the face: ${semantics.face}.`                               : null,
-      semantics.outfit || semantics.clothing
-                            ? `Outfit: ${semantics.outfit || semantics.clothing}.`            : null,
-      semantics.accessories ? `Also wearing/carrying: ${semantics.accessories}.`              : null,
-    ].filter(Boolean).join(' ');
+    const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
-    const styleDesc = genModel === 'flux' ? styleDescFlux : styleDescGpt;
+    // Zones: hair (above face) | face band y=0.32~0.58 PROTECTED | outfit (below face)
+    const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
+    const editZones = [
+      [0.05, 0.03, 0.95, 0.32], // hair zone
+      [0.08, 0.58, 0.92, 0.95], // outfit zone
+    ];
+    if (semantics.hat)     editZones.push([0.15, 0.00, 0.85, 0.20]);
+    if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]);
+    const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    // STEP 4: generate — branch on engine
-    let imageUrl;
+    const editPrompt = `Generate in the style of the reference examples. Extreme close-up portrait: face fills the frame, top of head slightly cropped out, chin near the bottom edge. Apply: ${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
 
-    if (genModel === 'flux') {
-      if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
+    // Fetch example.jpg as additional style reference
+    let exampleBuffer = null;
+    try {
+      const exRes = await fetch('https://monad-terminal.xyz/chog/pfp/example.jpg');
+      if (exRes.ok) exampleBuffer = Buffer.from(await exRes.arrayBuffer());
+    } catch (e) { console.warn('[gpt] example fetch failed:', e.message); }
 
-      const fluxAdditions = [
-        semantics.hair        ? `hair (color and shape): ${semantics.hair}`                       : null,
-        semantics.hairpin     ? `hair decoration (bow/ribbon/clip): ${semantics.hairpin}`         : null,
-        semantics.hat         ? `hat on head: ${semantics.hat}`                                   : null,
-        semantics.face        ? `face accessory: ${semantics.face}`                               : null,
-        semantics.outfit || semantics.clothing
-                              ? `outfit visible on chest/shoulders: ${semantics.outfit || semantics.clothing}` : null,
-        semantics.accessories ? `accessories: ${semantics.accessories}`                           : null,
-      ].filter(Boolean).join('\n- ') || 'no changes — keep as-is';
+    const form = new FormData();
+    form.append('model', 'gpt-image-1');
+    form.append('prompt', editPrompt);
+    form.append('n', '1');
+    form.append('size', '1024x1024');
+    form.append('quality', 'high');
+    form.append('input_fidelity', 'high');
+    form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
+    if (exampleBuffer) form.append('image[]', new Blob([exampleBuffer], { type: 'image/jpeg' }), 'example.jpg');
+    form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
 
-      // Build composite: [base CHOG 1024x1024] | [example grid 1024x1024]
-      // Upload to fal.ai storage → use URL as image_url for Flux
-      let fluxImageUrl = `https://monad-terminal.xyz/chog/pfp/${styleFilename}`;
-      let useComposite = false;
-      try {
-        const exRes = await fetch('https://monad-terminal.xyz/chog/pfp/example.jpg');
-        if (exRes.ok) {
-          const exBuf  = Buffer.from(await exRes.arrayBuffer());
-          const exImg  = await Jimp.read(exBuf);
-          exImg.resize(1024, 1024, Jimp.RESIZE_BICUBIC);
-          const baseImg = await Jimp.read(baseBuffer);
-          const canvas  = new Jimp(2048, 1024, 0xFFFFFFFF);
-          canvas.composite(baseImg, 0, 0);
-          canvas.composite(exImg, 1024, 0);
-          const canvasBuf = await canvas.getBufferAsync(Jimp.MIME_PNG);
-          const upForm = new FormData();
-          upForm.append('file', new Blob([canvasBuf], { type: 'image/png' }), 'ref.png');
-          const upRes  = await fetch('https://storage.fal.run/', {
-            method: 'POST',
-            headers: { 'Authorization': `Key ${FAL_KEY}` },
-            body: upForm,
-          });
-          const upText = await upRes.text();
-          console.log('[flux] storage upload status:', upRes.status, upText.slice(0, 200));
-          if (upRes.ok) {
-            let upData; try { upData = JSON.parse(upText); } catch {}
-            const uploaded = upData?.url || upData?.access_url;
-            if (uploaded) { fluxImageUrl = uploaded; useComposite = true; console.log('[flux] composite OK:', uploaded); }
-            else console.warn('[flux] upload ok but no url in response');
-          } else {
-            console.warn('[flux] storage upload failed:', upRes.status);
-          }
-        }
-      } catch (e) { console.warn('[flux] composite skipped:', e.message); }
-
-      const fluxPrompt = useComposite
-        ? `TWO PANELS: LEFT = character to edit, RIGHT = 9 style examples showing correct art style and portrait framing.
-
-Edit the LEFT character to look like the RIGHT panel examples in art style and framing. Apply:
-- ${fluxAdditions}
-
-Keep: round chibi face, large black eyes, pink blush, thick black outlines, flat solid colors, blue background, close-up portrait crop (face fills frame).${extraPart}`
-        : `Edit this chibi cartoon character. Apply: ${fluxAdditions}. Keep: round face, large black eyes, pink blush cheeks, thick black outlines, flat solid colors, blue background.${extraPart}`;
-
-      // Submit to async queue
-      const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
-        method: 'POST',
-        headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: fluxPrompt,
-          image_url: fluxImageUrl,
-          guidance_scale: 3,
-          num_images: 1,
-          output_format: 'png',
-          safety_tolerance: '5',
-        }),
-      });
-      const submitText = await submitRes.text();
-      let submitData;
-      try { submitData = JSON.parse(submitText); }
-      catch { return res.status(500).json({ error: `fal.ai submit non-JSON: ${submitText.slice(0, 300)}` }); }
-      if (!submitRes.ok || !submitData.request_id) {
-        return res.status(500).json({ error: submitData.detail || submitData.error || `fal.ai submit ${submitRes.status}` });
-      }
-
-      // Use URLs from submit response
-      const statusUrl  = submitData.status_url  || `https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${submitData.request_id}/status`;
-      const resultUrl  = submitData.response_url || `https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${submitData.request_id}`;
-      const deadline   = Date.now() + 270000; // 270s — leave 30s buffer before Vercel kills at 300s
-
-      await new Promise(r => setTimeout(r, 3000)); // initial wait before first poll
-
-      let fluxResult;
-      while (Date.now() < deadline) {
-        const sRes  = await fetch(statusUrl, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
-        const sData = await sRes.json().catch(() => ({}));
-        if (sData.status === 'COMPLETED') {
-          const rRes = await fetch(resultUrl, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
-          fluxResult = await rRes.json();
-          break;
-        }
-        if (sData.status === 'FAILED') {
-          return res.status(500).json({ error: `fal.ai FAILED: ${JSON.stringify(sData).slice(0, 300)}` });
-        }
-        await new Promise(r => setTimeout(r, 3000)); // poll every 3s
-      }
-      if (!fluxResult) return res.status(504).json({ error: 'Flux generation timeout — try again' });
-
-      // Post-process: crop to CHOG close-up portrait format
-      // Flux tends to zoom out → force top-center crop so face fills frame like the base images
-      const rawFluxUrl = fluxResult.images?.[0]?.url;
-      if (rawFluxUrl) {
-        try {
-          const fluxImgRes = await fetch(rawFluxUrl);
-          const fluxImgBuf = Buffer.from(await fluxImgRes.arrayBuffer());
-          const fluxImg    = await Jimp.read(fluxImgBuf);
-          const fw = fluxImg.getWidth();
-          const fh = fluxImg.getHeight();
-          // If composite output (wider than tall): take left half (edited CHOG)
-          if (useComposite && fw >= fh * 1.5) {
-            fluxImg.crop(0, 0, Math.floor(fw / 2), fh);
-          }
-          // CHOG NFT framing: face fills frame, only tiny hair above forehead, rest cropped
-          const cw   = fluxImg.getWidth();
-          const ch   = fluxImg.getHeight();
-          const size = Math.floor(Math.min(cw, ch) * 0.58); // tight — face occupies 90%+ of frame
-          const cx   = Math.floor((cw - size) / 2);
-          const cy   = Math.floor(ch * 0.04);               // skip top 4% — most hair spikes cropped
-          fluxImg.crop(cx, cy, size, size);
-          fluxImg.resize(1024, 1024, Jimp.RESIZE_BICUBIC);
-          const croppedBuf = await fluxImg.getBufferAsync(Jimp.MIME_PNG);
-          imageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
-          console.log('[flux] crop:', fw, 'x', fh, useComposite ? '→ left-half' : '', '→', size, 'sq → 1024');
-        } catch (e) {
-          console.warn('[flux] post-crop failed:', e.message);
-          imageUrl = rawFluxUrl;
-        }
-      }
-
-    } else {
-      // gpt-image-1.5 edits+mask path
-      // Zones: hair (above face) | face gap PROTECTED | outfit (below face)
-      // Face band y=0.32~0.58 is always opaque — eyes/nose/cheeks/mouth never touched
-      const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
-      const editZones = [
-        [0.05, 0.03, 0.95, 0.32], // hair only — stops well above eyes
-        [0.08, 0.58, 0.92, 0.95], // outfit incl. shoulders, starts below chin
-      ];
-      if (semantics.hat)     editZones.push([0.15, 0.00, 0.85, 0.20]); // hat on top
-      if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses strip (tight)
-      const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
-
-      // BACKUP PROMPT v1: `Apply to the masked regions of this CHOG cartoon: ${styleDesc}.${extraPart} Keep CHOG's face, eyes, blush cheeks, and thick-outline flat-color art style exactly as-is.`
-      // BACKUP PROMPT v2: `${styleDesc}.${extraPart ? ' ' + extraPart : ''}`
-      const editPrompt = `Generate in the style of the reference examples. Extreme close-up portrait: face fills the frame, top of head slightly cropped, chin near the bottom edge. Keep the CHOG character's round face, large black eyes, pink blush cheeks, and flat-color cartoon style. Apply exactly: ${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
-
-      // Fetch example.jpg to send as additional style reference
-      let exampleBuffer = null;
-      try {
-        const exRes = await fetch('https://monad-terminal.xyz/chog/pfp/example.jpg');
-        if (exRes.ok) exampleBuffer = Buffer.from(await exRes.arrayBuffer());
-      } catch (e) { console.warn('[gpt] example fetch failed:', e.message); }
-
-      const gptQuality = (quality === 'medium') ? 'medium' : 'high';
-      const form = new FormData();
-      form.append('model', 'gpt-image-1.5');
-      form.append('prompt', editPrompt);
-      form.append('n', '1');
-      form.append('size', '1024x1024');
-      form.append('quality', gptQuality);
-      form.append('input_fidelity', 'high');
-      form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
-      if (exampleBuffer) form.append('image[]', new Blob([exampleBuffer], { type: 'image/jpeg' }), 'example.jpg');
-      form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
-
-      const genRes = await fetch('https://api.openai.com/v1/images/edits', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
-        body: form,
-      });
-      const rawText2 = await genRes.text();
-      let gd2;
-      try { gd2 = JSON.parse(rawText2); }
-      catch { return res.status(500).json({ error: `OpenAI non-JSON response: ${rawText2.slice(0, 200)}` }); }
-      if (gd2.error) return res.status(500).json({ error: gd2.error.message });
-      const img = gd2.data[0];
-      imageUrl = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
-    }
+    const genRes = await fetch('https://api.openai.com/v1/images/edits', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
+      body: form,
+    });
+    const rawText = await genRes.text();
+    let gd;
+    try { gd = JSON.parse(rawText); }
+    catch { return res.status(500).json({ error: `OpenAI non-JSON response: ${rawText.slice(0, 200)}` }); }
+    if (gd.error) return res.status(500).json({ error: gd.error.message });
+    const imgData = gd.data[0];
+    const imageUrl = imgData.url || (imgData.b64_json ? `data:image/png;base64,${imgData.b64_json}` : null);
 
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 

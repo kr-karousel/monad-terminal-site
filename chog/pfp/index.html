@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- v2 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +8,7 @@
 <meta http-equiv="Expires" content="0">
 <title>CHOG PFP STUDIO · Monad</title>
 <script>
+// Nuke any stale service worker + caches that may serve old PFP code
 (async () => {
   try {
     if ('serviceWorker' in navigator) {
@@ -33,148 +33,216 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --purple:#8b5cf6;--purple-dark:#6d28d9;--purple-light:#a78bfa;
-  --bg:#0a0a12;--panel:rgba(255,255,255,0.03);--border:rgba(138,92,246,0.22);
-  --text:#e8e0ff;--text-muted:#7c6fa0;--text-dim:#4a3d6b;
+  --bg:#07070f;--panel:rgba(255,255,255,0.025);--border:rgba(138,92,246,0.18);
+  --text:#ede8ff;--text-muted:#7c6fa0;--text-dim:#4a3d6b;
 }
 body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;}
-.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(138,92,246,0.055) 1px,transparent 1px),linear-gradient(90deg,rgba(138,92,246,0.055) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
-.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:32px 20px 48px;background:rgba(10,10,18,0.72);backdrop-filter:blur(2px);}
-.header{text-align:center;margin-bottom:28px;}
-.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(138,92,246,0.14);border:1px solid rgba(138,92,246,0.35);border-radius:999px;padding:6px 18px;font-size:12px;font-family:'Space Mono',monospace;color:#c4b5fd;margin-bottom:14px;letter-spacing:1px;}
-.dot{width:7px;height:7px;background:var(--purple);border-radius:50%;animation:pulse 2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.45;transform:scale(.75);}}
-h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-bottom:6px;}
-.purple{color:var(--purple-light);}
-.sub{font-size:13px;color:var(--text-muted);font-family:'Space Mono',monospace;}
-.howto{background:rgba(109,40,217,0.08);border:1px solid rgba(138,92,246,0.2);border-radius:14px;padding:16px 20px;margin-bottom:20px;}
+
+
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(138,92,246,0.038) 1px,transparent 1px),linear-gradient(90deg,rgba(138,92,246,0.038) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+
+.wrap{position:relative;z-index:3;max-width:780px;margin:0 auto;padding:36px 22px 52px;background:rgba(7,7,15,0.6);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-left:1px solid rgba(138,92,246,0.08);border-right:1px solid rgba(138,92,246,0.08);min-height:100vh;}
+
+/* ── HEADER ─────────────────────── */
+.header{text-align:center;margin-bottom:32px;}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(138,92,246,0.1);border:1px solid rgba(138,92,246,0.28);border-radius:999px;padding:5px 16px;font-size:11px;font-family:'Space Mono',monospace;color:#a78bfa;margin-bottom:16px;letter-spacing:1.5px;animation:fade-up .7s ease both;}
+@keyframes fade-up{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:none;}}
+.dot{width:6px;height:6px;background:#8b5cf6;border-radius:50%;box-shadow:0 0 10px rgba(138,92,246,.9);animation:dot-pulse 2s ease-in-out infinite;}
+@keyframes dot-pulse{0%,100%{opacity:1;box-shadow:0 0 10px rgba(138,92,246,.9);}50%{opacity:.4;box-shadow:0 0 4px rgba(138,92,246,.4);}}
+h1{font-size:44px;font-weight:900;letter-spacing:-1.8px;line-height:1;margin-bottom:8px;animation:fade-up .7s ease .08s both;}
+.purple{
+  background:linear-gradient(90deg,#7c3aed,#a78bfa,#c4b5fd,#a78bfa,#7c3aed);
+  background-size:300% auto;
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:title-shimmer 5s linear infinite;
+}
+@keyframes title-shimmer{to{background-position:300% center;}}
+.sub{font-size:13px;color:var(--text-muted);font-family:'Space Mono',monospace;animation:fade-up .7s ease .16s both;}
+
+/* ── HOWTO ───────────────────────── */
+.howto{background:rgba(109,40,217,0.06);border:1px solid rgba(138,92,246,0.15);border-radius:14px;padding:16px 20px;margin-bottom:20px;}
 .howto-title{font-size:11px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:10px;}
 .step{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
 .step:last-child{margin-bottom:0;}
-.step-num{width:22px;height:22px;background:rgba(138,92,246,0.25);border:1px solid rgba(138,92,246,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c4b5fd;flex-shrink:0;margin-top:1px;}
+.step-num{width:22px;height:22px;background:rgba(138,92,246,0.18);border:1px solid rgba(138,92,246,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c4b5fd;flex-shrink:0;margin-top:1px;}
 .step-text{font-size:12.5px;color:#a89ec0;line-height:1.5;}
+
+/* ── AUTH ROW ────────────────────── */
 .auth-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
-.x-login-btn{display:flex;align-items:center;gap:8px;background:#000;border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 18px;cursor:pointer;transition:all .2s;flex-shrink:0;}
-.x-login-btn:hover{background:#111;border-color:rgba(255,255,255,.4);}
+.x-login-btn{display:flex;align-items:center;gap:8px;background:#000;border:1px solid rgba(255,255,255,.18);border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 18px;cursor:pointer;transition:all .22s;flex-shrink:0;}
+.x-login-btn:hover{background:#111;border-color:rgba(255,255,255,.4);box-shadow:0 4px 18px rgba(0,0,0,.5);}
 .x-icon-sm{font-family:'Space Mono',monospace;font-weight:700;font-size:14px;}
-.x-session{display:none;align-items:center;gap:10px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px 14px;flex:1;min-width:0;}
+.x-session{display:none;align-items:center;gap:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px 14px;flex:1;min-width:0;}
 .x-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;}
 .x-username{font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.x-free-badge{font-size:10px;font-family:'Space Mono',monospace;color:#86efac;background:rgba(134,239,172,.12);border:1px solid rgba(134,239,172,.3);border-radius:999px;padding:3px 10px;flex-shrink:0;white-space:nowrap;}
-.x-used-badge{font-size:10px;font-family:'Space Mono',monospace;color:#7c6fa0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:3px 10px;flex-shrink:0;white-space:nowrap;}
+.x-free-badge{font-size:10px;font-family:'Space Mono',monospace;color:#86efac;background:rgba(134,239,172,.1);border:1px solid rgba(134,239,172,.28);border-radius:999px;padding:3px 10px;flex-shrink:0;white-space:nowrap;}
+.x-used-badge{font-size:10px;font-family:'Space Mono',monospace;color:#7c6fa0;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:999px;padding:3px 10px;flex-shrink:0;white-space:nowrap;}
 .x-logout{background:none;border:none;color:#4a3d6b;font-size:16px;cursor:pointer;padding:2px 4px;flex-shrink:0;}
 .x-logout:hover{color:#7c6fa0;}
-.wallet-row{display:flex;gap:10px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
-.wallet-btn{background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;flex-shrink:0;}
-.wallet-info{display:none;flex:1;min-width:0;background:rgba(138,92,246,.08);border:1px solid rgba(138,92,246,.25);border-radius:12px;padding:9px 14px;font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;align-items:center;gap:8px;overflow:hidden;}
-.pay-btn{display:none;width:100%;background:rgba(138,92,246,.15);border:1px solid rgba(138,92,246,.4);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;margin-bottom:10px;text-align:center;}
-.pay-btn:hover{background:rgba(138,92,246,.25);}
-.model-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
-.model-chip{font-size:10px;padding:4px 11px;border-radius:999px;border:1px solid rgba(138,92,246,.25);color:#6b5f8a;cursor:pointer;transition:all .15s;font-family:'Space Mono',monospace;background:transparent;white-space:nowrap;}
-.model-chip:hover{border-color:rgba(138,92,246,.5);color:var(--purple-light);}
-.model-chip.active{background:rgba(138,92,246,.25);border-color:var(--purple);color:#dbb8ff;}
+
+.wallet-row{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+.wallet-btn{background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;flex-shrink:0;transition:all .22s;}
+.wallet-btn:hover{box-shadow:0 4px 22px rgba(138,92,246,.55);transform:translateY(-1px);}
+.wallet-info{display:none;flex:1;min-width:0;background:rgba(138,92,246,.06);border:1px solid rgba(138,92,246,.22);border-radius:12px;padding:9px 14px;font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;align-items:center;gap:10px;}
+.pay-btn{display:none;background:rgba(138,92,246,.12);border:1px solid rgba(138,92,246,.36);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.pay-btn:hover{background:rgba(138,92,246,.22);box-shadow:0 0 18px rgba(138,92,246,.28);}
+
+/* ── CREDIT DOTS ─────────────────── */
 .credit-dots{display:flex;gap:5px;align-items:center;flex-shrink:0;}
 .cdot{width:9px;height:9px;border-radius:50%;transition:all .35s ease;}
-.cdot.on{background:#22c55e;box-shadow:0 0 8px rgba(34,197,94,.6),inset 0 0 2px rgba(255,255,255,.4);}
-.cdot.off{background:rgba(34,197,94,.08);box-shadow:inset 0 0 0 1px rgba(34,197,94,.15);}
+.cdot.on{background:#22c55e;box-shadow:0 0 8px rgba(34,197,94,.7),inset 0 0 2px rgba(255,255,255,.4);}
+.cdot.off{background:rgba(34,197,94,.06);box-shadow:inset 0 0 0 1px rgba(34,197,94,.12);}
+
+/* ── PANELS ──────────────────────── */
 .panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:6px;}
-.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px;position:relative;overflow:hidden;}
-.panel::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(138,92,246,0.04),transparent 55%);pointer-events:none;}
+.panel{background:rgba(255,255,255,0.022);border:1px solid rgba(138,92,246,0.16);border-radius:16px;padding:14px;position:relative;overflow:hidden;transition:border-color .3s,box-shadow .3s;}
+.panel::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(138,92,246,0.05),transparent 60%);pointer-events:none;}
+.panel:hover{border-color:rgba(138,92,246,.38);box-shadow:0 0 28px rgba(138,92,246,.09),inset 0 1px 0 rgba(255,255,255,.04);}
 .panel-label{font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;}
 .panel-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.use-x-pfp{font-size:10px;font-family:'Space Mono',monospace;color:var(--purple);background:rgba(138,92,246,.1);border:1px solid rgba(138,92,246,.25);border-radius:6px;padding:3px 10px;cursor:pointer;transition:all .15s;}
-.use-x-pfp:hover{background:rgba(138,92,246,.2);}
-.drop-zone{border:1.5px dashed rgba(138,92,246,0.3);border-radius:10px;aspect-ratio:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
-.drop-zone:hover{border-color:rgba(138,92,246,.7);}
-.drop-zone.dragging{border-color:var(--purple);background:rgba(138,92,246,.08);}
+.use-x-pfp{font-size:10px;font-family:'Space Mono',monospace;color:var(--purple);background:rgba(138,92,246,.08);border:1px solid rgba(138,92,246,.22);border-radius:6px;padding:3px 10px;cursor:pointer;transition:all .15s;}
+.use-x-pfp:hover{background:rgba(138,92,246,.18);}
+
+.drop-zone{border:1.5px dashed rgba(138,92,246,0.24);border-radius:10px;aspect-ratio:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.drop-zone:hover{border-color:rgba(138,92,246,.62);box-shadow:inset 0 0 24px rgba(138,92,246,.05);}
+.drop-zone.dragging{border-color:var(--purple);background:rgba(138,92,246,.07);box-shadow:inset 0 0 32px rgba(138,92,246,.12);}
 .drop-zone.has-img{border-style:solid;border-color:rgba(138,92,246,.45);}
-.dz-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(10,10,18,.38);}
+.dz-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(7,7,15,.35);}
 .dz-icon{font-size:28px;}
 .dz-text{font-size:13px;color:#e0d8ff;font-weight:600;}
 .dz-sub{font-size:11px;color:#a78bfa;font-family:'Space Mono',monospace;}
-.result-box{aspect-ratio:1;width:100%;border-radius:10px;background:rgba(138,92,246,.05);border:1px solid rgba(138,92,246,.14);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+
+/* Result box */
+.result-box{aspect-ratio:1;width:100%;border-radius:10px;background:rgba(138,92,246,.04);border:1px solid rgba(138,92,246,.12);display:flex;align-items:center;justify-content:center;overflow:hidden;transition:border-color .5s,box-shadow .5s;}
+.result-box.done{border-color:rgba(138,92,246,.55);box-shadow:0 0 0 1px rgba(138,92,246,.2),0 0 40px rgba(138,92,246,.18);}
 .result-box img{width:100%;height:100%;object-fit:cover;border-radius:10px;}
+.result-box.done img{animation:img-reveal .65s cubic-bezier(.22,.61,.36,1) both;}
+@keyframes img-reveal{from{opacity:0;filter:brightness(1.4) saturate(0);transform:scale(.97);}to{opacity:1;filter:none;transform:scale(1);}}
 .ph{display:flex;flex-direction:column;align-items:center;gap:8px;}
-.ph-icon{font-size:30px;}
+.ph-icon{font-size:30px;opacity:.35;}
 .ph-text{font-size:12px;color:var(--text-dim);font-family:'Space Mono',monospace;}
-.spinner-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;}
-.spinner{width:32px;height:32px;border:2px solid rgba(138,92,246,.2);border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite;}
+
+/* Dual-ring spinner */
+.spinner-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;}
+.spinner{width:38px;height:38px;position:relative;}
+.spinner::before,.spinner::after{content:'';position:absolute;border-radius:50%;}
+.spinner::before{inset:0;border:2px solid rgba(138,92,246,.12);border-top-color:var(--purple);animation:spin .75s linear infinite;}
+.spinner::after{inset:7px;border:1.5px solid rgba(168,85,247,.1);border-bottom-color:#a855f7;animation:spin 1.2s linear infinite reverse;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.spinner-text{font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;animation:blink 1.4s ease-in-out infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
-@keyframes toastIn{from{transform:translateX(120%);opacity:0;}to{transform:translateX(0);opacity:1;}}
-@keyframes toastOut{from{transform:translateX(0);opacity:1;}to{transform:translateX(120%);opacity:0;}}
-.style-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
-.style-thumb{cursor:pointer;border-radius:10px;overflow:hidden;width:52px;height:52px;border:2px solid rgba(138,92,246,.25);flex-shrink:0;transition:all .2s;opacity:.6;}
-.style-thumb.active{border-color:var(--purple);box-shadow:0 0 10px rgba(138,92,246,.5);opacity:1;}
+.spinner-text{font-size:11px;color:#7c6fa0;font-family:'Space Mono',monospace;text-align:center;max-width:160px;animation:blink 1.6s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.28;}}
+@keyframes toastIn{from{transform:translateX(110%);opacity:0;}to{transform:none;opacity:1;}}
+@keyframes toastOut{from{opacity:1;}to{transform:translateX(110%);opacity:0;}}
+
+/* ── STYLE SWITCHER ──────────────── */
+.style-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
+.style-thumb{cursor:pointer;border-radius:10px;overflow:hidden;width:52px;height:52px;border:2px solid rgba(138,92,246,.18);flex-shrink:0;transition:all .22s;opacity:.5;}
+.style-thumb.active{border-color:var(--purple);box-shadow:0 0 16px rgba(138,92,246,.6),0 0 4px rgba(138,92,246,.4);opacity:1;}
+.style-thumb:hover:not(.active){opacity:.82;border-color:rgba(138,92,246,.42);}
 .style-thumb img{width:100%;height:100%;object-fit:cover;}
-.model-chip{cursor:pointer;padding:6px 12px;border-radius:8px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.5px;color:#6b5f8a;border:1px solid rgba(138,92,246,.25);background:transparent;transition:all .2s;}
-.model-chip.active{color:#fff;border-color:var(--purple);background:rgba(138,92,246,.15);box-shadow:0 0 8px rgba(138,92,246,.3);}
-.option-section{background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;transition:border-color .2s;}
-.option-section.open{border-color:rgba(138,92,246,.5);}
-.option-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;user-select:none;}
-.option-header:hover{background:rgba(138,92,246,.05);}
+
+/* ── COLLAPSIBLE SECTIONS ────────── */
+.option-section{background:rgba(255,255,255,.02);border:1px solid rgba(138,92,246,.14);border-radius:14px;margin-bottom:10px;overflow:hidden;transition:border-color .22s,box-shadow .22s;}
+.option-section.open{border-color:rgba(138,92,246,.4);box-shadow:0 0 18px rgba(138,92,246,.07);}
+.option-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;user-select:none;transition:background .15s;}
+.option-header:hover{background:rgba(138,92,246,.04);}
 .option-header-left{display:flex;align-items:center;gap:10px;}
 .option-label{font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;text-transform:uppercase;transition:color .2s;}
 .option-section.open .option-label{color:#c4b5fd;}
 .option-optional{font-size:9px;font-family:'Space Mono',monospace;color:#4a3d6b;letter-spacing:0;text-transform:none;}
-.option-checkbox{width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(138,92,246,.4);background:rgba(138,92,246,.05);display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0;}
-.option-section.open .option-checkbox{background:var(--purple);border-color:var(--purple);}
+.option-checkbox{width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(138,92,246,.35);background:rgba(138,92,246,.04);display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0;}
+.option-section.open .option-checkbox{background:var(--purple);border-color:var(--purple);box-shadow:0 0 8px rgba(138,92,246,.5);}
 .option-checkbox::after{content:'✓';font-size:11px;color:#fff;font-weight:700;opacity:0;transition:opacity .18s;}
 .option-section.open .option-checkbox::after{opacity:1;}
 .option-body{display:none;padding:0 14px 14px;}
 .option-section.open .option-body{display:block;}
 .bg-grid-sel{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px;}
 .bg-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .18s;flex-shrink:0;}
-.bg-swatch:hover{transform:scale(1.12);}
-.bg-swatch.active{border-color:#fff;box-shadow:0 0 0 2px var(--purple);}
+.bg-swatch:hover{transform:scale(1.16);}
+.bg-swatch.active{border-color:#fff;box-shadow:0 0 0 2px var(--purple),0 0 12px rgba(138,92,246,.5);}
 .bg-swatch[data-id="white"]{border-color:rgba(138,92,246,.3);}
 .style-chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:4px;}
-.style-chip{font-size:11px;padding:5px 12px;border-radius:999px;border:1px solid rgba(138,92,246,.25);color:var(--text-muted);cursor:pointer;transition:all .15s;font-family:'Space Mono',monospace;background:transparent;}
+.style-chip{font-size:11px;padding:5px 12px;border-radius:999px;border:1px solid rgba(138,92,246,.2);color:var(--text-muted);cursor:pointer;transition:all .15s;font-family:'Space Mono',monospace;background:transparent;}
 .style-chip:hover{border-color:rgba(138,92,246,.5);color:var(--purple-light);}
-.style-chip.active{background:rgba(138,92,246,.25);border-color:var(--purple);color:#dbb8ff;}
-.btn-row{display:flex;gap:10px;align-items:center;margin-top:12px;}
-.gen-btn{flex:1;height:46px;background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .2s;position:relative;overflow:hidden;}
-.gen-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);pointer-events:none;}
-.gen-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(139,92,246,.42);}
+.style-chip.active{background:rgba(138,92,246,.2);border-color:var(--purple);color:#dbb8ff;box-shadow:0 0 10px rgba(138,92,246,.2);}
+
+/* ── BUTTONS ─────────────────────── */
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:14px;}
+
+/* Gen button — glows + pulses during generation */
+.gen-btn{flex:1;height:48px;background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:13px;color:#fff;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;}
+.gen-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:translateX(-100%);}
+.gen-btn:hover:not(:disabled)::before{animation:btn-shine .55s ease forwards;}
+@keyframes btn-shine{to{transform:translateX(100%);}}
+.gen-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 30px rgba(109,40,217,.5),0 0 60px rgba(138,92,246,.2);}
 .gen-btn:active:not(:disabled){transform:scale(.98);}
-.gen-btn:disabled{opacity:.38;cursor:not-allowed;transform:none;}
-.icon-btn{width:46px;height:46px;background:rgba(255,255,255,.04);border:1px solid rgba(138,92,246,.25);border-radius:12px;color:var(--purple);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s;}
-.icon-btn:hover{background:rgba(138,92,246,.1);border-color:rgba(138,92,246,.5);}
-.share-btn{display:none;width:100%;height:42px;background:rgba(0,0,0,.8);border:1px solid rgba(255,255,255,.15);border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-top:10px;}
-.share-btn:hover{background:rgba(20,20,20,.9);border-color:rgba(255,255,255,.35);}
-.status{font-size:12px;color:#6b5f8a;margin-top:10px;min-height:16px;font-family:'Space Mono',monospace;}
+.gen-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+body.generating .gen-btn{animation:gen-pulse 2s ease-in-out infinite;cursor:not-allowed;}
+@keyframes gen-pulse{
+  0%,100%{box-shadow:0 0 20px rgba(138,92,246,.45),0 0 0 0 rgba(138,92,246,.4);}
+  50%{box-shadow:0 0 40px rgba(138,92,246,.75),0 0 0 6px rgba(138,92,246,.0);}
+}
+
+.gen-btn-wrap{flex:1;position:relative;border-radius:14px;}
+.gen-btn-wrap .gen-btn{width:100%;}
+body.generating .gen-btn{animation:gen-wave 1.8s ease-in-out infinite;}
+@keyframes gen-wave{
+  0%,100%{box-shadow:0 0 0 0 rgba(138,92,246,.5),0 0 18px rgba(138,92,246,.3);}
+  50%{box-shadow:0 0 0 10px rgba(138,92,246,.0),0 0 36px rgba(138,92,246,.55);}
+}
+
+.icon-btn{width:48px;height:48px;background:rgba(255,255,255,.03);border:1px solid rgba(138,92,246,.2);border-radius:12px;color:var(--purple);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .18s;}
+.icon-btn:hover{background:rgba(138,92,246,.1);border-color:rgba(138,92,246,.5);box-shadow:0 0 14px rgba(138,92,246,.22);}
+
+.share-btn{display:none;width:100%;height:42px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-top:10px;}
+.share-btn:hover{background:rgba(20,20,20,.85);border-color:rgba(255,255,255,.3);box-shadow:0 4px 16px rgba(0,0,0,.4);}
+
+/* ── STATUS ──────────────────────── */
+.status{font-size:12px;color:#6b5f8a;margin-top:10px;min-height:16px;font-family:'Space Mono',monospace;transition:color .2s;}
 .status.err{color:#f87171;}
 .status.ok{color:#86efac;}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:flex;align-items:center;justify-content:center;}
-.modal{background:#0f0c1e;border:1px solid rgba(138,92,246,.35);border-radius:18px;padding:24px;width:300px;max-width:92vw;}
+
+/* ── WALLET MODAL ────────────────── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+.modal{background:#090714;border:1px solid rgba(138,92,246,.3);border-radius:18px;padding:24px;width:300px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,.6),0 0 40px rgba(138,92,246,.08);}
 .modal-title{font-size:13px;font-family:'Space Mono',monospace;color:#c4b5fd;letter-spacing:1px;margin-bottom:16px;text-align:center;}
-.wallet-option{display:flex;align-items:center;gap:12px;width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(138,92,246,.2);border-radius:12px;padding:13px 16px;cursor:pointer;margin-bottom:8px;transition:all .15s;color:#e8e0ff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;}
+.wallet-option{display:flex;align-items:center;gap:12px;width:100%;background:rgba(255,255,255,.025);border:1px solid rgba(138,92,246,.18);border-radius:12px;padding:13px 16px;cursor:pointer;margin-bottom:8px;transition:all .15s;color:#e8e0ff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;}
 .wallet-option:last-child{margin-bottom:0;}
-.wallet-option:hover{background:rgba(138,92,246,.12);border-color:rgba(138,92,246,.5);}
+.wallet-option:hover{background:rgba(138,92,246,.1);border-color:rgba(138,92,246,.48);box-shadow:0 0 14px rgba(138,92,246,.14);}
 .wallet-option img{width:30px;height:30px;border-radius:8px;}
-.wallet-option .wallet-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(138,92,246,.15);}
-.modal-cancel{width:100%;margin-top:10px;background:none;border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#6b5f8a;font-family:'Space Mono',monospace;font-size:11px;padding:9px;cursor:pointer;transition:all .15s;}
-.modal-cancel:hover{border-color:rgba(255,255,255,.2);color:#a89ec0;}
-.footer{text-align:center;margin-top:28px;font-size:11px;color:#3a3055;font-family:'Space Mono',monospace;letter-spacing:1px;}
-.footer span{color:#5b4a8a;}
+.wallet-option .wallet-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(138,92,246,.12);}
+.modal-cancel{width:100%;margin-top:10px;background:none;border:1px solid rgba(255,255,255,.07);border-radius:10px;color:#6b5f8a;font-family:'Space Mono',monospace;font-size:11px;padding:9px;cursor:pointer;transition:all .15s;}
+.modal-cancel:hover{border-color:rgba(255,255,255,.18);color:#a89ec0;}
+
+/* ── FOOTER ──────────────────────── */
+.footer{text-align:center;margin-top:32px;font-size:11px;color:#2a2040;font-family:'Space Mono',monospace;letter-spacing:1px;}
+.footer span{color:#4a3d6b;}
+
 input[type=file]{display:none;}
 </style>
 </head>
 <body>
+<div class="bg-grid"></div>
 <canvas id="bgCanvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;"></canvas>
-<div class="bg-grid" style="opacity:0.3;"></div>
 <div class="wrap">
+
+  <!-- HEADER -->
   <div class="header">
     <div class="badge"><div class="dot"></div>MONAD MAINNET · $CHOG</div>
     <h1><span class="purple">CHOG</span> <span style="color:#f0eaff">PFP STUDIO</span></h1>
     <div class="sub">🦔 generate your on-chain identity · made by Karousel</div>
   </div>
+
+  <!-- HOW IT WORKS -->
   <div class="howto">
     <div class="howto-title">💡 HOW IT WORKS</div>
     <div class="step"><div class="step-num">1</div><div class="step-text">Connect your X account → get <strong>1 free generation</strong></div></div>
     <div class="step"><div class="step-num">2</div><div class="step-text">Drop any reference image (character, outfit, NFT) → CHOG PFP auto-generates</div></div>
     <div class="step"><div class="step-num">3</div><div class="step-text">Want more? Connect wallet and pay <strong>0.1 MON → +5 generations</strong></div></div>
   </div>
+
+  <!-- X LOGIN ROW -->
   <div class="auth-row">
     <button id="xLoginBtn" class="x-login-btn" onclick="loginWithX()">
       <span class="x-icon-sm">𝕏</span> Connect X for 1 free
@@ -186,30 +254,46 @@ input[type=file]{display:none;}
       <button class="x-logout" onclick="logoutX()" title="Disconnect X">✕</button>
     </div>
   </div>
+
+  <!-- WALLET ROW -->
   <div class="wallet-row">
     <button id="walletBtn" class="wallet-btn" onclick="openWalletModal()">🔗 Connect Wallet</button>
-    <div id="walletInfo" class="wallet-info">
-      <span id="walletAddr" style="color:#7c6fa0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;"></span>
-      <span style="color:#3a3055;flex-shrink:0;">·</span>
-      <span id="creditDisplay" style="color:#a78bfa;font-weight:700;flex-shrink:0;white-space:nowrap;"></span>
-      <div id="creditDots" class="credit-dots"></div>
-      <button onclick="disconnectWallet()" title="Disconnect" style="background:none;border:none;color:#4a3d6b;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;margin-left:auto;">✕</button>
+    <div id="walletInfo" class="wallet-info" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;width:100%;">
+        <span id="walletAddr" style="color:#7c6fa0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;flex:1;"></span>
+        <button onclick="disconnectWallet()" title="Disconnect" style="background:none;border:none;color:#4a3d6b;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;">GEN LEFT</span>
+          <span id="creditDisplay" style="font-size:13px;font-weight:900;letter-spacing:-0.3px;"></span>
+        </div>
+        <div id="creditDots" class="credit-dots"></div>
+      </div>
+    </div>
+    <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 0.1 MON → +5 generations</button>
+  </div>
+
+  <!-- CHOG STYLE SWITCHER -->
+  <div style="background:rgba(138,92,246,0.06);border:1px solid rgba(138,92,246,0.18);border-radius:14px;padding:12px 14px;margin-bottom:12px;">
+    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:10px;">BASE STYLE</div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div id="style2Btn" class="style-thumb active" onclick="setChogStyle(2)" style="width:68px;height:68px;">
+        <img src="/chog/pfp/IMG_20260516_025404_862.jpg" alt="Style 2">
+      </div>
+      <div style="position:relative;width:56px;height:56px;flex-shrink:0;">
+        <img src="/chog/pfp/CHOG.jpg" alt="Style 1" style="width:100%;height:100%;object-fit:cover;border-radius:10px;filter:grayscale(1);opacity:.35;">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:7px;font-family:'Space Mono',monospace;color:#7c6fa0;text-align:center;line-height:1.3;">COMING<br>SOON</div>
+      </div>
+      <div style="position:relative;width:56px;height:56px;flex-shrink:0;">
+        <img src="/chog/pfp/CH_og.jpg" alt="Style 3" style="width:100%;height:100%;object-fit:cover;border-radius:10px;filter:grayscale(1);opacity:.35;">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:7px;font-family:'Space Mono',monospace;color:#7c6fa0;text-align:center;line-height:1.3;">COMING<br>SOON</div>
+      </div>
+      <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;line-height:1.5;">pick your<br>CHOG base</div>
     </div>
   </div>
-  <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 0.1 MON → +5 generations</button>
-  <div class="style-row">
-    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">BASE STYLE</div>
-    <div id="style2Btn" class="style-thumb active" onclick="setChogStyle(2)"><img src="/chog/pfp/3.png" alt="Style 1"></div>
-    <div class="style-thumb" style="position:relative;cursor:not-allowed;opacity:0.35;filter:grayscale(1);">
-      <img src="/chog/pfp/2.png" alt="Style 2">
-      <div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;"><span style="font-size:7px;font-family:'Space Mono',monospace;color:#fff;background:rgba(0,0,0,.6);border-radius:3px;padding:1px 4px;white-space:nowrap;">soon</span></div>
-    </div>
-    <div class="style-thumb" style="position:relative;cursor:not-allowed;opacity:0.35;filter:grayscale(1);">
-      <img src="/chog/pfp/CH_og.png" alt="Style 3">
-      <div style="position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;"><span style="font-size:7px;font-family:'Space Mono',monospace;color:#fff;background:rgba(0,0,0,.6);border-radius:3px;padding:1px 4px;white-space:nowrap;">soon</span></div>
-    </div>
-    <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← pick CHOG art style</div>
-  </div>
+
+  <!-- PANELS -->
   <div class="panels">
     <div class="panel">
       <div class="panel-label-row">
@@ -232,38 +316,71 @@ input[type=file]{display:none;}
       </div>
     </div>
   </div>
+
+  <!-- BACKGROUND TEMPLATES -->
+  <div class="option-section" id="bgSection" style="margin-top:10px;">
+    <div class="option-header" onclick="toggleSection('bgSection')">
+      <div class="option-header-left">
+        <div class="option-checkbox"></div>
+        <span class="option-label">Background</span>
+        <span class="option-optional">(check to customize)</span>
+      </div>
+    </div>
+    <div class="option-body"><div class="bg-grid-sel" id="bgGrid"></div></div>
+  </div>
+
+  <!-- ART STYLE -->
   <div class="option-section" id="styleSection">
     <div class="option-header" onclick="toggleSection('styleSection')">
-      <div class="option-header-left"><div class="option-checkbox"></div><span class="option-label">Art Style</span><span class="option-optional">(check to customize)</span></div>
+      <div class="option-header-left">
+        <div class="option-checkbox"></div>
+        <span class="option-label">Art Style</span>
+        <span class="option-optional">(check to customize)</span>
+      </div>
     </div>
     <div class="option-body"><div class="style-chips" id="styleChips"></div></div>
   </div>
+
+  <!-- CUSTOM PROMPT -->
   <div class="option-section" id="promptSection">
     <div class="option-header" onclick="toggleSection('promptSection')">
-      <div class="option-header-left"><div class="option-checkbox"></div><span class="option-label">Additional Prompt</span><span class="option-optional">(check to customize)</span></div>
+      <div class="option-header-left">
+        <div class="option-checkbox"></div>
+        <span class="option-label">Additional Prompt</span>
+        <span class="option-optional">(check to customize)</span>
+      </div>
     </div>
     <div class="option-body">
       <textarea id="customPrompt" placeholder="e.g. holding a sword, sitting on a throne, laughing..." style="width:100%;min-height:60px;background:rgba(255,255,255,.03);border:1px solid rgba(138,92,246,.2);border-radius:10px;padding:10px 13px;color:#d4c8f0;font-family:'Outfit',sans-serif;font-size:13px;line-height:1.55;resize:none;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(138,92,246,.52)'" onblur="this.style.borderColor='rgba(138,92,246,.2)'"></textarea>
     </div>
   </div>
+
+  <!-- BUTTONS -->
   <div class="btn-row">
-    <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate CHOG PFP</button>
-    <button class="icon-btn" id="dlBtn" onclick="downloadResult()" style="display:none" title="Download">⬇</button>
+    <div class="gen-btn-wrap">
+      <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate CHOG PFP</button>
+    </div>
+    <button class="icon-btn" id="dlBtn" onclick="downloadResult()" style="display:none" title="Download image">⬇</button>
     <button class="icon-btn" onclick="resetAll()" title="Reset">↺</button>
   </div>
+
+  <!-- SHARE ON X -->
   <button class="share-btn" id="shareBtn" onclick="shareOnX()">
     <span style="font-family:'Space Mono',monospace;font-weight:700;">𝕏</span> Share your CHOG PFP
   </button>
+
   <div class="status" id="statusMsg"></div>
 
-  <!-- Generation History -->
-  <div id="historySection" style="display:none;margin-top:20px;">
-    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;margin-bottom:10px;">HISTORY</div>
+  <!-- RECENT HISTORY -->
+  <div id="historySection" style="display:none;margin-top:18px;">
+    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;margin-bottom:8px;">RECENT GENERATIONS</div>
     <div id="historyGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;"></div>
   </div>
 
   <div class="footer">made by <span>Karousel</span> · monad-terminal.xyz/chog/pfp</div>
 </div>
+
+<!-- WALLET SELECTOR MODAL -->
 <div id="walletModal" class="modal-bg" style="display:none;" onclick="if(event.target===this)closeWalletModal()">
   <div class="modal">
     <div class="modal-title">SELECT WALLET</div>
@@ -271,13 +388,15 @@ input[type=file]{display:none;}
     <button class="modal-cancel" onclick="closeWalletModal()">Cancel</button>
   </div>
 </div>
+
 <script>
-const CHOG_STYLE1 = 'https://monad-terminal.xyz/chog/pfp/2.png';
-const CHOG_STYLE2 = 'https://monad-terminal.xyz/chog/pfp/3.png';
-const CHOG_STYLE3 = 'https://monad-terminal.xyz/chog/pfp/CH_og.png';
+const CHOG_STYLE1 = 'https://monad-terminal.xyz/chog/pfp/CHOG.jpg';
+const CHOG_STYLE2 = 'https://monad-terminal.xyz/chog/pfp/IMG_20260516_025404_862.jpg';
+const CHOG_STYLE3 = 'https://monad-terminal.xyz/chog/pfp/CH_og.jpg';
 const DEV_WALLET  = '0xf9bb715c1DC21EB661FCaC75d45BCf470235e0d8';
 const MONAD_CHAIN = '0x8F';
 const API_BASE    = '/api/pfp-generate';
+
 const BG_TEMPLATES = [
   { id:'blue',    label:'Classic',  color:'#00AAFF', prompt:'solid bright blue background #00AAFF' },
   { id:'purple',  label:'Monad',    color:'#8B5CF6', prompt:'solid purple background #8B5CF6' },
@@ -290,6 +409,7 @@ const BG_TEMPLATES = [
   { id:'white',   label:'White',    color:'#F5F5F5', prompt:'solid clean white background #FFFFFF' },
   { id:'cosmic',  label:'Cosmic',   color:'#1a0533', prompt:'deep cosmic space background, dark purple gradient with subtle stars' },
 ];
+
 const ART_STYLES = [
   { id:'default',    label:'Default',    prompt:'' },
   { id:'pixel',      label:'Pixel Art',  prompt:'pixel art style, 16-bit retro game sprite' },
@@ -302,6 +422,7 @@ const ART_STYLES = [
   { id:'comic',      label:'Comic',      prompt:'bold comic book style, strong black outlines, halftone dot pattern' },
   { id:'sketch',     label:'Sketch',     prompt:'pencil sketch style, hand-drawn rough graphite lines' },
 ];
+
 let chogBaseUrl = CHOG_STYLE2;
 let b64 = null, resultUrl = null;
 let pfpWallet = null, pfpProvider = null;
@@ -309,72 +430,119 @@ let xSession = null;
 let totalCredits = 0;
 let selectedBg = BG_TEMPLATES[0];
 let selectedStyle = ART_STYLES[0];
-function toggleSection(id) { document.getElementById(id).classList.toggle('open'); }
+let genHistory = [];
+
+/* ── COLLAPSIBLE SECTIONS ── */
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+/* ── BUILD BG + STYLE SELECTORS ── */
 function buildSelectors() {
   const bgGrid = document.getElementById('bgGrid');
   BG_TEMPLATES.forEach((bg, i) => {
     const el = document.createElement('div');
     el.className = 'bg-swatch' + (i === 0 ? ' active' : '');
-    el.dataset.id = bg.id; el.title = bg.label; el.style.background = bg.color;
-    el.onclick = () => { selectedBg = bg; document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active')); el.classList.add('active'); };
+    el.dataset.id = bg.id;
+    el.title = bg.label;
+    el.style.background = bg.color;
+    el.onclick = () => {
+      selectedBg = bg;
+      document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+      el.classList.add('active');
+    };
     bgGrid.appendChild(el);
   });
+
   const chips = document.getElementById('styleChips');
   ART_STYLES.forEach((s, i) => {
     const el = document.createElement('button');
-    el.className = 'style-chip' + (i === 0 ? ' active' : ''); el.textContent = s.label;
-    el.onclick = () => { selectedStyle = s; document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); };
+    el.className = 'style-chip' + (i === 0 ? ' active' : '');
+    el.textContent = s.label;
+    el.onclick = () => {
+      selectedStyle = s;
+      document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+    };
     chips.appendChild(el);
   });
 }
+
+/* ── INIT: check session on load ── */
 window.addEventListener('DOMContentLoaded', async () => {
   buildSelectors();
   const params = new URLSearchParams(location.search);
   if (params.get('login') === 'ok') history.replaceState({}, '', '/chog/pfp');
   if (params.get('error')) setStatus('✗ X login failed: ' + params.get('error'), true);
-  try { const r = await fetch('/api/pfp-session'); const d = await r.json(); if (d.loggedIn) setXSession(d); } catch {}
-  renderHistory();
+
+  try {
+    const r = await fetch('/api/pfp-session');
+    const d = await r.json();
+    if (d.loggedIn) setXSession(d);
+  } catch {}
 });
-function loginWithX() { window.location.href = '/api/twitter-auth'; }
+
+/* ── X LOGIN ── */
+function loginWithX() {
+  window.location.href = '/api/twitter-auth';
+}
+
 function logoutX() {
-  document.cookie = 'pfp_session=; Path=/; Max-Age=0'; xSession = null;
+  document.cookie = 'pfp_session=; Path=/; Max-Age=0';
+  xSession = null;
   document.getElementById('xLoginBtn').style.display = 'flex';
   document.getElementById('xSession').style.display = 'none';
   document.getElementById('useXPfpBtn').style.display = 'none';
   updateGenBtn();
 }
+
 function setXSession(d) {
   xSession = d;
   document.getElementById('xLoginBtn').style.display = 'none';
-  document.getElementById('xSession').style.display = 'flex';
+  const ses = document.getElementById('xSession');
+  ses.style.display = 'flex';
   document.getElementById('xAvatar').src = d.avatar || '';
   document.getElementById('xUsername').textContent = '@' + d.username;
   const badge = document.getElementById('xFreeBadge');
   badge.textContent = d.usedFree ? 'FREE USED' : '✦ 1 FREE';
   badge.className = d.usedFree ? 'x-used-badge' : 'x-free-badge';
+  // Show "Use my X PFP" button if avatar exists
   if (d.avatar) document.getElementById('useXPfpBtn').style.display = 'block';
   refreshCredits();
 }
+
+/* ── USE X PFP AS REFERENCE ── */
 async function useXPfp() {
   if (!xSession?.avatar) return;
   setStatus('⏳ Loading your X profile picture...');
   try {
-    const img = new Image(); img.crossOrigin = 'anonymous';
+    // Fetch avatar via proxy to avoid CORS
+    const proxyUrl = `/api/pfp-session?proxy=${encodeURIComponent(xSession.avatar)}`;
+    // Fallback: load directly (may work if Twitter allows)
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => {
       const canvas = document.createElement('canvas');
       canvas.width = img.width; canvas.height = img.height;
       canvas.getContext('2d').drawImage(img, 0, 0);
       b64 = canvas.toDataURL('image/jpeg', 0.9);
-      setDropImage(b64); updateGenBtn(); statusAfterUpload();
+      setDropImage(b64);
+      updateGenBtn();
+      statusAfterUpload();
     };
     img.onerror = () => setStatus('✗ Could not load X avatar — please drag & drop instead', true);
     img.src = xSession.avatar;
   } catch (e) { setStatus('✗ ' + e.message, true); }
 }
+
+/* ── WALLET ── */
 function getAllProviders() {
   const candidates = [];
+
+  // Backpack EVM: window.backpack.ethereum or window.ethereum with isBackpack
   if (window.backpack?.ethereum?.request)  candidates.push(window.backpack.ethereum);
   else if (window.backpack?.request)       candidates.push(window.backpack);
+  // providers array (multi-wallet environments)
   if (window.ethereum?.providers?.length) window.ethereum.providers.forEach(p => candidates.push(p));
   if (window.phantom?.ethereum?.request)  candidates.push(window.phantom.ethereum);
   if (window.rabby?.request)              candidates.push(window.rabby);
@@ -383,12 +551,25 @@ function getAllProviders() {
   if (window.bybitWallet?.request)        candidates.push(window.bybitWallet);
   if (window.trustwallet?.request)        candidates.push(window.trustwallet);
   if (window.ethereum?.request)           candidates.push(window.ethereum);
-  const seen = new Set(); const result = [];
-  for (const p of candidates) { const type = getWalletType(p); if (!seen.has(type)) { seen.add(type); result.push(p); } }
+
+  // Deduplicate by wallet type — keep first match per type
+  const seen = new Set();
+  const result = [];
+  for (const p of candidates) {
+    const type = getWalletType(p);
+    if (!seen.has(type)) { seen.add(type); result.push(p); }
+  }
+
+  // Sort: Backpack → MetaMask → Phantom → rest
   const order = ['backpack','metamask','phantom'];
-  result.sort((a, b) => { const ia = order.indexOf(getWalletType(a)); const ib = order.indexOf(getWalletType(b)); return (ia===-1?99:ia)-(ib===-1?99:ib); });
+  result.sort((a, b) => {
+    const ia = order.indexOf(getWalletType(a));
+    const ib = order.indexOf(getWalletType(b));
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
   return result;
 }
+
 function getWalletType(p) {
   if (p.isBackpack || p === window.backpack || p === window.backpack?.ethereum) return 'backpack';
   if (p.isPhantom  || p === window.phantom?.ethereum) return 'phantom';
@@ -400,200 +581,277 @@ function getWalletType(p) {
   if (p.isMetaMask && !p.isRabby)                     return 'metamask';
   return 'unknown';
 }
+
 function getWalletName(p) {
   const t = getWalletType(p);
-  const map = { metamask:{name:'MetaMask',icon:'🦊'}, backpack:{name:'Backpack',icon:'🎒'}, phantom:{name:'Phantom',icon:'👻'}, rabby:{name:'Rabby',icon:'🐰'}, okx:{name:'OKX',icon:'⭕'}, coinbase:{name:'Coinbase',icon:'🔵'}, bybit:{name:'Bybit',icon:'🟡'}, trust:{name:'Trust',icon:'🛡️'}, unknown:{name:'Wallet',icon:'👛'} };
+  const map = {
+    metamask: { name: 'MetaMask',  icon: '🦊' },
+    backpack: { name: 'Backpack',  icon: '🎒' },
+    phantom:  { name: 'Phantom',   icon: '👻' },
+    rabby:    { name: 'Rabby',     icon: '🐰' },
+    okx:      { name: 'OKX',       icon: '⭕' },
+    coinbase: { name: 'Coinbase',  icon: '🔵' },
+    bybit:    { name: 'Bybit',     icon: '🟡' },
+    trust:    { name: 'Trust',     icon: '🛡️' },
+    unknown:  { name: 'Wallet',    icon: '👛' },
+  };
   return map[t] || map.unknown;
 }
-function isMobile() { return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
+
 function openWalletModal() {
   const providers = getAllProviders();
-  if (!providers.length) { if (isMobile()) { showMobileWalletOptions(); } else { alert('No wallet detected. Please install MetaMask or Rabby.'); } return; }
-  const list = document.getElementById('walletList'); list.innerHTML = '';
-  const hasBackpack = providers.some(p => getWalletType(p) === 'backpack');
-  // Always show Backpack first — deeplink on mobile, extension install link on desktop
-  if (!hasBackpack) {
-    const btn = document.createElement('button'); btn.className = 'wallet-option';
-    btn.innerHTML = `<span class="wallet-icon">🎒</span>Backpack`;
-    btn.onclick = () => { closeWalletModal(); window.open(isMobile() ? 'https://backpack.app/' : 'https://chromewebstore.google.com/detail/backpack/aflkmfhebedbjioipglgcbcmnbpgliof', '_blank'); };
-    list.appendChild(btn);
-  }
+  if (!providers.length) { alert('No wallet detected. Please install MetaMask or Rabby.'); return; }
+
+  const list = document.getElementById('walletList');
+  list.innerHTML = '';
+
   const priority = ['backpack','metamask','phantom'];
   const main = providers.filter(p => priority.includes(getWalletType(p)));
   const others = providers.filter(p => !priority.includes(getWalletType(p)));
+
   function addBtn(p) {
     const w = getWalletName(p);
-    const btn = document.createElement('button'); btn.className = 'wallet-option';
+    const btn = document.createElement('button');
+    btn.className = 'wallet-option';
     btn.innerHTML = `<span class="wallet-icon">${w.icon}</span>${w.name}`;
     btn.onclick = () => { closeWalletModal(); connectWithProvider(p); };
     list.appendChild(btn);
   }
+
   main.forEach(addBtn);
+
   if (others.length) {
     const divider = document.createElement('div');
     divider.style.cssText = 'font-size:10px;font-family:Space Mono,monospace;color:#4a3d6b;letter-spacing:1px;text-align:center;padding:8px 0 4px;';
-    divider.textContent = 'OTHER'; list.appendChild(divider);
+    divider.textContent = 'OTHER';
+    list.appendChild(divider);
     others.forEach(addBtn);
   }
+
   document.getElementById('walletModal').style.display = 'flex';
 }
-function showMobileWalletOptions() {
-  const pageUrl = encodeURIComponent(window.location.href);
-  const host = window.location.host + window.location.pathname;
-  const list = document.getElementById('walletList');
-  const title = document.querySelector('.modal-title');
-  if (title) title.textContent = 'OPEN IN WALLET';
-  list.innerHTML = '';
-  const wallets = [
-    { name:'Backpack',     icon:'🎒', url:`https://backpack.app/` },
-    { name:'MetaMask',     icon:'🦊', url:`https://metamask.app.link/dapp/${host}` },
-    { name:'Trust Wallet', icon:'🛡️', url:`https://link.trustwallet.com/open_url?coin_id=60&url=${pageUrl}` },
-    { name:'Rabby Mobile', icon:'🐰', url:`https://rabby.io/` },
-  ];
-  wallets.forEach(w => {
-    const btn = document.createElement('button'); btn.className = 'wallet-option';
-    btn.innerHTML = `<span class="wallet-icon">${w.icon}</span>${w.name}`;
-    btn.onclick = () => { window.location.href = w.url; };
-    list.appendChild(btn);
-  });
-  const note = document.createElement('div');
-  note.style.cssText = 'font-size:10px;font-family:Space Mono,monospace;color:#4a3d6b;text-align:center;padding:10px 0 0;line-height:1.5;';
-  note.textContent = "Open this page inside your wallet's browser to connect.";
-  list.appendChild(note);
-  document.getElementById('walletModal').style.display = 'flex';
-}
+
 function closeWalletModal() {
-  const title = document.querySelector('.modal-title');
-  if (title) title.textContent = 'SELECT WALLET';
   document.getElementById('walletModal').style.display = 'none';
 }
+
 function disconnectWallet() {
-  pfpWallet = null; pfpProvider = null;
+  pfpWallet = null;
+  pfpProvider = null;
   document.getElementById('walletBtn').style.display = 'block';
   document.getElementById('walletInfo').style.display = 'none';
   document.getElementById('payBtn').style.display = 'none';
   totalCredits = xSession && !xSession.usedFree ? 1 : 0;
-  updateGenBtn(); setStatus('Wallet disconnected', '');
+  updateGenBtn();
+  setStatus('Wallet disconnected', '');
 }
+
 async function connectWithProvider(provider) {
   const btn = document.getElementById('walletBtn');
-  btn.textContent = '⏳ Connecting...'; btn.disabled = true;
+  btn.textContent = '⏳ Connecting...';
+  btn.disabled = true;
   try {
     const accounts = await provider.request({ method: 'eth_requestAccounts' });
     if (!accounts?.length) throw new Error('No accounts returned');
-    pfpWallet = accounts[0]; pfpProvider = provider;
+    pfpWallet = accounts[0];
+    pfpProvider = provider;
+
+    // Switch to Monad Mainnet — add chain if not found
     try {
       await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: MONAD_CHAIN }] });
     } catch (sw) {
       if (sw.code === 4902 || sw.code === -32603) {
-        await provider.request({ method: 'wallet_addEthereumChain', params: [{ chainId: MONAD_CHAIN, chainName: 'Monad Mainnet', nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 }, rpcUrls: ['https://rpc.monad.xyz'], blockExplorerUrls: ['https://explorer.monad.xyz'] }] }).catch(() => {});
+        await provider.request({
+          method: 'wallet_addEthereumChain',
+          params: [{ chainId: MONAD_CHAIN, chainName: 'Monad Mainnet', nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 }, rpcUrls: ['https://rpc.monad.xyz'], blockExplorerUrls: ['https://explorer.monad.xyz'] }]
+        }).catch(() => {});
       }
     }
-    btn.style.display = 'none'; btn.textContent = '🔗 Connect Wallet'; btn.disabled = false;
+
+    btn.style.display = 'none';
+    btn.textContent = '🔗 Connect Wallet';
+    btn.disabled = false;
     document.getElementById('walletInfo').style.display = 'flex';
     document.getElementById('walletAddr').textContent = pfpWallet.slice(0,6) + '...' + pfpWallet.slice(-4);
     await refreshCredits();
-  } catch (e) { btn.textContent = '🔗 Connect Wallet'; btn.disabled = false; setStatus('✗ ' + (e.message || 'Connection failed'), true); }
+  } catch (e) {
+    btn.textContent = '🔗 Connect Wallet';
+    btn.disabled = false;
+    setStatus('✗ ' + (e.message || 'Connection failed'), true);
+  }
 }
+
+
 async function pfpPay() {
   if (!pfpWallet || !pfpProvider) { setStatus('⚠ Connect wallet first', true); return; }
-  if (pfpWallet.toLowerCase() === DEV_WALLET.toLowerCase()) { setStatus('✗ Cannot pay to yourself (dev wallet detected). Use a different wallet.', true); return; }
+  if (pfpWallet.toLowerCase() === DEV_WALLET.toLowerCase()) {
+    setStatus('✗ Cannot pay to yourself (dev wallet detected). Use a different wallet.', true);
+    return;
+  }
   setStatus('💎 Checking balance...');
   try {
-    const balRes = await fetch('https://rpc.monad.xyz', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [pfpWallet, 'latest'] }) });
+    // Pre-flight balance check via Monad RPC (bypass wallet ethers estimateGas issues)
+    const balRes = await fetch('https://rpc.monad.xyz', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [pfpWallet, 'latest'] }),
+    });
     const balData = await balRes.json();
     const bal = BigInt(balData.result || '0x0');
-    const required = BigInt('0x16345785D8A0000');
-    if (bal < required) { const balMon = Number(bal) / 1e18; setStatus(`✗ Insufficient balance: ${balMon.toFixed(4)} MON (need 0.1+ MON)`, true); return; }
+    const required = BigInt('0x16345785D8A0000'); // 0.1 MON
+    if (bal < required) {
+      const balMon = Number(bal) / 1e18;
+      setStatus(`✗ Insufficient balance: ${balMon.toFixed(4)} MON (need 0.1+ MON)`, true);
+      return;
+    }
     setStatus('💎 Sending 0.1 MON... (confirm in wallet)');
-    const txHash = await pfpProvider.request({ method: 'eth_sendTransaction', params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D8A0000', gas: '0x5208', data: '0x' }] });
+    const txHash = await pfpProvider.request({
+      method: 'eth_sendTransaction',
+      params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D8A0000', gas: '0x5208', data: '0x' }]
+    });
     setStatus('⏳ Verifying payment on-chain... (tx: ' + txHash.slice(0,10) + '...)');
+    // Retry verification up to 6 times (24s total) — Monad RPC can lag
     let lastErr = '';
     for (let i = 0; i < 6; i++) {
       await new Promise(r => setTimeout(r, 4000));
-      const r = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'pay', wallet: pfpWallet, txHash }) });
+      const r = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'pay', wallet: pfpWallet, txHash }),
+      });
       const d = await r.json();
       if (r.ok) {
-        const newCredits = d.walletCredits ?? 0; const freeStillOk = xSession && !xSession.usedFree;
+        // Immediate UI update from pay response (don't trust cache/race)
+        const newCredits = d.walletCredits ?? 0;
+        const freeStillOk = xSession && !xSession.usedFree;
         totalCredits = newCredits + (freeStillOk ? 1 : 0);
         updateCreditUI({ walletCredits: newCredits, twitterFree: freeStillOk, total: totalCredits });
         await refreshCredits();
-        setStatus(`✦ Payment confirmed! +5 generations unlocked 🦔 (total: ${newCredits})`, 'ok'); return;
+        setStatus(`✦ Payment confirmed! +5 generations unlocked 🦔 (total: ${newCredits})`, 'ok');
+        return;
       }
       lastErr = d.error || 'unknown';
       if (d.dbError) lastErr += ' | DB: ' + d.dbError;
-      if (lastErr.includes('Transaction already used') || lastErr.includes('DB save failed') || lastErr.includes('did not persist')) break;
+      if (lastErr.includes('Transaction already used')) break;
+      if (lastErr.includes('DB save failed') || lastErr.includes('did not persist')) break;
       setStatus(`⏳ Verifying... (attempt ${i+1}/6, last error: ${lastErr})`);
     }
     throw new Error(lastErr + ` — tx ${txHash}`);
   } catch (e) { setStatus('✗ ' + e.message, true); console.error('[pay]', e); }
 }
+
 async function refreshCredits() {
-  const r = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'credits', wallet: pfpWallet }) });
-  const d = await r.json(); totalCredits = d.total ?? 0; updateCreditUI(d);
+  const r = await fetch(API_BASE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'credits', wallet: pfpWallet }),
+  });
+  const d = await r.json();
+  totalCredits = d.total ?? 0;
+  updateCreditUI(d);
 }
+
 function updateCreditUI(d) {
   if (!d) return;
+  // Update X free badge
   if (xSession) {
     const badge = document.getElementById('xFreeBadge');
     badge.textContent = d.twitterFree ? '✦ 1 FREE' : 'FREE USED';
     badge.className = d.twitterFree ? 'x-free-badge' : 'x-used-badge';
     xSession.usedFree = !d.twitterFree;
   }
-  if (pfpWallet && d.walletCredits !== undefined) {
-    const wc = d.walletCredits;
+  totalCredits = d.total ?? 0;
+  // Wallet panel: show total (wallet credits + free) when wallet connected
+  if (pfpWallet) {
+    const freeLeft = (xSession && !xSession.usedFree && d.twitterFree !== false) ? 1 : 0;
+    const wc = d.walletCredits !== undefined ? d.walletCredits : 0;
+    const total = freeLeft + wc;
     const disp = document.getElementById('creditDisplay');
-    disp.innerHTML = wc > 0
-      ? `<span style="color:#86efac;">✦ ${wc}cr</span>`
-      : `<span style="color:#fca5a5;">✗ 0cr</span>`;
+    if (total > 0) {
+      disp.innerHTML = `<span style="color:#86efac;">${total}</span>`;
+    } else {
+      disp.innerHTML = `<span style="color:#fca5a5;">0</span>`;
+    }
     const dots = document.getElementById('creditDots');
-    dots.innerHTML = Array.from({length:5},(_,i) => `<div class="cdot ${i < wc ? 'on' : 'off'}"></div>`).join('');
+    const maxDots = Math.max(total, 5);
+    dots.innerHTML = Array.from({length: maxDots}, (_, i) =>
+      `<div class="cdot ${i < total ? 'on' : 'off'}"></div>`
+    ).join('');
     document.getElementById('payBtn').style.display = wc < 3 ? 'block' : 'none';
   }
-  totalCredits = d.total ?? 0;
   updateGenBtn();
 }
+
 function updateGenBtn() {
   const btn = document.getElementById('genBtn');
   const hasFree = xSession && !xSession.usedFree;
   const hasCredits = totalCredits > 0 || hasFree;
   if (!b64) {
-    btn.disabled = true; btn.innerHTML = '🦔 Drop a reference image first';
+    btn.disabled = true;
+    btn.innerHTML = '🦔 Drop a reference image first';
   } else if (!hasCredits) {
-    btn.disabled = false; btn.innerHTML = '💎 Pay 0.1 MON to unlock 5 generations';
-    btn.onclick = () => { if (!pfpWallet) { setStatus('⚠ Connect wallet first', true); return; } pfpPay(); };
+    btn.disabled = false;
+    btn.innerHTML = '💎 Pay 0.1 MON to unlock 5 generations';
+    btn.onclick = () => {
+      if (!pfpWallet) { setStatus('⚠ Connect wallet first', true); return; }
+      pfpPay();
+    };
   } else {
-    btn.disabled = false; btn.innerHTML = '🦔 Generate CHOG PFP'; btn.onclick = generatePFP;
+    btn.disabled = false;
+    btn.innerHTML = '🦔 Generate CHOG PFP';
+    btn.onclick = generatePFP;
   }
 }
+
 function statusAfterUpload() {
   const hasFree = xSession && !xSession.usedFree;
   const hasWallet = pfpWallet && totalCredits > 0;
-  if (hasFree || hasWallet) { setStatus('✓ Image loaded — click Generate when ready', 'ok'); return; }
-  if (xSession && xSession.usedFree && !pfpWallet) { setStatus('✗ Free generation already used. Connect wallet and pay 0.1 MON for 5 more.', true); document.getElementById('payBtn').style.display = 'block'; }
-  else if (xSession && xSession.usedFree && pfpWallet) { setStatus('✗ No credits left. Pay 0.1 MON to get 5 more generations.', true); document.getElementById('payBtn').style.display = 'block'; }
-  else if (!xSession && !pfpWallet) { setStatus('⚠ Connect X for 1 free generation, or connect wallet to pay 0.1 MON for 5.', true); }
-  else if (!xSession && pfpWallet) { setStatus('✗ No credits. Pay 0.1 MON for 5 generations, or connect X for 1 free.', true); document.getElementById('payBtn').style.display = 'block'; }
+  if (hasFree || hasWallet) {
+    setStatus('✓ Image loaded — click Generate when ready', 'ok');
+    return;
+  }
+  // No credits left
+  if (xSession && xSession.usedFree && !pfpWallet) {
+    setStatus('✗ Free generation already used. Connect wallet and pay 0.1 MON for 5 more.', true);
+    document.getElementById('payBtn').style.display = 'block';
+  } else if (xSession && xSession.usedFree && pfpWallet) {
+    setStatus('✗ No credits left. Pay 0.1 MON to get 5 more generations.', true);
+    document.getElementById('payBtn').style.display = 'block';
+  } else if (!xSession && !pfpWallet) {
+    setStatus('⚠ Connect X for 1 free generation, or connect wallet to pay 0.1 MON for 5.', true);
+  } else if (!xSession && pfpWallet) {
+    setStatus('✗ No credits. Pay 0.1 MON for 5 generations, or connect X for 1 free.', true);
+    document.getElementById('payBtn').style.display = 'block';
+  }
 }
+
+/* ── STYLE SWITCHER ── */
 function setChogStyle(n) {
   chogBaseUrl = n === 1 ? CHOG_STYLE1 : n === 2 ? CHOG_STYLE2 : CHOG_STYLE3;
   document.getElementById('style1Btn').classList.toggle('active', n === 1);
   document.getElementById('style2Btn').classList.toggle('active', n === 2);
   document.getElementById('style3Btn').classList.toggle('active', n === 3);
 }
-const selectedGenModel = 'gpt';
-const selectedQuality  = 'high';
+
+/* ── FILE INPUT ── */
 function handleFile(e) {
   const f = e.target.files[0]; if (!f) return;
   const reader = new FileReader();
-  reader.onload = ev => { b64 = ev.target.result; setDropImage(b64); updateGenBtn(); statusAfterUpload(); };
+  reader.onload = ev => {
+    b64 = ev.target.result;
+    setDropImage(b64);
+    updateGenBtn();
+    statusAfterUpload();
+  };
   reader.readAsDataURL(f);
 }
+
 function setDropImage(src) {
   const dz = document.getElementById('dropZone');
   dz.innerHTML = `<img src="${src}" alt="ref" style="width:100%;height:100%;object-fit:cover;border-radius:9px;display:block;">`;
   dz.classList.add('has-img');
 }
+
+/* ── DRAG & DROP ── */
 const dz = document.getElementById('dropZone');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
 dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
@@ -602,257 +860,359 @@ dz.addEventListener('drop', e => {
   const f = e.dataTransfer.files[0];
   if (f && f.type.startsWith('image/')) {
     const reader = new FileReader();
-    reader.onload = ev => { b64 = ev.target.result; setDropImage(b64); updateGenBtn(); statusAfterUpload(); };
+    reader.onload = ev => {
+      b64 = ev.target.result;
+      setDropImage(b64);
+      updateGenBtn();
+      statusAfterUpload();
+    };
     reader.readAsDataURL(f);
   }
 });
+
+/* ── GENERATE ── */
 async function runAll() {
   if (!b64) { setStatus('⚠ Drop a reference image first', true); return; }
+
   const canUseXFree = xSession && !xSession.usedFree;
   const canUseWallet = pfpWallet && totalCredits > 0;
+
   if (!canUseXFree && !canUseWallet) {
     if (!xSession) setStatus('⚠ Connect X for 1 free generation, or connect wallet', true);
     else setStatus('⚠ No credits left — pay 0.1 MON for 5 more', true);
-    document.getElementById('payBtn').style.display = 'block'; return;
+    document.getElementById('payBtn').style.display = 'block';
+    return;
   }
+
   const btn = document.getElementById('genBtn');
   btn.disabled = true;
+  btn.innerHTML = '✦ now generating...';
+  if (window.setBgGenerating) window.setBgGenerating(true);
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('shareBtn').style.display = 'none';
-  setBgGenerating(true);
-  document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">👀 CHOG is checking out your style...</div></div>';
-  setStatus('🔍 Scanning your outfit... CHOG is very curious 🦔');
+  document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
+  setStatus('🔍 GPT-4o analyzing your reference image...');
 
-  // Warn user not to close/refresh
-  const warnBanner = document.createElement('div');
-  warnBanner.id = 'genWarnBanner';
-  warnBanner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(109,40,217,0.95);color:#fff;font-family:Space Mono,monospace;font-size:11px;text-align:center;padding:10px 16px;z-index:9998;letter-spacing:.5px;backdrop-filter:blur(8px);';
-  warnBanner.textContent = '✦ CHOG is getting dressed — please don\'t close or refresh this page! ✦';
-  document.body.appendChild(warnBanner);
-  const beforeUnloadHandler = e => { e.preventDefault(); e.returnValue = ''; };
-  window.addEventListener('beforeunload', beforeUnloadHandler);
-
+  // Optimistic credit deduction — update UI immediately
   if (canUseXFree) {
     updateCreditUI({ twitterFree: false, walletCredits: pfpWallet ? totalCredits : 0, total: pfpWallet ? totalCredits : 0 });
   } else if (canUseWallet) {
     const newWalletCredits = Math.max(0, totalCredits - (xSession && !xSession.usedFree ? 1 : 0) - 1);
     updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: newWalletCredits, total: newWalletCredits + (xSession && !xSession.usedFree ? 1 : 0) });
   }
+
+  // Spinner progress text simulation (visual feedback during long request)
   const stages = [
-    { delay:0,     text:'👀 CHOG is checking out your style...',      toast:'👀 CHOG is studying your outfit very carefully...' },
-    { delay:6000,  text:'👗 CHOG is trying on your outfit...',         toast:'👗 CHOG is squeezing into that outfit right now...' },
-    { delay:15000, text:'💇 CHOG is getting a fresh hair appointment...',toast:'💇 The hairdresser is working on CHOG\'s look...' },
-    { delay:35000, text:'🚪 CHOG is about to step out of the dressing room...',  toast:'🚪 CHOG is straightening up and heading out the door...' },
+    { delay: 0,     text: '👀 checking out your style...',  toast: '👀 CHOG is checking out your style...' },
+    { delay: 6000,  text: '👗 trying on your outfit...',    toast: '👗 CHOG is trying on your outfit...' },
+    { delay: 18000, text: '💇 fresh hair appointment...',   toast: '💇 CHOG is getting a fresh hair appointment...' },
+    { delay: 40000, text: '🚪 almost out the door...',      toast: '🚪 CHOG is about to step out of the dressing room...' },
   ];
   const stageTimers = stages.map(s => setTimeout(() => {
     const spinTxt = document.querySelector('.spinner-text');
     if (spinTxt) spinTxt.textContent = s.text;
     if (s.delay > 0) showToast(s.toast, '');
   }, s.delay));
+
   try {
-    const res = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, genModel: selectedGenModel, quality: selectedQuality, bgTemplate: '', artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '', customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '' }) });
+    const res = await fetch(API_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'generate',
+        wallet: pfpWallet,
+        image: b64,
+        chogStyle: chogBaseUrl,
+        customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '',
+      }),
+    });
     stageTimers.forEach(clearTimeout);
     const d = await res.json();
     if (!res.ok) throw new Error(d.error);
+
     resultUrl = d.url;
     updateCreditUI(d);
-    document.getElementById('resultBox').innerHTML = `<img src="${resultUrl}" alt="CHOG PFP" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    addToHistory(resultUrl);
+    const rb = document.getElementById('resultBox');
+    rb.innerHTML = `<img src="${resultUrl}" alt="CHOG PFP" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    rb.classList.add('done');
     document.getElementById('dlBtn').style.display = 'flex';
     document.getElementById('shareBtn').style.display = 'flex';
-    setStatus('✦ CHOG is ready to slay! GM fren 🦔', 'ok');
-    saveHistory(resultUrl);
+    setStatus('✦ Your CHOG PFP is ready! GM fren 🦔', 'ok');
+    if (window.setBgGenerating) window.setBgGenerating(false);
+    btn.innerHTML = '🦔 Generate CHOG PFP';
     btn.disabled = false;
-    setBgGenerating(false);
-    document.getElementById('genWarnBanner')?.remove();
-    window.removeEventListener('beforeunload', beforeUnloadHandler);
   } catch (err) {
     stageTimers.forEach(clearTimeout);
+    if (window.setBgGenerating) window.setBgGenerating(false);
     document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
-    if (err.message.includes('No credits') || err.message.includes('Pay')) document.getElementById('payBtn').style.display = 'block';
-    setStatus('✗ ' + err.message, true); btn.disabled = false;
-    setBgGenerating(false);
-    document.getElementById('genWarnBanner')?.remove();
-    window.removeEventListener('beforeunload', beforeUnloadHandler);
+    if (err.message.includes('No credits') || err.message.includes('Pay')) {
+      document.getElementById('payBtn').style.display = 'block';
+    }
+    setStatus('✗ ' + err.message, true);
+    btn.innerHTML = '🦔 Generate CHOG PFP';
+    btn.disabled = false;
   }
 }
+
 function generatePFP() { runAll(); }
 
-/* ── Background cube animation ─────────────────────────────── */
+/* ── Monad particle network background ──────────────────────── */
 (function() {
   const canvas = document.getElementById('bgCanvas');
-  const ctx    = canvas.getContext('2d');
-  const SIZE   = 30, GAP = 3, STEP = SIZE + GAP;
+  const ctx = canvas.getContext('2d');
+
   const PALETTE = [
-    [138, 92, 246], // purple
-    [109, 40, 217], // purple-dark
-    [ 99,102, 241], // indigo
-    [ 79,114, 255], // blue-purple
+    [138, 92, 246],
+    [109, 40, 217],
+    [99, 102, 241],
+    [168, 85, 247],
+    [124, 58, 237],
   ];
-  let cols, rows, cubes, t = 0, waveT = 0;
+  const NODE_COUNT = 72;
+  const LINK_DIST  = 155;
+  const LINK_DIST_G = 200; // wider links during generation
+
+  let W, H, nodes, t = 0;
   let generating = false;
+  let rings = [];      // expanding wave rings
+  let packets = [];    // data packets travelling edges
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
 
   function init() {
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-    cols = Math.ceil(canvas.width  / STEP) + 1;
-    rows = Math.ceil(canvas.height / STEP) + 1;
-    cubes = [];
-    for (let r = 0; r < rows; r++)
-      for (let c = 0; c < cols; c++)
-        cubes.push({
-          x: c * STEP, y: r * STEP, c, r,
-          rgb: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-          phase: Math.random() * Math.PI * 2,
-          spd:   0.06 + Math.random() * 0.08,
-        });
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    nodes = Array.from({length: NODE_COUNT}, () => ({
+      x: rand(0, W), y: rand(0, H),
+      vx: rand(-.25, .25), vy: rand(-.25, .25),
+      r: rand(1.8, 3.2),
+      phase: rand(0, Math.PI * 2),
+      spd: rand(0.35, 0.75),
+      rgb: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+      glow: 0,
+    }));
+    rings = []; packets = [];
   }
 
+  function dsq(a, b) { return (a.x-b.x)**2 + (a.y-b.y)**2; }
+
   function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    t     += 0.004;
-    waveT += generating ? 0.03 : 0;
+    ctx.clearRect(0, 0, W, H);
+    t += 0.007;
 
-    for (const cb of cubes) {
-      let alpha;
-      if (generating) {
-        const norm = (cb.c * 1.2 + cb.r) / (cols * 1.2 + rows);
-        const wave = (Math.sin(norm * Math.PI * 7 - waveT * 4) + 1) / 2;
-        alpha = 0.02 + wave * 0.18;
-      } else {
-        const pulse = (Math.sin(t * cb.spd + cb.phase) + 1) / 2;
-        alpha = 0.01 + pulse * 0.055;
+    /* move nodes */
+    for (const n of nodes) {
+      n.x += n.vx; n.y += n.vy;
+      if (n.x < 0 || n.x > W) { n.vx *= -1; n.x = Math.max(0, Math.min(W, n.x)); }
+      if (n.y < 0 || n.y > H) { n.vy *= -1; n.y = Math.max(0, Math.min(H, n.y)); }
+      const pulse = (Math.sin(t * n.spd + n.phase) + 1) / 2;
+      n.glow = generating ? 0.45 + pulse * 0.55 : 0.12 + pulse * 0.3;
+    }
+
+    /* wave rings */
+    if (generating && Math.random() < 0.025) {
+      rings.push({ x: W / 2, y: H / 2, r: 0, maxR: Math.hypot(W, H) * 0.7, spd: rand(2.5, 4) });
+    }
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const ring = rings[i];
+      ring.r += ring.spd;
+      const life = 1 - ring.r / ring.maxR;
+      if (life <= 0) { rings.splice(i, 1); continue; }
+      // boost nearby nodes
+      for (const n of nodes) {
+        if (Math.abs(Math.hypot(n.x - ring.x, n.y - ring.y) - ring.r) < 28)
+          n.glow = Math.min(1, n.glow + 0.55);
       }
-
-      const [r, g, b] = cb.rgb;
       ctx.save();
-      if (alpha > 0.06) {
-        ctx.shadowColor = `rgba(${r},${g},${b},0.7)`;
-        ctx.shadowBlur  = generating ? 10 : 5;
-      }
-      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
-      ctx.fillRect(cb.x, cb.y, SIZE, SIZE);
+      ctx.beginPath();
+      ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(138,92,246,${(life * 0.38).toFixed(3)})`;
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = 'rgba(138,92,246,.7)';
+      ctx.shadowBlur = 14;
+      ctx.stroke();
       ctx.restore();
     }
+
+    const thresh = generating ? LINK_DIST_G : LINK_DIST;
+    const threshSq = thresh * thresh;
+
+    /* edges */
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const sq = dsq(nodes[i], nodes[j]);
+        if (sq > threshSq) continue;
+        const prox = 1 - Math.sqrt(sq) / thresh;
+        const avg = (nodes[i].glow + nodes[j].glow) / 2;
+        const a = prox * avg * (generating ? 0.65 : 0.3);
+        const [r, g, b] = nodes[i].rgb;
+        ctx.save();
+        if (a > 0.25) { ctx.shadowColor = `rgba(${r},${g},${b},.5)`; ctx.shadowBlur = 6; }
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.strokeStyle = `rgba(${r},${g},${b},${a.toFixed(3)})`;
+        ctx.lineWidth = generating ? 1.1 : 0.75;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    /* data packets */
+    if (generating && Math.random() < 0.07) {
+      const i = Math.floor(Math.random() * nodes.length);
+      const j = Math.floor(Math.random() * nodes.length);
+      if (i !== j && dsq(nodes[i], nodes[j]) < LINK_DIST_G * LINK_DIST_G)
+        packets.push({ a: nodes[i], b: nodes[j], p: 0, spd: rand(0.012, 0.022) });
+    }
+    for (let i = packets.length - 1; i >= 0; i--) {
+      const pk = packets[i];
+      pk.p += pk.spd;
+      if (pk.p >= 1) { packets.splice(i, 1); continue; }
+      const px = pk.a.x + (pk.b.x - pk.a.x) * pk.p;
+      const py = pk.a.y + (pk.b.y - pk.a.y) * pk.p;
+      ctx.save();
+      ctx.shadowColor = 'rgba(196,181,253,.95)';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = 'rgba(220,200,255,.95)';
+      ctx.fillRect(px - 2.5, py - 2.5, 5, 5);
+      ctx.restore();
+    }
+
+    /* nodes */
+    for (const n of nodes) {
+      const [r, g, b] = n.rgb;
+      const nr = n.r * (1 + n.glow * 0.45);
+      ctx.save();
+      ctx.shadowColor = `rgba(${r},${g},${b},${n.glow.toFixed(2)})`;
+      ctx.shadowBlur = generating ? 22 : 12;
+      // halo
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, nr + 4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${(n.glow * 0.12).toFixed(3)})`;
+      ctx.fill();
+      // core
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, nr, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${(0.45 + n.glow * 0.55).toFixed(3)})`;
+      ctx.fill();
+      ctx.restore();
+    }
+
     requestAnimationFrame(draw);
   }
 
-  window.setBgGenerating = v => { generating = v; if (v) waveT = 0; };
+  window.setBgGenerating = v => {
+    generating = v;
+    document.body.classList.toggle('generating', v);
+    if (!v) { rings = []; packets = []; }
+  };
   window.addEventListener('resize', init);
   init(); draw();
 })();
 async function shareOnX() {
   const text = 'just turned my PFP into a CHOG 🦔\n\ntry it at monad-terminal.xyz/chog/pfp\n\n#CHOG #Monad';
+  // Try to copy the generated image to clipboard so user can paste into X composer
   if (resultUrl) {
     try {
       const blob = await fetch(resultUrl).then(r => r.blob());
+      // Some clipboards reject non-PNG; convert if needed
       const pngBlob = blob.type === 'image/png' ? blob : await new Promise((resolve) => {
-        const img = new Image(); img.crossOrigin = 'anonymous';
-        img.onload = () => { const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height; canvas.getContext('2d').drawImage(img, 0, 0); canvas.toBlob(resolve, 'image/png'); };
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width; canvas.height = img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          canvas.toBlob(resolve, 'image/png');
+        };
         img.src = URL.createObjectURL(blob);
       });
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })]);
       showToast('📋 Image copied to clipboard — paste it in the X composer (Ctrl+V)', 'ok');
-    } catch (e) { console.warn('clipboard copy failed', e); showToast('⚠ Could not auto-copy — please download the image first', true); }
+    } catch (e) {
+      console.warn('clipboard copy failed', e);
+      showToast('⚠ Could not auto-copy — please download the image first, then attach manually in X', true);
+    }
   }
   const intent = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text);
   setTimeout(() => window.open(intent, '_blank', 'width=550,height=480'), 600);
 }
+
 function setStatus(msg, type) {
   const el = document.getElementById('statusMsg');
   el.textContent = msg;
   el.className = 'status' + (type === true ? ' err' : type === 'ok' ? ' ok' : '');
   showToast(msg, type);
 }
+
 function showToast(msg, type) {
   let container = document.getElementById('toastContainer');
-  if (!container) { container = document.createElement('div'); container.id = 'toastContainer'; container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:360px;'; document.body.appendChild(container); }
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:360px;';
+    document.body.appendChild(container);
+  }
   const toast = document.createElement('div');
   const color = type === true ? '#fca5a5' : type === 'ok' ? '#86efac' : '#c4b5fd';
   const bg    = type === true ? 'rgba(220,38,38,.12)' : type === 'ok' ? 'rgba(34,197,94,.12)' : 'rgba(138,92,246,.15)';
   const bord  = type === true ? 'rgba(220,38,38,.4)'  : type === 'ok' ? 'rgba(34,197,94,.45)' : 'rgba(138,92,246,.45)';
   toast.style.cssText = `pointer-events:auto;background:${bg};border:1px solid ${bord};color:${color};padding:11px 16px;border-radius:11px;font-family:'Space Mono',monospace;font-size:12px;backdrop-filter:blur(10px);box-shadow:0 6px 18px rgba(0,0,0,.35);max-width:340px;line-height:1.45;animation:toastIn .25s ease;`;
-  toast.textContent = msg; container.appendChild(toast);
-  setTimeout(() => { toast.style.animation = 'toastOut .25s ease forwards'; setTimeout(() => toast.remove(), 250); }, type === true ? 6000 : 4000);
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toastOut .25s ease forwards';
+    setTimeout(() => toast.remove(), 250);
+  }, type === true ? 6000 : 4000);
 }
-async function downloadResult() {
-  if (!resultUrl) return;
-  try {
-    const res = await fetch(resultUrl);
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'chog-pfp-' + Date.now() + '.png';
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
-  } catch (e) {
-    window.open(resultUrl, '_blank');
-  }
-}
-
-const HISTORY_KEY = 'chog_pfp_history';
-const HISTORY_MAX = 20;
-
-function saveHistory(url) {
-  try {
-    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    hist.unshift({ url, ts: Date.now() });
-    if (hist.length > HISTORY_MAX) hist.length = HISTORY_MAX;
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
-    renderHistory();
-  } catch (e) {}
-}
-
-function renderHistory() {
-  try {
-    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    const sec  = document.getElementById('historySection');
-    const grid = document.getElementById('historyGrid');
-    if (!hist.length) { sec.style.display = 'none'; return; }
-    sec.style.display = 'block';
-    grid.innerHTML = hist.map((h, i) =>
-      `<div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid rgba(138,92,246,.25);cursor:pointer;" onclick="viewHistory(${i})" title="${new Date(h.ts).toLocaleString()}">
-        <img src="${h.url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.parentElement.style.display='none'">
-      </div>`
-    ).join('');
-  } catch (e) {}
-}
-
-function viewHistory(i) {
-  try {
-    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    if (!hist[i]) return;
-    const url = hist[i].url;
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-    overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
-    overlay.innerHTML = `
-      <div style="position:relative;max-width:90vw;max-height:90vh;">
-        <img src="${url}" style="max-width:100%;max-height:85vh;border-radius:12px;display:block;">
-        <button onclick="this.closest('div').parentElement.remove()" style="position:absolute;top:-14px;right:-14px;width:32px;height:32px;border-radius:50%;background:#1a0a2e;border:1px solid rgba(138,92,246,.5);color:#c4b5fd;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
-        <button onclick="downloadFromUrl('${url}')" style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:20px;color:#fff;font-family:'Space Mono',monospace;font-size:11px;padding:8px 20px;cursor:pointer;">⬇ download</button>
-      </div>`;
-    document.body.appendChild(overlay);
-  } catch (e) {}
-}
-
-async function downloadFromUrl(url) {
+async function downloadImage(url, filename) {
   try {
     const res = await fetch(url);
     const blob = await res.blob();
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'chog-pfp-' + Date.now() + '.png';
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
+    a.download = filename || 'chog-pfp.png';
+    a.click();
     URL.revokeObjectURL(a.href);
-  } catch (e) { window.open(url, '_blank'); }
+  } catch { window.open(url, '_blank'); }
+}
+
+function downloadResult() {
+  if (resultUrl) downloadImage(resultUrl, `chog-pfp-${Date.now()}.png`);
+}
+
+function addToHistory(url) {
+  genHistory.unshift(url);
+  if (genHistory.length > 4) genHistory.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const grid = document.getElementById('historyGrid');
+  const section = document.getElementById('historySection');
+  if (!genHistory.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  grid.innerHTML = '';
+  genHistory.forEach((url, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;border:1px solid rgba(138,92,246,.25);';
+    wrap.innerHTML = `
+      <img src="${url}" style="width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;" onclick="window.open('${url}','_blank')">
+      <button onclick="downloadImage('${url}','chog-pfp-${i+1}.png')" style="position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.65);border:none;border-radius:7px;color:#fff;font-size:14px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">↓</button>
+    `;
+    grid.appendChild(wrap);
+  });
 }
 function resetAll() {
   b64 = null; resultUrl = null;
-  const dz2 = document.getElementById('dropZone'); dz2.className = 'drop-zone';
+  const dz2 = document.getElementById('dropZone');
+  dz2.className = 'drop-zone';
   dz2.innerHTML = '<div class="dz-overlay"><div class="dz-icon">🖼</div><div class="dz-text">Drop your reference image</div><div class="dz-sub">any character · outfit · PFP</div></div>';
-  document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
+  const rb2 = document.getElementById('resultBox');
+  rb2.innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
+  rb2.classList.remove('done');
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('shareBtn').style.display = 'none';
   document.getElementById('genBtn').disabled = true;
