@@ -733,8 +733,32 @@ function renderHistory() {
 function viewHistory(i) {
   try {
     const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    if (hist[i]) { resultUrl = hist[i].url; document.getElementById('resultBox').innerHTML = `<img src="${resultUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`; document.getElementById('dlBtn').style.display = 'flex'; document.getElementById('shareBtn').style.display = 'flex'; }
+    if (!hist[i]) return;
+    const url = hist[i].url;
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+    overlay.innerHTML = `
+      <div style="position:relative;max-width:90vw;max-height:90vh;">
+        <img src="${url}" style="max-width:100%;max-height:85vh;border-radius:12px;display:block;">
+        <button onclick="this.closest('div').parentElement.remove()" style="position:absolute;top:-14px;right:-14px;width:32px;height:32px;border-radius:50%;background:#1a0a2e;border:1px solid rgba(138,92,246,.5);color:#c4b5fd;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+        <button onclick="downloadFromUrl('${url}')" style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:20px;color:#fff;font-family:'Space Mono',monospace;font-size:11px;padding:8px 20px;cursor:pointer;">⬇ download</button>
+      </div>`;
+    document.body.appendChild(overlay);
   } catch (e) {}
+}
+
+async function downloadFromUrl(url) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'chog-pfp-' + Date.now() + '.png';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  } catch (e) { window.open(url, '_blank'); }
 }
 function resetAll() {
   b64 = null; resultUrl = null;

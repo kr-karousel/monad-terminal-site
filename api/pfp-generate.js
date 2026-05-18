@@ -479,7 +479,7 @@ Keep: round chibi face, large black eyes, pink blush, thick black outlines, flat
 
       // BACKUP PROMPT v1: `Apply to the masked regions of this CHOG cartoon: ${styleDesc}.${extraPart} Keep CHOG's face, eyes, blush cheeks, and thick-outline flat-color art style exactly as-is.`
       // BACKUP PROMPT v2: `${styleDesc}.${extraPart ? ' ' + extraPart : ''}`
-      const editPrompt = `Generate in the style of the reference examples. Extreme close-up portrait: face fills the frame, top of head slightly cropped out, chin near the bottom edge. Apply: ${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
+      const editPrompt = `Generate in the style of the reference examples. Extreme close-up portrait: face fills the frame, top of head slightly cropped, chin near the bottom edge. Keep the CHOG character's round face, large black eyes, pink blush cheeks, and flat-color cartoon style. Apply exactly: ${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
 
       // Fetch example.jpg to send as additional style reference
       let exampleBuffer = null;
