@@ -274,7 +274,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image } },
-              { type: 'text', text: 'You are a visual style extractor. Describe every visible stylistic element of this character in detail. Return ONLY a JSON object with these fields: {"hair": "full description of hair — color, length, texture, shape, volume", "head_items": "anything sitting on or attached to the head — hats, animals, objects, ornaments, else null", "face_items": "anything on the face — glasses, sunglasses, cigar, pipe, mask, markings, else null", "expression": "facial expression and eye style", "clothing_top": "detailed description of jacket/shirt/top — material feel, color, patterns, collar, buttons, zipper", "clothing_details": "any badges, patches, insignia, logos, text on clothing — describe exact placement and appearance", "accessories": "necklaces, belts, bags, props held or worn anywhere on body, else null", "art_style": "describe the overall art style — line weight, shading technique, color palette feel, render quality", "background": "background color or environment if visible", "pose": "body angle, head tilt, shoulder position, overall composition framing"}. No markdown, raw JSON only.' }
+              { type: 'text', text: 'Extract every visual style element of this character. Return ONLY this JSON (no markdown): {"hair": "color, shape, volume, texture of hair", "hat": "any hat, headwear, or object sitting on the head — describe exactly, or null", "face": "glasses, sunglasses, cigar, pipe, mask, or any face prop — describe exactly, or null", "outfit": "full outfit description — colors, patterns like stripes/dots, type of clothing, collar, any text/badge/patch with exact wording", "accessories": "anything else worn or carried on the body — scarves, belts, props, weapons — describe exactly, or null", "skin": "character skin/fur color if visible"}' }
             ]
           }]
         }),
@@ -310,28 +310,21 @@ async function _handler(req, res) {
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
     const bgPart    = bgTemplate   ? `Background: ${bgTemplate}.` : '';
 
-    // Build styleDesc differently per engine
     const styleDescGpt = [
-      semantics.hair            ? `hair: ${semantics.hair}`                       : null,
-      semantics.hat             ? `headwear: ${semantics.hat}`                    : null,
-      (semantics.glasses || semantics.face_items) ? `face: ${semantics.glasses || semantics.face_items}` : null,
-      `outfit: ${semantics.clothing || semantics.clothing_top || 'casual outfit'} (include shoulder details, badges, patches)`,
-      semantics.accessory       ? `accessory: ${semantics.accessory}`             : null,
+      semantics.hair        ? `hair: ${semantics.hair}`                                       : null,
+      semantics.hat         ? `headwear: ${semantics.hat}`                                    : null,
+      semantics.face        ? `face item: ${semantics.face}`                                  : null,
+      `outfit: ${semantics.outfit || semantics.clothing || 'casual outfit'}`,
+      semantics.accessories ? `accessories: ${semantics.accessories}`                         : null,
     ].filter(Boolean).join(', ');
 
     const styleDescFlux = [
-      semantics.hair            ? `Hair: ${semantics.hair}.`                      : null,
-      semantics.head_items      ? `On head: ${semantics.head_items}.`             : null,
-      semantics.face_items      ? `Face items: ${semantics.face_items}.`          : null,
-      semantics.expression      ? `Expression: ${semantics.expression}.`          : null,
-      semantics.clothing_top    ? `Top: ${semantics.clothing_top}.`               : null,
-      semantics.clothing_details? `Details: ${semantics.clothing_details}.`       : null,
-      semantics.accessories     ? `Accessories: ${semantics.accessories}.`        : null,
-      semantics.art_style       ? `Art style: ${semantics.art_style}.`            : null,
-      semantics.pose            ? `Composition: ${semantics.pose}.`               : null,
-      // fallbacks for old-format responses
-      !semantics.clothing_top && semantics.clothing ? `Top: ${semantics.clothing}.` : null,
-      !semantics.head_items    && semantics.hat     ? `On head: ${semantics.hat}.`  : null,
+      semantics.hair        ? `Hair: ${semantics.hair}.`                                      : null,
+      semantics.hat         ? `On the head: ${semantics.hat}.`                                : null,
+      semantics.face        ? `On the face: ${semantics.face}.`                               : null,
+      semantics.outfit || semantics.clothing
+                            ? `Outfit: ${semantics.outfit || semantics.clothing}.`            : null,
+      semantics.accessories ? `Also wearing/carrying: ${semantics.accessories}.`              : null,
     ].filter(Boolean).join(' ');
 
     const styleDesc = genModel === 'flux' ? styleDescFlux : styleDescGpt;
@@ -342,7 +335,7 @@ async function _handler(req, res) {
     if (genModel === 'flux') {
       if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
-      const fluxPrompt = `Transform the CHOG hedgehog cartoon character in this image into a new version with the following style: ${styleDescFlux} Preserve the character's round hedgehog face shape, large black eyes, and pink blush cheeks. Render with clean thick outlines, vibrant flat colors, high cartoon illustration quality. Framing: close-up bust portrait filling the entire canvas edge to edge, spiky hair crown bleeds slightly past the top frame edge, face in lower-center.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+      const fluxPrompt = `Redress the cartoon hedgehog character in this image with a new look: ${styleDescFlux} Keep the character's round face, large black eyes, and pink blush cheeks exactly as-is. Apply the new hair, hat, outfit and all accessories faithfully — including exact colors, patterns, and any text or badges. High quality cartoon illustration with clean thick outlines and vibrant flat colors.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
