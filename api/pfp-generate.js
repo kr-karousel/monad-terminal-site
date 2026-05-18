@@ -214,14 +214,22 @@ module.exports = async function handler(req, res) {
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: 'List only the clothing and accessories in this image. Include: hats, eyewear, jacket/top/dress color and style, tie, cape, bow/ribbon in hair, held items, jewelry. Exclude face, skin, hair color, background. Short comma-separated list, max 50 words.' }
+            { type: 'text', text: 'Analyze this image and return a JSON object with two fields: "skin" (the skin tone of the main character/person — e.g. "light peach", "warm brown", "dark brown", "golden tan", "pale ivory" — or "light peach" if no clear person) and "outfit" (clothing and accessories only: hats, eyewear, jacket/top color and style, tie, cape, hair accessories, held items, jewelry — short comma-separated list, max 50 words, exclude background). Return ONLY valid JSON like: {"skin":"...","outfit":"..."}' }
           ]
         }]
       }),
     });
     const vd = await visionRes.json();
     if (vd.error) return res.status(500).json({ error: vd.error.message });
-    const outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
+    let outfit = 'casual outfit', skinTone = 'light peach';
+    try {
+      const raw = vd.choices[0].message.content.trim().replace(/^```json|^```|```$/g, '').trim();
+      const parsed = JSON.parse(raw);
+      outfit = parsed.outfit || outfit;
+      skinTone = parsed.skin || skinTone;
+    } catch {
+      outfit = vd.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
+    }
 
     const bgPart = bgTemplate || 'solid flat bright blue background #00AAFF, no gradients';
     const stylePart = artStyle ? `, ${artStyle}` : '';
@@ -241,7 +249,7 @@ COMPOSITION (this is the signature CHOG NFT layout — follow exactly):
 
 CAMERA ANGLE: Slight 3/4 turn — character faces slightly to one side, both eyes visible. Classic CHOG NFT pose.
 
-CHARACTER: CHOG chibi character. Large round peach face. Dark purple spiky hair with multiple sharp triangular spikes, thick black outlines. Eyes: two large solid black oval dots each with a white shine spot. Small round pink nose — always present. Round pink blush circles on each cheek. Small smile. Bold thick black cartoon outlines on everything.
+CHARACTER: CHOG chibi character. Large round face with ${skinTone} skin color. Dark purple spiky hair with multiple sharp triangular spikes, thick black outlines. Eyes: two large solid black oval dots each with a white shine spot. Small round pink nose — always present. Round pink blush circles on each cheek. Small smile. Bold thick black cartoon outlines on everything.
 
 OUTFIT (large, bleeds off right and bottom edges): ${outfit}.${extraPart}
 
