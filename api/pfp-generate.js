@@ -6,6 +6,7 @@ const Jimp   = require('jimp');
 const SB_URL  = 'https://phjolzvyewacjqausmxx.supabase.co';
 const SB_KEY  = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoam9senZ5ZXdhY2pxYXVzbXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDY5NzIsImV4cCI6MjA5MDY4Mjk3Mn0.XDNfHWN7NdzBHffE6-YgMMR8skNMR7blTJVu1EbvPrY';
 const OPENAI_KEY      = process.env.OPENAI_API_KEY;
+const FAL_KEY         = process.env.FAL_KEY;
 const SESSION_SECRET  = process.env.SESSION_SECRET || 'chog-pfp-fallback-secret';
 const MONAD_RPC       = 'https://rpc.monad.xyz';
 const DEV_WALLET      = '0xf9bb715c1DC21EB661FCaC75d45BCf470235e0d8';
@@ -203,7 +204,7 @@ module.exports = async function handler(req, res) {
 };
 
 async function _handler(req, res) {
-  const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle, customPrompt } = req.body || {};
+  const { action, wallet, txHash, image, chogStyle, genModel, bgTemplate, artStyle, customPrompt } = req.body || {};
   const session = getSession(req);
 
   if (action === 'credits') {
@@ -305,23 +306,9 @@ async function _handler(req, res) {
       baseBuffer = rawBaseBuffer;
     }
 
-    // STEP 3: build prompt
+    // STEP 3: build shared prompt parts
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
     const bgPart    = bgTemplate   ? `Background: ${bgTemplate}.` : '';
-
-    // STEP 4: generate — gpt-image-1 edits+mask (CHOG is the skeleton, never reinterpreted)
-    let imageUrl;
-
-    // Mask zones: transparent = editable, opaque = preserved
-    // NEVER open the hair spike crown — it is CHOG's core identity
-    // Only open hat zone (if hat detected) + outfit zone
-    const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
-    const editZones = [
-      [0.15, 0.60, 0.85, 0.92], // outfit chest/torso center only
-    ];
-    if (semantics.hat)     editZones.push([0.22, 0.02, 0.78, 0.18]); // tiny hat placement zone only
-    if (semantics.glasses) editZones.push([0.25, 0.36, 0.75, 0.46]); // narrow glasses strip only
-    const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const styleDesc = [
       semantics.hat     ? `headwear: ${semantics.hat}`    : null,
@@ -329,19 +316,61 @@ async function _handler(req, res) {
       `outfit: ${semantics.clothing || 'casual outfit'}`,
     ].filter(Boolean).join(', ');
 
-    const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. The purple spiky hedgehog hair crown is CHOG's identity — NEVER touch or alter the hair spikes. Do NOT redraw face, eyes, nose, cheeks, or any unmasked area. Preserve the exact drawing style: keep thick black outlines as-is, flat solid colors, same proportions, same crude cartoon feel. Do NOT clean up lines, do NOT polish, do NOT vectorize, do NOT make symmetrical, do NOT fix proportions, preserve all imperfections. In the masked regions ONLY apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+    // STEP 4: generate — branch on engine
+    let imageUrl;
 
-    const form = new FormData();
-    form.append('model', 'gpt-image-1.5');
-    form.append('prompt', editPrompt);
-    form.append('n', '1');
-    form.append('size', '1024x1024');
-    form.append('quality', 'high');
-    form.append('input_fidelity', 'high');
-    form.append('image', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
-    form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
+    if (genModel === 'flux') {
+      if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
-    {
+      // Flux Kontext handles identity preservation internally — no mask needed.
+      // Prompt focuses on describing what to apply, with a soft preserve hint.
+      const fluxPrompt = `Take this CHOG hedgehog cartoon character and dress it with: ${styleDesc}. Keep the character's identity intact — same face, same eyes, same pink cheeks, same purple spiky hedgehog crown of hair. Keep the original simple cartoon art style with thick black outlines and flat colors. Do not change the character into a different style or species. No weapons or held objects.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+
+      const fluxRes = await fetch('https://fal.run/fal-ai/flux-pro/kontext', {
+        method: 'POST',
+        headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: fluxPrompt,
+          image_url: `https://monad-terminal.xyz/chog/pfp/${styleFilename}`,
+          guidance_scale: 3.5,
+          num_images: 1,
+          output_format: 'png',
+          safety_tolerance: '5',
+        }),
+      });
+      const fluxText = await fluxRes.text();
+      let fluxData;
+      try { fluxData = JSON.parse(fluxText); }
+      catch { return res.status(500).json({ error: `fal.ai non-JSON: ${fluxText.slice(0, 300)}` }); }
+      if (!fluxRes.ok || fluxData.detail || fluxData.error) {
+        const msg = fluxData.detail?.[0]?.msg || fluxData.detail || fluxData.error?.message || fluxData.error || `fal.ai ${fluxRes.status}`;
+        return res.status(500).json({ error: typeof msg === 'string' ? msg : JSON.stringify(msg) });
+      }
+      imageUrl = fluxData.images?.[0]?.url;
+
+    } else {
+      // gpt-image-1.5 edits+mask path
+      // NEVER open the hair spike crown — CHOG's core identity
+      const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
+      const editZones = [
+        [0.15, 0.60, 0.85, 0.92], // outfit chest/torso center only
+      ];
+      if (semantics.hat)     editZones.push([0.22, 0.02, 0.78, 0.18]);
+      if (semantics.glasses) editZones.push([0.25, 0.36, 0.75, 0.46]);
+      const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
+
+      const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. The purple spiky hedgehog hair crown is CHOG's identity — NEVER touch or alter the hair spikes. Do NOT redraw face, eyes, nose, cheeks, or any unmasked area. Preserve the exact drawing style: keep thick black outlines as-is, flat solid colors, same proportions, same crude cartoon feel. Do NOT polish, do NOT vectorize, do NOT make symmetrical, do NOT fix proportions, preserve all imperfections. In the masked regions ONLY apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+
+      const form = new FormData();
+      form.append('model', 'gpt-image-1.5');
+      form.append('prompt', editPrompt);
+      form.append('n', '1');
+      form.append('size', '1024x1024');
+      form.append('quality', 'high');
+      form.append('input_fidelity', 'high');
+      form.append('image', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
+      form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
+
       const genRes = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },

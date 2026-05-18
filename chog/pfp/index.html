@@ -103,10 +103,12 @@ h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-b
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
 @keyframes toastIn{from{transform:translateX(120%);opacity:0;}to{transform:translateX(0);opacity:1;}}
 @keyframes toastOut{from{transform:translateX(0);opacity:1;}to{transform:translateX(120%);opacity:0;}}
-.style-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
+.style-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
 .style-thumb{cursor:pointer;border-radius:10px;overflow:hidden;width:52px;height:52px;border:2px solid rgba(138,92,246,.25);flex-shrink:0;transition:all .2s;opacity:.6;}
 .style-thumb.active{border-color:var(--purple);box-shadow:0 0 10px rgba(138,92,246,.5);opacity:1;}
 .style-thumb img{width:100%;height:100%;object-fit:cover;}
+.model-chip{cursor:pointer;padding:6px 12px;border-radius:8px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.5px;color:#6b5f8a;border:1px solid rgba(138,92,246,.25);background:transparent;transition:all .2s;}
+.model-chip.active{color:#fff;border-color:var(--purple);background:rgba(138,92,246,.15);box-shadow:0 0 8px rgba(138,92,246,.3);}
 .option-section{background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;transition:border-color .2s;}
 .option-section.open{border-color:rgba(138,92,246,.5);}
 .option-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;user-select:none;}
@@ -200,6 +202,12 @@ input[type=file]{display:none;}
     <div id="style1Btn" class="style-thumb" onclick="setChogStyle(1)"><img src="/chog/pfp/2.png" alt="Style 1"></div>
     <div id="style3Btn" class="style-thumb" onclick="setChogStyle(3)"><img src="/chog/pfp/CH_og.png" alt="Style 3"></div>
     <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← pick CHOG art style</div>
+  </div>
+  <div class="style-row">
+    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">ENGINE</div>
+    <button id="modelGptBtn"  class="model-chip active" onclick="setGenModel('gpt')">gpt-image-1.5</button>
+    <button id="modelFluxBtn" class="model-chip"        onclick="setGenModel('flux')">flux-kontext</button>
+    <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← pick render engine</div>
   </div>
   <div class="panels">
     <div class="panel">
@@ -570,6 +578,12 @@ function setChogStyle(n) {
   document.getElementById('style2Btn').classList.toggle('active', n === 2);
   document.getElementById('style3Btn').classList.toggle('active', n === 3);
 }
+let selectedGenModel = 'gpt';
+function setGenModel(m) {
+  selectedGenModel = m;
+  document.getElementById('modelGptBtn').classList.toggle('active', m === 'gpt');
+  document.getElementById('modelFluxBtn').classList.toggle('active', m === 'flux');
+}
 function handleFile(e) {
   const f = e.target.files[0]; if (!f) return;
   const reader = new FileReader();
@@ -626,7 +640,7 @@ async function runAll() {
     if (s.delay > 0) showToast(s.toast, '');
   }, s.delay));
   try {
-    const res = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '', artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '', customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '' }) });
+    const res = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, genModel: selectedGenModel, bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '', artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '', customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '' }) });
     stageTimers.forEach(clearTimeout);
     const d = await res.json();
     if (!res.ok) throw new Error(d.error);
