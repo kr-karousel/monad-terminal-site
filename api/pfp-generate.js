@@ -496,8 +496,8 @@ Keep: round chibi face, large black eyes, pink blush, thick black outlines, flat
       form.append('size', '1024x1024');
       form.append('quality', gptQuality);
       form.append('input_fidelity', 'high');
-      form.append('image', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
-      if (exampleBuffer) form.append('image', new Blob([exampleBuffer], { type: 'image/jpeg' }), 'example.jpg');
+      form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
+      if (exampleBuffer) form.append('image[]', new Blob([exampleBuffer], { type: 'image/jpeg' }), 'example.jpg');
       form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
 
       const genRes = await fetch('https://api.openai.com/v1/images/edits', {
