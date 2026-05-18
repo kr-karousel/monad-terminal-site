@@ -68,6 +68,10 @@ h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-b
 .wallet-info{display:none;flex:1;min-width:0;background:rgba(138,92,246,.08);border:1px solid rgba(138,92,246,.25);border-radius:12px;padding:9px 14px;font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;align-items:center;gap:8px;overflow:hidden;}
 .pay-btn{display:none;width:100%;background:rgba(138,92,246,.15);border:1px solid rgba(138,92,246,.4);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;margin-bottom:10px;text-align:center;}
 .pay-btn:hover{background:rgba(138,92,246,.25);}
+.model-row{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.model-chip{font-size:10px;padding:4px 11px;border-radius:999px;border:1px solid rgba(138,92,246,.25);color:#6b5f8a;cursor:pointer;transition:all .15s;font-family:'Space Mono',monospace;background:transparent;white-space:nowrap;}
+.model-chip:hover{border-color:rgba(138,92,246,.5);color:var(--purple-light);}
+.model-chip.active{background:rgba(138,92,246,.25);border-color:var(--purple);color:#dbb8ff;}
 .credit-dots{display:flex;gap:5px;align-items:center;flex-shrink:0;}
 .cdot{width:9px;height:9px;border-radius:50%;transition:all .35s ease;}
 .cdot.on{background:#22c55e;box-shadow:0 0 8px rgba(34,197,94,.6),inset 0 0 2px rgba(255,255,255,.4);}
@@ -190,6 +194,12 @@ input[type=file]{display:none;}
     </div>
   </div>
   <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 0.1 MON → +5 generations</button>
+  <div class="model-row">
+    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">MODEL</div>
+    <div class="model-chip active" data-model="gpt-image-1" onclick="setGenModel('gpt-image-1')">GPT-Image-1</div>
+    <div class="model-chip" data-model="dall-e-3" onclick="setGenModel('dall-e-3')">DALL·E 3</div>
+    <div class="model-chip" data-model="dall-e-2" onclick="setGenModel('dall-e-2')">DALL·E 2</div>
+  </div>
   <div class="style-row">
     <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">BASE STYLE</div>
     <div id="style2Btn" class="style-thumb active" onclick="setChogStyle(2)"><img src="/chog/pfp/IMG_20260516_025404_862.jpg" alt="Style 2"></div>
@@ -289,12 +299,17 @@ const ART_STYLES = [
   { id:'sketch',     label:'Sketch',     prompt:'pencil sketch style, hand-drawn rough graphite lines' },
 ];
 let chogBaseUrl = CHOG_STYLE2;
+let selectedGenModel = 'gpt-image-1';
 let b64 = null, resultUrl = null;
 let pfpWallet = null, pfpProvider = null;
 let xSession = null;
 let totalCredits = 0;
 let selectedBg = BG_TEMPLATES[0];
 let selectedStyle = ART_STYLES[0];
+function setGenModel(id) {
+  selectedGenModel = id;
+  document.querySelectorAll('.model-chip').forEach(c => c.classList.toggle('active', c.dataset.model === id));
+}
 function toggleSection(id) { document.getElementById(id).classList.toggle('open'); }
 function buildSelectors() {
   const bgGrid = document.getElementById('bgGrid');
@@ -614,7 +629,7 @@ async function runAll() {
     if (s.delay > 0) showToast(s.toast, '');
   }, s.delay));
   try {
-    const res = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '', artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '', customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '' }) });
+    const res = await fetch(API_BASE, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle: chogBaseUrl, genModel: selectedGenModel, bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '', artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '', customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '' }) });
     stageTimers.forEach(clearTimeout);
     const d = await res.json();
     if (!res.ok) throw new Error(d.error);

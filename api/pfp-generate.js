@@ -210,7 +210,7 @@ module.exports = async function handler(req, res) {
 };
 
 async function _handler(req, res) {
-  const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle, customPrompt } = req.body || {};
+  const { action, wallet, txHash, image, chogStyle, genModel, bgTemplate, artStyle, customPrompt } = req.body || {};
   const session = getSession(req);
 
   if (action === 'credits') {
@@ -322,26 +322,42 @@ async function _handler(req, res) {
 
     const prompt = `You are editing a cute cartoon hedgehog character (CHOG). Edit ONLY the transparent masked areas.\n\nPreserve EXACTLY: the character's face, eyes, nose, mouth, cheeks, body shape, and proportions. Keep the flat cartoon style, thick black outlines, and hand-drawn quality.\n\nIn the masked hair/top area: give the character this hair style — ${semantics.hair || 'styled hair'}.\nIn the masked clothing area: dress the character in — ${semantics.clothing || 'stylish outfit'}.\n${semantics.hat ? `Add headwear: ${semantics.hat}.\n` : ''}${semantics.glasses ? `Add eyewear: ${semantics.glasses}.\n` : ''}\nDO NOT add weapons, swords, guns, or any held items. DO NOT change the face. DO NOT add extra limbs or change the pose.\n${bgPart}${extraPart}${stylePart}`;
 
-    // STEP 5: gpt-image-1 surgical edit (base image + mask at matching dimensions)
-    const form = new FormData();
-    form.append('model', 'gpt-image-1');
-    form.append('prompt', prompt);
-    form.append('n', '1');
-    form.append('size', '1024x1024');
-    form.append('quality', 'medium');
-    form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'base.jpg');
-    form.append('mask',  new Blob([maskBuffer], { type: 'image/png'  }), 'mask.png');
+    // STEP 5: generate image (model-dependent)
+    const model = genModel || 'gpt-image-1';
+    let imageUrl;
 
-    const genRes = await fetch('https://api.openai.com/v1/images/edits', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
-      body: form,
-    });
-    const gd = await genRes.json();
-    if (gd.error) return res.status(500).json({ error: gd.error.message });
+    if (model === 'dall-e-3') {
+      // DALL·E 3: text-to-image generation (no edit API)
+      const chogPrompt = `A cute cartoon hedgehog character (CHOG) with a round face, big black dot eyes, small nose, rosy cheeks, flat cartoon style, thick black outlines, flat solid colors, no gradients, kawaii hand-drawn quality. The character has ${semantics.hair || 'stylized hair'}${semantics.hat ? `, wearing ${semantics.hat}` : ''}, dressed in ${semantics.clothing || 'casual outfit'}. DO NOT add weapons or held items.${bgPart ? ' ' + bgPart : ''}${extraPart}${stylePart}`;
+      const d3Res = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+        body: JSON.stringify({ model: 'dall-e-3', prompt: chogPrompt, n: 1, size: '1024x1024', quality: 'standard' }),
+      });
+      const d3 = await d3Res.json();
+      if (d3.error) return res.status(500).json({ error: d3.error.message });
+      imageUrl = d3.data[0].url;
+    } else {
+      // gpt-image-1 or dall-e-2: edit endpoint with base image + mask
+      const form = new FormData();
+      form.append('model', model);
+      form.append('prompt', prompt);
+      form.append('n', '1');
+      form.append('size', '1024x1024');
+      if (model === 'gpt-image-1') form.append('quality', 'medium');
+      form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'base.jpg');
+      form.append('mask',  new Blob([maskBuffer], { type: 'image/png'  }), 'mask.png');
+      const genRes = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
+        body: form,
+      });
+      const gd = await genRes.json();
+      if (gd.error) return res.status(500).json({ error: gd.error.message });
+      const img = gd.data[0];
+      imageUrl = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
+    }
 
-    const img = gd.data[0];
-    const imageUrl = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
     const walletCreditsNow = walletRow ? walletRow.credits - 1 : (wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0);
