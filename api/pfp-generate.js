@@ -229,13 +229,17 @@ module.exports = async function handler(req, res) {
 
     // Step 2: text-only generation — no style reference image contamination
     // Full character spec produces consistent CHOG NFT style every time
-    const chogPrompt = `Flat 2D chibi cartoon NFT profile picture of CHOG character. Square frame composition: head centered in the upper 55% of the frame, shoulders and upper chest with outfit clearly visible in the lower 45%. Flat peach skin. Dark purple spiky hair with multiple sharp triangular spikes pointing up and outward, thick black outlines. Eyes: exactly two small solid black oval dots side by side, NO white sclera, NO shine, NO iris — just flat black dots. Round pink blush circle on each cheek. Tiny simple curved smile, no teeth. Bold thick solid black cartoon outlines on all shapes.
+    const chogPrompt = `Flat 2D chibi cartoon NFT profile picture in the exact style of the CHOG NFT collection.
 
-Outfit (must be clearly visible): ${outfit}.${extraPart}
+COMPOSITION (critical): The character is shown from the top of the hair spikes down to approximately waist level. The full head including all hair spikes fits within the top 45% of the square frame. The neck, shoulders, and outfit clearly fill the bottom 45% of the frame. There is a small gap of background visible above the tallest hair spike. Do NOT crop the hair or zoom in — this is a bust/portrait shot showing significant body.
 
-Background: ${bgPart}.
+CHARACTER: CHOG chibi character. Flat peach round face. Dark purple spiky hair with multiple sharp triangular spikes pointing upward, thick black outlines. Eyes: two large solid black oval dots, each with a small white shine spot. Round pink blush circles on each cheek. Small curved smile. Tiny stub body with visible hands. Bold thick black cartoon outlines on everything.
 
-Style: flat 2D illustration${stylePart}, zero gradients, zero shading, zero texture, bold solid colors only, clean crisp edges, square frame, CHOG NFT collection art style. The outfit and clothing must occupy the bottom third of the image.`;
+OUTFIT (must dominate the bottom half of the image): ${outfit}.${extraPart}
+
+BACKGROUND: ${bgPart}.
+
+STYLE: Flat 2D cartoon${stylePart}, bold solid colors, thick black outlines, zero gradients, zero shading, clean crisp edges, CHOG NFT collection art style. The character should feel like a collectible NFT — expressive, cute, with a clear personality shown through the outfit.`;
 
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
