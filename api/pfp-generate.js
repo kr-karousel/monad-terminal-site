@@ -406,8 +406,30 @@ DO NOT zoom out or show the full body. DO NOT redraw or re-render. DO NOT smooth
         }
         await new Promise(r => setTimeout(r, 3000)); // poll every 3s
       }
-      if (!fluxResult) return res.status(504).json({ error: 'Flux generation timeout — try again or use gpt-image-1.5' });
-      imageUrl = fluxResult.images?.[0]?.url;
+      if (!fluxResult) return res.status(504).json({ error: 'Flux generation timeout — try again' });
+
+      // Post-process: crop to CHOG close-up portrait format
+      // Flux tends to zoom out → force top-center crop so face fills frame like the base images
+      const rawFluxUrl = fluxResult.images?.[0]?.url;
+      if (rawFluxUrl) {
+        try {
+          const fluxImgRes = await fetch(rawFluxUrl);
+          const fluxImgBuf = Buffer.from(await fluxImgRes.arrayBuffer());
+          const fluxImg = await Jimp.read(fluxImgBuf);
+          const fw = fluxImg.getWidth();
+          const fh = fluxImg.getHeight();
+          // Crop: full width, top 62% of height — captures face+head, cuts off body/legs
+          const cropH = Math.floor(fh * 0.62);
+          fluxImg.crop(0, 0, fw, cropH);
+          fluxImg.resize(1024, 1024, Jimp.RESIZE_BICUBIC);
+          const croppedBuf = await fluxImg.getBufferAsync(Jimp.MIME_PNG);
+          imageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
+          console.log('[flux] post-crop applied:', fw, 'x', fh, '→ crop', fw, 'x', cropH, '→ 1024x1024');
+        } catch (e) {
+          console.warn('[flux] post-crop failed, using raw URL:', e.message);
+          imageUrl = rawFluxUrl;
+        }
+      }
 
     } else {
       // gpt-image-1.5 edits+mask path
