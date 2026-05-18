@@ -274,7 +274,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image } },
-              { type: 'text', text: 'Extract every visual style element of this character. Return ONLY this JSON (no markdown): {"hair": "color, shape, volume, texture of hair", "hat": "any hat, headwear, or object sitting on the head — describe exactly, or null", "face": "glasses, sunglasses, cigar, pipe, mask, or any face prop — describe exactly, or null", "outfit": "full outfit description — colors, patterns like stripes/dots, type of clothing, collar, any text/badge/patch with exact wording", "accessories": "anything else worn or carried on the body — scarves, belts, props, weapons — describe exactly, or null", "skin": "character skin/fur color if visible"}' }
+              { type: 'text', text: 'Extract every visual element of this character image. Return ONLY this JSON (no markdown): {"hair": "exact hair color, shape, volume and texture", "hat": "any hat, headwear, or object on top of the head — describe exactly, or null", "face": "glasses, cigar, pipe, mask, or face prop — describe exactly, or null", "expression": "describe the facial expression and mood — e.g. sassy, angry, smiling, serious", "outfit": "full outfit — every color, pattern (stripes, polka dots etc), garment type, collar, buttons, any text/badge/logo with exact wording and placement", "accessories": "scarves, belts, props, weapons, wings, or anything else on the body — describe exactly, or null", "background": "background color or scene description if visible"}' }
             ]
           }]
         }),
@@ -335,7 +335,29 @@ async function _handler(req, res) {
     if (genModel === 'flux') {
       if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
-      const fluxPrompt = `Redress the cartoon hedgehog character in this image with a new look: ${styleDescFlux} Keep the character's round face, large black eyes, and pink blush cheeks exactly as-is. Apply the new hair, hat, outfit and all accessories faithfully — including exact colors, patterns, and any text or badges. High quality cartoon illustration with clean thick outlines and vibrant flat colors.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+      const fluxBg = bgTemplate || semantics.background || 'solid flat blue background';
+      const fluxExpr = semantics.expression || 'neutral';
+
+      const fluxChanges = [
+        semantics.hair        ? `Hair changed to: ${semantics.hair}.`                        : null,
+        semantics.hat         ? `On the head: ${semantics.hat}.`                              : null,
+        semantics.face        ? `Face prop: ${semantics.face}.`                               : null,
+        semantics.outfit || semantics.clothing
+                              ? `Outfit: ${semantics.outfit || semantics.clothing}.`          : null,
+        semantics.accessories ? `Accessories/props: ${semantics.accessories}.`                : null,
+        `Expression: ${fluxExpr}.`,
+        `Background: ${fluxBg}.`,
+      ].filter(Boolean).join('\n');
+
+      const fluxPrompt = `This is CHOG — a chibi cartoon hedgehog with a big round head, small body, large glossy black eyes, pink blush circles on cheeks, a small dot nose, tiny mouth, and signature purple spiky hair. Art style: thick black outlines, flat solid colors, clean cartoon illustration, no gradients.
+
+Keep the CHOG character identity exactly: same round face shape, same large black eyes with white highlights, same pink blush cheeks, same small nose and mouth, same chibi proportions, same thick-outline cartoon art style.
+
+IMPORTANT CHANGES — apply ALL of these precisely:
+${fluxChanges}
+Close-up portrait framing: head and upper chest visible, character centered.
+
+Do NOT change the face shape, eye style, or cheek blush. Do NOT add realistic shading or photorealistic textures. Do NOT change the thick black outline cartoon style.${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
