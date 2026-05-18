@@ -321,18 +321,11 @@ async function _handler(req, res) {
       imageUrl = d3.data[0].url;
 
     } else if (model === 'gpt-image-1' || model === 'gpt-image-2') {
-      // GPT Image models: generate with CHOG base as style reference (no mask)
-      const form = new FormData();
-      form.append('model', model);
-      form.append('prompt', chogDesc);
-      form.append('n', '1');
-      form.append('size', '1024x1024');
-      form.append('quality', 'medium');
-      form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'chog_reference.jpg');
+      // GPT Image models: text-to-image generation (JSON only, no FormData)
       const genRes = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
-        body: form,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+        body: JSON.stringify({ model, prompt: chogDesc, n: 1, size: '1024x1024', quality: 'medium' }),
       });
       const gd = await genRes.json();
       if (gd.error) return res.status(500).json({ error: gd.error.message });
