@@ -338,13 +338,13 @@ async function _handler(req, res) {
       if (d3.error) return res.status(500).json({ error: d3.error.message });
       imageUrl = d3.data[0].url;
     } else {
-      // gpt-image-1 or dall-e-2: edit endpoint with base image + mask
+      // gpt-image-1 / gpt-image-2 / dall-e-2: edit endpoint with base image + mask
       const form = new FormData();
       form.append('model', model);
       form.append('prompt', prompt);
       form.append('n', '1');
       form.append('size', '1024x1024');
-      if (model === 'gpt-image-1') form.append('quality', 'medium');
+      if (model === 'gpt-image-1' || model === 'gpt-image-2') form.append('quality', 'medium');
       form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'base.jpg');
       form.append('mask',  new Blob([maskBuffer], { type: 'image/png'  }), 'mask.png');
       const genRes = await fetch('https://api.openai.com/v1/images/edits', {
