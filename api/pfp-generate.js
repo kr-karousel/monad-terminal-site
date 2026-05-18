@@ -130,6 +130,39 @@ async function getWalletRow(wallet) {
   return rows[0] || null;
 }
 
+async function uploadToStorage(imageData, wallet) {
+  const filename = `${wallet.toLowerCase().slice(2, 10)}_${Date.now()}.png`;
+  let buffer;
+  try {
+    if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+      buffer = Buffer.from(imageData.split(',')[1], 'base64');
+    } else {
+      const r = await fetch(imageData);
+      buffer = Buffer.from(await r.arrayBuffer());
+    }
+  } catch (e) { console.warn('[storage] buffer error:', e.message); return null; }
+
+  const r = await fetch(`${SB_URL}/storage/v1/object/pfp-history/${filename}`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${SB_KEY}`, 'apikey': SB_KEY, 'Content-Type': 'image/png', 'x-upsert': 'false' },
+    body: buffer,
+  });
+  if (!r.ok) { console.warn('[storage] upload failed:', r.status, await r.text()); return null; }
+  return `${SB_URL}/storage/v1/object/public/pfp-history/${filename}`;
+}
+
+async function addToWalletHistory(wallet, imageUrl) {
+  const row = await getWalletRow(wallet);
+  const prev = Array.isArray(row?.recent_history) ? row.recent_history : [];
+  const next = [imageUrl, ...prev].slice(0, 4);
+  await fetch(`${SB_URL}/rest/v1/pfp_credits`, {
+    method: 'POST',
+    headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+    body: JSON.stringify({ wallet: wallet.toLowerCase(), recent_history: next }),
+  });
+  return next;
+}
+
 async function upsertWallet(wallet, credits, usedTxhashes) {
   const body = { wallet: wallet.toLowerCase(), credits, used_txhashes: usedTxhashes };
   const r = await fetch(`${SB_URL}/rest/v1/pfp_credits`, {
@@ -211,8 +244,10 @@ async function _handler(req, res) {
       twitterRow = await getTwitterRow(session.id);
     }
     const twitterFree = !!(twitterRow && !twitterRow.used_free);
-    const walletCredits = wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0;
-    return res.json({ twitterFree, walletCredits, total: (twitterFree ? 1 : 0) + walletCredits });
+    const walletRow = wallet ? await getWalletRow(wallet) : null;
+    const walletCredits = walletRow?.credits ?? 0;
+    const history = walletRow?.recent_history || [];
+    return res.json({ twitterFree, walletCredits, total: (twitterFree ? 1 : 0) + walletCredits, history });
   }
 
   if (action === 'pay') {
@@ -362,10 +397,23 @@ async function _handler(req, res) {
 
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
+    // Upload to Supabase Storage and persist history per wallet
+    let persistentUrl = imageUrl;
+    let history = [];
+    if (wallet) {
+      try {
+        const stored = await uploadToStorage(imageUrl, wallet);
+        if (stored) {
+          persistentUrl = stored;
+          history = await addToWalletHistory(wallet, stored);
+        }
+      } catch (e) { console.warn('[history] failed:', e.message); }
+    }
+
     const walletCreditsNow = walletRow ? walletRow.credits - 1 : (wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0);
     const twitterFreeNow   = useTwitterFree ? false : (session ? !!(await getTwitterRow(session.id) && !(await getTwitterRow(session.id)).used_free) : false);
 
-    return res.json({ ok: true, url: imageUrl, twitterFree: twitterFreeNow, walletCredits: walletCreditsNow, total: (twitterFreeNow ? 1 : 0) + walletCreditsNow });
+    return res.json({ ok: true, url: persistentUrl, history, twitterFree: twitterFreeNow, walletCredits: walletCreditsNow, total: (twitterFreeNow ? 1 : 0) + walletCreditsNow });
   }
 
   return res.status(400).json({ error: 'Unknown action' });

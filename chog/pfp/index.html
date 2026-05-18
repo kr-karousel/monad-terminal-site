@@ -746,6 +746,10 @@ async function refreshCredits() {
   const d = await r.json();
   totalCredits = d.total ?? 0;
   updateCreditUI(d);
+  if (Array.isArray(d.history) && d.history.length) {
+    genHistory = d.history;
+    renderHistory();
+  }
 }
 
 function updateCreditUI(d) {
@@ -930,7 +934,12 @@ async function runAll() {
 
     resultUrl = d.url;
     updateCreditUI(d);
-    addToHistory(resultUrl);
+    if (Array.isArray(d.history) && d.history.length) {
+      genHistory = d.history;
+      renderHistory();
+    } else {
+      addToHistory(resultUrl);
+    }
     const rb = document.getElementById('resultBox');
     rb.innerHTML = `<img src="${resultUrl}" alt="CHOG PFP" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
     rb.classList.add('done');
