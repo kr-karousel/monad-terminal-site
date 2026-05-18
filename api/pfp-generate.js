@@ -303,12 +303,16 @@ async function _handler(req, res) {
       baseBuffer = rawBaseBuffer;
     }
 
+    const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
+
+    const sanitize = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
+
     const styleDesc = [
-      semantics.hair        ? `hair: ${semantics.hair}`                                       : null,
-      semantics.hat         ? `headwear: ${semantics.hat}`                                    : null,
-      semantics.face        ? `face item: ${semantics.face}`                                  : null,
-      `outfit: ${semantics.outfit || semantics.clothing || 'casual outfit'}`,
-      semantics.accessories ? `accessories: ${semantics.accessories}`                         : null,
+      semantics.hair        ? `hair: ${sanitize(semantics.hair)}`                                : null,
+      semantics.hat         ? `headwear: ${sanitize(semantics.hat)}`                             : null,
+      semantics.face        ? `face item: ${sanitize(semantics.face)}`                           : null,
+      `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
+      semantics.accessories ? `accessories: ${sanitize(semantics.accessories)}`                  : null,
     ].filter(Boolean).join(', ');
 
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
