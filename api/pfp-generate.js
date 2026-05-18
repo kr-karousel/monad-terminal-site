@@ -378,19 +378,25 @@ async function _handler(req, res) {
 
       const fluxPrompt = useComposite
         ? `This image has TWO PANELS side by side.
-LEFT PANEL: The CHOG character to edit — preserve face, eyes, cheeks, proportions, and background color exactly.
-RIGHT PANEL: 9 style reference examples — use as art style and framing guide only.
+LEFT PANEL: The CHOG character to edit. RIGHT PANEL: 9 style reference examples showing correct CHOG art style and close-up portrait framing.
 
-Edit ONLY the LEFT PANEL. Keep the same close-up portrait framing as the right panel examples show (face fills frame, head slightly cropped at top, shoulders/outfit visible).
+CHOG's fixed identity — never change these regardless of the reference character's appearance:
+- Purple spiky hair (always purple, always spiky)
+- Light cream skin tone
+- Large black eyes with white highlight
+- Pink blush circles on cheeks
+- Thick black outlines, flat solid colors, blue background
 
-ONLY apply these on the left character:
+Edit ONLY the LEFT PANEL. Apply the listed accessories on top. Match the close-up portrait framing shown in the RIGHT PANEL examples (face fills frame, head slightly cropped at top, shoulders visible).
+
+ONLY change:
 - ${fluxAdditions}
 
-Do NOT zoom out. Do NOT alter the background color. Do NOT change face features.${extraPart}`
-        : `Edit this CHOG character in-place. Keep face, eyes, cheeks, proportions, background color, and close-up portrait framing exactly as-is.
+Do NOT adopt the reference character's hair color, skin color, eye style, or art style. Only take the hat/outfit/accessories.${extraPart}`
+        : `Edit this CHOG character. Fixed identity — never change: purple spiky hair, light cream skin, large black eyes, pink cheek blush, thick black outlines, blue background.
 ONLY apply:
 - ${fluxAdditions}
-Do NOT zoom out. Do NOT redraw.${extraPart}`;
+Do NOT zoom out. Do NOT change hair color or skin tone.${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
