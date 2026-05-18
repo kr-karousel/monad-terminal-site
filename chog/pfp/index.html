@@ -81,11 +81,11 @@ h1{font-size:44px;font-weight:900;letter-spacing:-1.8px;line-height:1;margin-bot
 .x-logout{background:none;border:none;color:#4a3d6b;font-size:16px;cursor:pointer;padding:2px 4px;flex-shrink:0;}
 .x-logout:hover{color:#7c6fa0;}
 
-.wallet-row{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
-.wallet-btn{background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;flex-shrink:0;transition:all .22s;}
+.wallet-row{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.wallet-btn{background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;flex-shrink:0;transition:all .22s;align-self:flex-start;}
 .wallet-btn:hover{box-shadow:0 4px 22px rgba(138,92,246,.55);transform:translateY(-1px);}
-.wallet-info{display:none;flex:1;min-width:0;background:rgba(138,92,246,.06);border:1px solid rgba(138,92,246,.22);border-radius:12px;padding:9px 14px;font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;align-items:center;gap:10px;}
-.pay-btn{display:none;background:rgba(138,92,246,.12);border:1px solid rgba(138,92,246,.36);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.wallet-info{display:none;width:100%;background:rgba(138,92,246,.06);border:1px solid rgba(138,92,246,.22);border-radius:12px;padding:9px 14px;font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;gap:6px;}
+.pay-btn{display:none;width:100%;background:rgba(138,92,246,.12);border:1px solid rgba(138,92,246,.36);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;text-align:center;transition:all .2s;}
 .pay-btn:hover{background:rgba(138,92,246,.22);box-shadow:0 0 18px rgba(138,92,246,.28);}
 
 /* ── CREDIT DOTS ─────────────────── */
@@ -258,18 +258,16 @@ input[type=file]{display:none;}
   <!-- WALLET ROW -->
   <div class="wallet-row">
     <button id="walletBtn" class="wallet-btn" onclick="openWalletModal()">🔗 Connect Wallet</button>
-    <div id="walletInfo" class="wallet-info" style="flex-direction:column;align-items:flex-start;gap:6px;">
-      <div style="display:flex;align-items:center;gap:8px;width:100%;">
-        <span id="walletAddr" style="color:#7c6fa0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;flex:1;"></span>
-        <button onclick="disconnectWallet()" title="Disconnect" style="background:none;border:none;color:#4a3d6b;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;">✕</button>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+    <div id="walletInfo" class="wallet-info" style="display:none;flex-direction:row;align-items:center;gap:10px;">
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+        <span id="walletAddr" style="color:#7c6fa0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;"></span>
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;">GEN LEFT</span>
-          <span id="creditDisplay" style="font-size:13px;font-weight:900;letter-spacing:-0.3px;"></span>
+          <span style="font-size:10px;color:#6b5f8a;letter-spacing:1px;">GEN LEFT</span>
+          <span id="creditDisplay" style="font-size:14px;font-weight:900;letter-spacing:-0.3px;"></span>
+          <div id="creditDots" class="credit-dots"></div>
         </div>
-        <div id="creditDots" class="credit-dots"></div>
       </div>
+      <button onclick="disconnectWallet()" title="Disconnect" style="background:none;border:none;color:#4a3d6b;font-size:16px;cursor:pointer;padding:2px 4px;flex-shrink:0;">✕</button>
     </div>
     <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 0.1 MON → +5 generations</button>
   </div>
