@@ -336,14 +336,14 @@ async function _handler(req, res) {
       if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
       const fluxAdditions = [
-        // hair color intentionally excluded — CHOG's purple hair is always preserved
-        semantics.hairpin     ? `hair decoration (bow/ribbon/clip on the purple hair): ${semantics.hairpin}` : null,
+        semantics.hair        ? `hair (color and shape): ${semantics.hair}`                       : null,
+        semantics.hairpin     ? `hair decoration (bow/ribbon/clip): ${semantics.hairpin}`         : null,
         semantics.hat         ? `hat on head: ${semantics.hat}`                                   : null,
         semantics.face        ? `face accessory: ${semantics.face}`                               : null,
         semantics.outfit || semantics.clothing
                               ? `outfit visible on chest/shoulders: ${semantics.outfit || semantics.clothing}` : null,
         semantics.accessories ? `accessories: ${semantics.accessories}`                           : null,
-      ].filter(Boolean).join('\n- ') || 'no accessories — keep character as-is';
+      ].filter(Boolean).join('\n- ') || 'no changes — keep as-is';
 
       // Build composite: [base CHOG 1024x1024] | [example grid 1024x1024]
       // Upload to fal.ai storage → use URL as image_url for Flux
@@ -367,36 +367,39 @@ async function _handler(req, res) {
             headers: { 'Authorization': `Key ${FAL_KEY}` },
             body: upForm,
           });
+          const upText = await upRes.text();
+          console.log('[flux] storage upload status:', upRes.status, upText.slice(0, 200));
           if (upRes.ok) {
-            const upData = await upRes.json();
-            const uploaded = upData.url || upData.access_url;
-            if (uploaded) { fluxImageUrl = uploaded; useComposite = true; }
-            console.log('[flux] composite upload:', uploaded || 'failed');
+            let upData; try { upData = JSON.parse(upText); } catch {}
+            const uploaded = upData?.url || upData?.access_url;
+            if (uploaded) { fluxImageUrl = uploaded; useComposite = true; console.log('[flux] composite OK:', uploaded); }
+            else console.warn('[flux] upload ok but no url in response');
+          } else {
+            console.warn('[flux] storage upload failed:', upRes.status);
           }
         }
       } catch (e) { console.warn('[flux] composite skipped:', e.message); }
 
       const fluxPrompt = useComposite
         ? `This image has TWO PANELS side by side.
-LEFT PANEL: The CHOG character to edit. RIGHT PANEL: 9 style reference examples showing correct CHOG art style and close-up portrait framing.
+LEFT PANEL: The CHOG character to edit.
+RIGHT PANEL: 9 style reference examples — these show the correct CHOG art style and portrait framing to match.
 
-CHOG's fixed identity — never change these regardless of the reference character's appearance:
-- Purple spiky hair (always purple, always spiky)
-- Light cream skin tone
-- Large black eyes with white highlight
-- Pink blush circles on cheeks
-- Thick black outlines, flat solid colors, blue background
+FIXED (never change):
+- Face shape: round chibi face with large black eyes, white highlight, pink blush circles on cheeks
+- Art style: thick black outlines, flat solid colors, no gradients, no shading
+- Skin tone: light cream
+- Background: blue
+- Framing: extreme close-up portrait matching the RIGHT PANEL examples (face fills frame, head slightly cropped at top, shoulders/outfit visible)
 
-Edit ONLY the LEFT PANEL. Apply the listed accessories on top. Match the close-up portrait framing shown in the RIGHT PANEL examples (face fills frame, head slightly cropped at top, shoulders visible).
-
-ONLY change:
+APPLY these changes to the LEFT character:
 - ${fluxAdditions}
 
-Do NOT adopt the reference character's hair color, skin color, eye style, or art style. Only take the hat/outfit/accessories.${extraPart}`
-        : `Edit this CHOG character. Fixed identity — never change: purple spiky hair, light cream skin, large black eyes, pink cheek blush, thick black outlines, blue background.
-ONLY apply:
+Hair color and style CAN change to match the reference. Face shape and art style must stay exactly as shown in the RIGHT PANEL examples.${extraPart}`
+        : `Edit this CHOG character. Art style and face shape are fixed: thick black outlines, flat solid colors, round chibi face, large black eyes, pink blush, light skin, blue background.
+APPLY:
 - ${fluxAdditions}
-Do NOT zoom out. Do NOT change hair color or skin tone.${extraPart}`;
+Hair can change. Do NOT change face shape or art style.${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
