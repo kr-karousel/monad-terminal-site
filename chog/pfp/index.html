@@ -199,16 +199,16 @@ body.generating .gen-btn{
 .icon-btn:hover{background:rgba(138,92,246,.1);border-color:rgba(138,92,246,.5);box-shadow:0 0 14px rgba(138,92,246,.22);}
 
 /* ── DART ANIMATION ── */
-.style-dart{position:absolute;top:-20px;right:-20px;width:52px;height:52px;pointer-events:none;z-index:10;display:none;transform-origin:16% 84%;}
-.style-dart.fly{display:block;animation:dart-fly-in .55s cubic-bezier(.2,.8,.3,1.4) forwards;}
+.style-dart{position:absolute;top:-26px;right:-26px;width:64px;height:64px;pointer-events:none;z-index:10;display:none;transform-origin:21% 78%;}
+.style-dart.fly{display:block;animation:dart-fly-in .6s cubic-bezier(.2,.8,.3,1.35) forwards;}
 @keyframes dart-fly-in{
-  0%  {transform:translate(80px,-80px) rotate(0deg);opacity:0;}
-  28% {opacity:1;}
-  60% {transform:translate(0,0) rotate(0deg);}
-  68% {transform:rotate(8deg);}
-  76% {transform:rotate(-6deg);}
-  84% {transform:rotate(4deg);}
-  91% {transform:rotate(-2deg);}
+  0%  {transform:translate(90px,-90px);opacity:0;}
+  25% {opacity:1;}
+  58% {transform:translate(0,0);}
+  66% {transform:rotate(9deg);}
+  75% {transform:rotate(-7deg);}
+  83% {transform:rotate(4deg);}
+  90% {transform:rotate(-2deg);}
   100%{transform:rotate(0deg);opacity:1;}
 }
 
@@ -301,11 +301,26 @@ input[type=file]{display:none;}
           <img src="/chog/pfp/3.png" style="width:100%;display:block;aspect-ratio:1;object-fit:cover;">
         </div>
         <div id="styleDart3" class="style-dart fly">
-          <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <line x1="44" y1="8" x2="12" y2="40" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
-            <path d="M12 40L5 47L16 44Z" fill="#ef4444"/>
-            <path d="M44 8L36 5L40 14Z" fill="#a78bfa"/>
-            <path d="M44 8L47 16L40 14Z" fill="#7c3aed"/>
+          <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g transform="rotate(45,30,30)">
+              <!-- Tip: sharp silver cone -->
+              <path d="M27 47L30 57L33 47Z" fill="#e2e8f0"/>
+              <path d="M28.5 46L30 57L31.5 46Z" fill="#94a3b8"/>
+              <!-- Barrel: thick brass body with grip rings -->
+              <rect x="22" y="17" width="16" height="30" rx="3" fill="#b45309"/>
+              <rect x="24" y="17" width="6" height="30" rx="2" fill="#fbbf24" opacity="0.28"/>
+              <line x1="22" y1="24" x2="38" y2="24" stroke="#78350f" stroke-width="1.5"/>
+              <line x1="22" y1="30" x2="38" y2="30" stroke="#78350f" stroke-width="1.5"/>
+              <line x1="22" y1="36" x2="38" y2="36" stroke="#78350f" stroke-width="1.5"/>
+              <line x1="22" y1="42" x2="38" y2="42" stroke="#78350f" stroke-width="1.5"/>
+              <!-- Shaft: thin dark rod -->
+              <rect x="28" y="9" width="4" height="9" rx="1.5" fill="#475569"/>
+              <!-- Flights: 4 fins spreading from tail -->
+              <path d="M30 9L19 1L28 9Z" fill="#dc2626"/>
+              <path d="M30 9L41 1L32 9Z" fill="#b91c1c"/>
+              <path d="M30 9L20 18L28 9Z" fill="#7c3aed" opacity="0.7"/>
+              <path d="M30 9L40 18L32 9Z" fill="#6d28d9" opacity="0.7"/>
+            </g>
           </svg>
         </div>
       </div>
@@ -315,11 +330,26 @@ input[type=file]{display:none;}
           <img src="/chog/pfp/2.png" style="width:100%;display:block;aspect-ratio:1;object-fit:cover;">
         </div>
         <div id="styleDart2" class="style-dart">
-          <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <line x1="44" y1="8" x2="12" y2="40" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
-            <path d="M12 40L5 47L16 44Z" fill="#ef4444"/>
-            <path d="M44 8L36 5L40 14Z" fill="#a78bfa"/>
-            <path d="M44 8L47 16L40 14Z" fill="#7c3aed"/>
+          <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g transform="rotate(45,30,30)">
+              <!-- Tip: sharp silver cone -->
+              <path d="M27 47L30 57L33 47Z" fill="#e2e8f0"/>
+              <path d="M28.5 46L30 57L31.5 46Z" fill="#94a3b8"/>
+              <!-- Barrel: thick brass body with grip rings -->
+              <rect x="22" y="17" width="16" height="30" rx="3" fill="#b45309"/>
+              <rect x="24" y="17" width="6" height="30" rx="2" fill="#fbbf24" opacity="0.28"/>
+              <line x1="22" y1="24" x2="38" y2="24" stroke="#78350f" stroke-width="1.5"/>
+              <line x1="22" y1="30" x2="38" y2="30" stroke="#78350f" stroke-width="1.5"/>
+              <line x1="22" y1="36" x2="38" y2="36" stroke="#78350f" stroke-width="1.5"/>
+              <line x1="22" y1="42" x2="38" y2="42" stroke="#78350f" stroke-width="1.5"/>
+              <!-- Shaft: thin dark rod -->
+              <rect x="28" y="9" width="4" height="9" rx="1.5" fill="#475569"/>
+              <!-- Flights: 4 fins spreading from tail -->
+              <path d="M30 9L19 1L28 9Z" fill="#dc2626"/>
+              <path d="M30 9L41 1L32 9Z" fill="#b91c1c"/>
+              <path d="M30 9L20 18L28 9Z" fill="#7c3aed" opacity="0.7"/>
+              <path d="M30 9L40 18L32 9Z" fill="#6d28d9" opacity="0.7"/>
+            </g>
           </svg>
         </div>
       </div>
