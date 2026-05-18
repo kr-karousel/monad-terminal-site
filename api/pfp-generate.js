@@ -117,6 +117,24 @@ function verifySession(token) {
   catch { return null; }
 }
 
+function makeBatchToken(wallet) {
+  const payload = Buffer.from(JSON.stringify({ wallet: wallet.toLowerCase(), exp: Date.now() + 180000 })).toString('base64url');
+  const sig = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
+
+function verifyBatchToken(token, wallet) {
+  if (!token || !wallet) return false;
+  const [payload, sig] = token.split('.');
+  if (!payload || !sig) return false;
+  const expected = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  if (expected !== sig) return false;
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    return data.wallet === wallet.toLowerCase() && data.exp > Date.now();
+  } catch { return false; }
+}
+
 function getSession(req) {
   const cookies = parseCookies(req.headers.cookie);
   const raw = cookies['pfp_session'];
@@ -272,21 +290,37 @@ async function _handler(req, res) {
     if (!OPENAI_KEY) return res.status(500).json({ error: 'API key not configured' });
     if (!image)      return res.status(400).json({ error: 'image required' });
 
-    let useTwitterFree = false, walletRow = null;
-    if (session) {
-      let twitterRow = await getTwitterRow(session.id);
-      if (!twitterRow) { await ensureTwitterRow(session.id); twitterRow = await getTwitterRow(session.id); }
-      if (twitterRow && !twitterRow.used_free) useTwitterFree = true;
-    }
-    if (!useTwitterFree) {
-      if (!wallet) return res.status(402).json({ error: 'Connect X for 1 free generation, or pay 0.1 MON for more.' });
-      walletRow = await getWalletRow(wallet);
-      if (!walletRow || walletRow.credits < 1)
-        return res.status(402).json({ error: 'No credits left. Pay 0.1 MON to get 10 more.' });
-    }
+    const { batchMode, batchToken } = req.body || {};
+    let useTwitterFree = false, walletRow = null, outBatchToken = null;
 
-    if (useTwitterFree) await markFreeUsed(session.id);
-    else await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
+    if (batchToken) {
+      // Subsequent batch call — verify token, skip credit deduction
+      if (!wallet || !verifyBatchToken(batchToken, wallet))
+        return res.status(403).json({ error: 'Invalid or expired batch token' });
+    } else if (batchMode) {
+      // First batch call — deduct 10 credits atomically up front
+      if (!wallet) return res.status(402).json({ error: 'Wallet required for batch generate' });
+      walletRow = await getWalletRow(wallet);
+      if (!walletRow || walletRow.credits < 10)
+        return res.status(402).json({ error: 'Need 10 credits for batch generate. Pay 0.1 MON to top up.' });
+      await upsertWallet(wallet, walletRow.credits - 10, walletRow.used_txhashes || []);
+      outBatchToken = makeBatchToken(wallet);
+    } else {
+      // Normal single generation
+      if (session) {
+        let twitterRow = await getTwitterRow(session.id);
+        if (!twitterRow) { await ensureTwitterRow(session.id); twitterRow = await getTwitterRow(session.id); }
+        if (twitterRow && !twitterRow.used_free) useTwitterFree = true;
+      }
+      if (!useTwitterFree) {
+        if (!wallet) return res.status(402).json({ error: 'Connect X for 1 free generation, or pay 0.1 MON for more.' });
+        walletRow = await getWalletRow(wallet);
+        if (!walletRow || walletRow.credits < 1)
+          return res.status(402).json({ error: 'No credits left. Pay 0.1 MON to get 10 more.' });
+      }
+      if (useTwitterFree) await markFreeUsed(session.id);
+      else await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
+    }
 
     // Base image: 2.png or 3.png (default 3.png)
     const styleFilename = (chogStyle === '2') ? '2.png' : '3.png';
@@ -425,10 +459,17 @@ async function _handler(req, res) {
       } catch (e) { console.warn('[history] failed:', e.message); }
     }
 
-    const walletCreditsNow = walletRow ? walletRow.credits - 1 : (wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0);
-    const twitterFreeNow   = useTwitterFree ? false : (session ? !!(await getTwitterRow(session.id) && !(await getTwitterRow(session.id)).used_free) : false);
+    let walletCreditsNow;
+    if (batchMode) {
+      walletCreditsNow = walletRow.credits - 10;
+    } else if (batchToken) {
+      walletCreditsNow = wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0;
+    } else {
+      walletCreditsNow = walletRow ? walletRow.credits - 1 : (wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0);
+    }
+    const twitterFreeNow = useTwitterFree ? false : (session ? !!(await getTwitterRow(session.id) && !(await getTwitterRow(session.id)).used_free) : false);
 
-    return res.json({ ok: true, url: persistentUrl, history, twitterFree: twitterFreeNow, walletCredits: walletCreditsNow, total: (twitterFreeNow ? 1 : 0) + walletCreditsNow });
+    return res.json({ ok: true, url: persistentUrl, history, twitterFree: twitterFreeNow, walletCredits: walletCreditsNow, total: (twitterFreeNow ? 1 : 0) + walletCreditsNow, ...(outBatchToken ? { batchToken: outBatchToken } : {}) });
   }
 
   return res.status(400).json({ error: 'Unknown action' });

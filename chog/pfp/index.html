@@ -1140,10 +1140,10 @@ async function generateBatch() {
   const BATCH = 10;
   batchResults = [];
 
-  // Open modal immediately and pre-fill pending cells
-  const modal   = document.getElementById('batchModal');
-  const grid    = document.getElementById('batchGrid');
-  const title   = document.getElementById('batchModalTitle');
+  // Open modal and pre-fill pending cells
+  const modal    = document.getElementById('batchModal');
+  const grid     = document.getElementById('batchGrid');
+  const title    = document.getElementById('batchModalTitle');
   const closeBtn = document.getElementById('batchCloseBtn');
   const dlAllBtn = document.getElementById('batchDlAll');
   title.textContent = '🦔 GENERATING 10 PFPs...';
@@ -1154,69 +1154,78 @@ async function generateBatch() {
   ).join('');
   modal.classList.add('open');
 
-  // Lock buttons
   const genBtn   = document.getElementById('genBtn');
   const batchBtn = document.getElementById('batchBtn');
-  genBtn.disabled   = true;
-  batchBtn.disabled = true;
+  genBtn.disabled = true; batchBtn.disabled = true;
   document.body.classList.add('generating');
 
-  // Optimistic credit deduction display
+  // Deduct 10 credits upfront (optimistic UI update)
   const optimisticCredits = Math.max(0, totalCredits - BATCH);
   updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: optimisticCredits, total: optimisticCredits });
 
   const customPrompt = document.getElementById('promptSection').classList.contains('open')
     ? document.getElementById('customPrompt').value.trim() : '';
 
-  let doneCount = 0;
-  let lastHistory = null;
+  let doneCount = 0, lastHistory = null;
 
-  for (let i = 0; i < BATCH; i++) {
-    title.textContent = `🦔 GENERATING ${i + 1} / ${BATCH}...`;
+  // ── Step 1: first request with batchMode:true — deducts 10 credits, returns batchToken ──
+  let batchToken = null;
+  try {
+    const r0 = await fetch(API_BASE, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle, customPrompt, batchMode: true }),
+    });
+    const d0 = await r0.json();
+    if (!r0.ok) throw new Error(d0.error);
+    batchToken = d0.batchToken;
+    if (d0.history) lastHistory = d0.history;
+    if (d0.walletCredits !== undefined) updateCreditUI(d0);
+    batchResults.push(d0.url);
+    const cell0 = document.getElementById('bcell0');
+    cell0.className = 'batch-cell';
+    cell0.innerHTML = `<span class="batch-num">1</span><img src="${d0.url}" onclick="window.open('${d0.url}','_blank')"><button class="batch-crop" onclick="openCropModalUrl('${d0.url}')" title="Crop">✂</button><button class="batch-dl" onclick="downloadImage('${d0.url}','chog-pfp-batch-1.png')" title="Download">↓</button>`;
+    doneCount++;
+    title.textContent = '🦔 1 / 10 — 9 running in parallel...';
+  } catch (err) {
+    document.getElementById('bcell0').className = 'batch-cell err';
+    document.getElementById('bcell0').innerHTML = '✗';
+    title.textContent = `✗ Failed: ${err.message}`;
+    closeBtn.style.display = '';
+    document.body.classList.remove('generating');
+    genBtn.disabled = false; batchBtn.disabled = totalCredits < 10; genBtn.onclick = generatePFP;
+    return;
+  }
+
+  // ── Step 2: remaining 9 in parallel using batchToken (no credit deduction) ──
+  const remaining = Array.from({length: 9}, (_, i) => i + 1); // indices 1..9
+  await Promise.all(remaining.map(async (i) => {
     try {
       const res = await fetch(API_BASE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle, customPrompt }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle, customPrompt, batchToken }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
-
-      batchResults.push(d.url);
+      batchResults[i] = d.url;
       if (d.history) lastHistory = d.history;
-      if (d.walletCredits !== undefined) updateCreditUI(d);
-
-      // Fill the cell
       const cell = document.getElementById('bcell' + i);
       cell.className = 'batch-cell';
-      cell.innerHTML = `
-        <span class="batch-num">${i + 1}</span>
-        <img src="${d.url}" onclick="window.open('${d.url}','_blank')">
-        <button class="batch-crop" onclick="openCropModalUrl('${d.url}')" title="Crop">✂</button>
-        <button class="batch-dl"  onclick="downloadImage('${d.url}','chog-pfp-batch-${i+1}.png')" title="Download">↓</button>
-      `;
+      cell.innerHTML = `<span class="batch-num">${i+1}</span><img src="${d.url}" onclick="window.open('${d.url}','_blank')"><button class="batch-crop" onclick="openCropModalUrl('${d.url}')" title="Crop">✂</button><button class="batch-dl" onclick="downloadImage('${d.url}','chog-pfp-batch-${i+1}.png')" title="Download">↓</button>`;
       doneCount++;
+      title.textContent = `🦔 ${doneCount} / ${BATCH} done...`;
     } catch (err) {
       const cell = document.getElementById('bcell' + i);
-      cell.className = 'batch-cell err';
-      cell.innerHTML = '✗';
-      cell.title = err.message;
-      if (err.message.includes('No credits')) break; // stop if out of credits
+      cell.className = 'batch-cell err'; cell.innerHTML = '✗'; cell.title = err.message;
     }
-  }
+  }));
 
   // Done
   title.textContent = `✦ ${doneCount} / ${BATCH} PFPs GENERATED`;
-  closeBtn.style.display = '';
-  if (doneCount > 0) dlAllBtn.style.display = '';
+  closeBtn.style.display = ''; if (doneCount > 0) dlAllBtn.style.display = '';
   document.body.classList.remove('generating');
-  genBtn.disabled = false;
-  batchBtn.disabled = totalCredits < 10;
-  genBtn.onclick = generatePFP;
-
-  // Update history
+  genBtn.disabled = false; batchBtn.disabled = totalCredits < 10; genBtn.onclick = generatePFP;
   if (lastHistory) { genHistory = lastHistory; renderHistory(); }
-  else if (batchResults.length) { batchResults.forEach(u => addToHistory(u)); }
+  else { batchResults.filter(Boolean).forEach(u => addToHistory(u)); }
 }
 
 function closeBatchModal() {
