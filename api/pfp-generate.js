@@ -371,13 +371,13 @@ async function _handler(req, res) {
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const ART_STYLE = 'CHOG NFT art style: thick bold black outlines, flat solid colors with no gradients, large circular anime eyes, cute chibi proportions, bold graphic look';
+    const ART_STYLE = 'Art style: thick bold black outlines, flat solid colors, large circular anime eyes, cute chibi proportions';
 
     const COMPOSITION = chogStyle === '2'
-      ? 'Composition (LOCK — do not change): face angled left, bold diagonal crop, head and spikes partially cut off by frame edges, asymmetric — NOT centered, NOT fully in frame'
-      : 'Composition (LOCK — do not change): head and spikes partially cut off by frame edges, face off-center and diagonally cropped, asymmetric — NOT centered, NOT fully revealed';
+      ? '⚠ COMPOSITION IS THE #1 PRIORITY — copy the base image framing exactly: face turned left, strong diagonal crop, head and spikes cut off by frame edges, character is NOT centered, NOT fully visible. Do NOT reframe. Do NOT center. Do NOT show the full head.'
+      : '⚠ COMPOSITION IS THE #1 PRIORITY — copy the base image framing exactly: head and spikes cut off by the frame edges, face is off-center and diagonally cropped, asymmetric. Do NOT reframe. Do NOT center. Do NOT show the full head.';
 
-    const editPrompt = `${ART_STYLE}. ${COMPOSITION}. Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `${COMPOSITION} ${ART_STYLE}. Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
     // Fetch example.jpg as additional style reference
     let exampleBuffer = null;
