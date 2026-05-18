@@ -214,7 +214,7 @@ module.exports = async function handler(req, res) {
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: 'Analyze this image and return a JSON object with two fields: "skin" (the skin tone of the main character/person — e.g. "light peach", "warm brown", "dark brown", "golden tan", "pale ivory" — or "light peach" if no clear person) and "outfit" (clothing and accessories only: hats, eyewear, jacket/top color and style, tie, cape, hair accessories, held items, jewelry — short comma-separated list, max 50 words, exclude background). Return ONLY valid JSON like: {"skin":"...","outfit":"..."}' }
+            { type: 'text', text: 'Analyze this image and return a JSON object with two fields: "skin" (ONLY return a non-default value if the main human/character clearly has noticeably dark or deeply pigmented skin — e.g. "warm brown", "dark brown", "deep brown". If skin is light, pale, peach, cream, anime-style, cartoon white, or unclear, always return "light peach") and "outfit" (clothing and accessories only: hats, eyewear, jacket/top color and style, tie, cape, hair accessories, held items, jewelry — short comma-separated list, max 50 words, exclude face, skin, hair, background). Return ONLY valid JSON: {"skin":"...","outfit":"..."}' }
           ]
         }]
       }),
