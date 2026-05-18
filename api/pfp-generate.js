@@ -214,7 +214,7 @@ module.exports = async function handler(req, res) {
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: 'Analyze this image and return a JSON object with two fields: "skin" (ONLY return a non-default value if the main human/character clearly has noticeably dark or deeply pigmented skin — e.g. "warm brown", "dark brown", "deep brown". If skin is light, pale, peach, cream, anime-style, cartoon white, or unclear, always return "light peach") and "outfit" (clothing and accessories only: hats, eyewear, jacket/top color and style, tie, cape, hair accessories, held items, jewelry — short comma-separated list, max 50 words, exclude face, skin, hair, background). Return ONLY valid JSON: {"skin":"...","outfit":"..."}' }
+            { type: 'text', text: 'Analyze this image carefully and return ONLY valid JSON with two fields. "skin": return "light peach" unless the main character/person clearly has dark brown or black skin tone — if light/pale/cream/anime/cartoon, always return "light peach". "outfit": describe ALL visible items in detail — exact hat/crown style and material, jacket/shirt exact color and style, any small figures or accessories attached to the body, items held, jewelry, badges, patterns. Be specific and detailed (e.g. "gold crown with red gemstones, yellow hoodie with zipper, small gold skull figure on left shoulder"). Max 80 words. Return ONLY: {"skin":"...","outfit":"..."}' }
           ]
         }]
       }),
@@ -237,25 +237,39 @@ module.exports = async function handler(req, res) {
 
     // Step 2: text-only generation — no style reference image contamination
     // Full character spec produces consistent CHOG NFT style every time
-    const chogPrompt = `Flat 2D chibi cartoon NFT profile picture in the exact style of the CHOG NFT collection.
+    const styleSep = artStyle ? `, ${artStyle}` : '';
+    const chogPrompt = `High-quality CHOG NFT collection profile picture. Flat 2D chibi cartoon, professional NFT art.
 
-COMPOSITION (this is the signature CHOG NFT layout — follow exactly):
-- The character is deliberately positioned toward the RIGHT side of the square frame
-- LEFT side of the frame intentionally shows open background space (roughly 15-25% of width)
-- RIGHT side and BOTTOM: the outfit, arms, and body bleed OFF the frame edges — no right margin, no bottom margin
-- The head and face sit in the upper-center-to-right area
-- Hair spikes fan out to the upper-left, partially occupying the left background space
-- Top of hair spikes may be slightly cropped at the top edge
+VISUAL STYLE (critical — match CHOG NFT collection exactly):
+- Bold thick black outlines on every single shape and detail
+- Completely flat solid colors — absolutely zero gradients, zero shading, zero texture
+- Vivid highly saturated colors
+- Clean crisp hard edges throughout
+- Chibi proportions: oversized round head, tiny body
 
-CAMERA ANGLE: Slight 3/4 turn — character faces slightly to one side, both eyes visible. Classic CHOG NFT pose.
+COMPOSITION (CHOG NFT signature layout — follow exactly):
+- Character positioned toward the RIGHT side of the square frame
+- LEFT 20-25% of frame shows open background — this is intentional
+- RIGHT edge and BOTTOM edge: outfit and arms bleed off frame, no margin
+- Head sits in upper-center-right area; hair spikes fan to upper-left into the background space
+- Top of tallest hair spike may be slightly cropped at top edge
 
-CHARACTER: CHOG chibi character. Large round face with ${skinTone} skin color. Dark purple spiky hair with multiple sharp triangular spikes, thick black outlines. Eyes: two large solid black oval dots each with a white shine spot. Small round pink nose — always present. Round pink blush circles on each cheek. Small smile. Bold thick black cartoon outlines on everything.
+CAMERA ANGLE: Slight 3/4 turn (~20 degrees to one side). Both eyes fully visible. Classic CHOG NFT pose.
 
-OUTFIT (large, bleeds off right and bottom edges): ${outfit}.${extraPart}
+CHARACTER:
+- Large round face, ${skinTone} skin, bold black outline around face
+- Dark purple spiky hair: 6-8 sharp triangular spikes radiating outward, flat purple color, thick black outlines
+- Eyes: two large solid black circles with small white shine dot, slightly narrowed for expression
+- Small round pink dot nose — always present, always visible
+- Two round pink blush marks on cheeks
+- Small curved mouth/smile
+- Bold thick black outlines on every facial feature
+
+OUTFIT (recreate faithfully — fills lower half and bleeds off right/bottom edges): ${outfit}.${extraPart}
 
 BACKGROUND: ${bgPart}.
 
-STYLE: Flat 2D cartoon${stylePart}, bold solid colors, thick black outlines, zero gradients, zero shading, CHOG NFT collection art style.`;
+STYLE: Flat 2D NFT cartoon${styleSep}, bold black outlines, vivid saturated flat colors, zero gradients, professional CHOG NFT collection quality.`;
 
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -265,7 +279,7 @@ STYLE: Flat 2D cartoon${stylePart}, bold solid colors, thick black outlines, zer
         prompt: chogPrompt,
         n: 1,
         size: '1024x1024',
-        quality: 'medium',
+        quality: 'high',
       }),
     });
     const gd = await genRes.json();
