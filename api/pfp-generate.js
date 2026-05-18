@@ -344,6 +344,7 @@ async function _handler(req, res) {
 
     const styleDesc = [
       semantics.hair        ? `hair: ${sanitize(semantics.hair)}`                                : null,
+      semantics.hairpin     ? `hair accessory: ${sanitize(semantics.hairpin)}`                   : null,
       semantics.hat         ? `headwear: ${sanitize(semantics.hat)}`                             : null,
       semantics.face        ? `face item: ${sanitize(semantics.face)}`                           : null,
       `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
@@ -355,14 +356,14 @@ async function _handler(req, res) {
     // Zones: hair (above face) | face band y=0.32~0.58 PROTECTED | outfit (below face)
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.05, 0.03, 0.95, 0.32], // hair zone
-      [0.08, 0.58, 0.92, 0.95], // outfit zone
+      [0.08, 0.00, 0.92, 0.30], // hair zone — tighter sides
+      [0.10, 0.58, 0.90, 0.95], // outfit zone — tighter sides
     ];
-    if (semantics.hat)     editZones.push([0.15, 0.00, 0.85, 0.20]);
+    if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.22]);
     if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]);
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const editPrompt = `Generate in the style of the reference examples. Extreme close-up portrait: face fills the frame, top of head slightly cropped out, chin near the bottom edge. Apply: ${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The reference grid shows the exact composition to preserve: character head and spikes are partially cut off by the frame edges, face is off-center and diagonally cropped, asymmetric — NOT centered, NOT fully revealed. Maintain this identical framing and crop from the base image. Apply ONLY to the unmasked edit zones: ${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
 
     // Fetch example.jpg as additional style reference
     let exampleBuffer = null;
