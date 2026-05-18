@@ -1,6 +1,7 @@
 // Vercel serverless — CHOG PFP Studio
 const crypto = require('crypto');
 const zlib   = require('zlib');
+const Jimp   = require('jimp');
 
 const SB_URL  = 'https://phjolzvyewacjqausmxx.supabase.co';
 const SB_KEY  = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoam9senZ5ZXdhY2pxYXVzbXh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMDY5NzIsImV4cCI6MjA5MDY4Mjk3Mn0.XDNfHWN7NdzBHffE6-YgMMR8skNMR7blTJVu1EbvPrY';
@@ -297,8 +298,19 @@ async function _handler(req, res) {
     console.log('[generate] semantics:', JSON.stringify(semantics));
 
     if (!baseImgRes.ok) throw new Error(`Failed to load base image: ${baseImgRes.status}`);
-    const baseBuffer = Buffer.from(await baseImgRes.arrayBuffer());
-    console.log('[generate] base:', styleFilename, baseBuffer.length, 'bytes');
+    const rawBaseBuffer = Buffer.from(await baseImgRes.arrayBuffer());
+
+    // Nearest-neighbor upscale to 1024x1024 PNG — prevents API from smoothing/reinterpreting
+    let baseBuffer;
+    try {
+      const img = await Jimp.read(rawBaseBuffer);
+      img.resize(1024, 1024, Jimp.RESIZE_NEAREST_NEIGHBOR);
+      baseBuffer = await img.getBufferAsync(Jimp.MIME_PNG);
+      console.log('[generate] base upscaled:', styleFilename, baseBuffer.length, 'bytes');
+    } catch (e) {
+      console.warn('[generate] jimp failed, using raw buffer:', e.message);
+      baseBuffer = rawBaseBuffer;
+    }
 
     // STEP 3: build prompt
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
@@ -335,9 +347,10 @@ async function _handler(req, res) {
     if (model !== 'dall-e-2') {
       form.append('quality', 'medium');
       form.append('input_fidelity', 'high');
+      form.append('response_format', 'b64_json');
     }
-    form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'chog.jpg');
-    form.append('mask',  new Blob([maskBuffer], { type: 'image/png'  }), 'mask.png');
+    form.append('image', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
+    form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
 
     {
       const genRes = await fetch('https://api.openai.com/v1/images/edits', {
