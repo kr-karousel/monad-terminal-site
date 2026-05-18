@@ -323,7 +323,7 @@ async function _handler(req, res) {
     if (genModel === 'flux') {
       if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
-      const fluxPrompt = `Restyle the CHOG hedgehog cartoon character in the image with: ${styleDesc}. Follow the reference style's art direction for hair, outfit, and accessories — including weapons or props if part of the style. Keep the CHOG hedgehog body structure, face shape, pink cheeks, and overall cartoon art flow intact.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+      const fluxPrompt = `Restyle the CHOG hedgehog cartoon character in the image with: ${styleDesc}. Follow the reference style's art direction for hair, outfit, accessories, and details like badges or patches — including weapons or props if part of the style. Keep the CHOG hedgehog face shape, pink cheeks, and overall cartoon art flow intact. Composition: close-up bust portrait, character fills the entire frame, spiky hair extends to and slightly past the top edge of the frame (cropped), face positioned in the lower-center, same tight framing as the reference image — no empty space around the character.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
