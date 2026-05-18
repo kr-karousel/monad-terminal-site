@@ -342,28 +342,24 @@ async function _handler(req, res) {
         semantics.outfit || semantics.clothing
                               ? `outfit: ${semantics.outfit || semantics.clothing}`           : null,
         semantics.accessories ? `accessories: ${semantics.accessories}`                       : null,
-        semantics.expression  ? `expression: ${semantics.expression}`                         : null,
         (bgTemplate || semantics.background) ? `background: ${bgTemplate || semantics.background}` : null,
       ].filter(Boolean).join('\n- ');
 
-      const fluxPrompt = `The character in this image must remain visually identical. Do NOT redraw, re-render, reinterpret, or restyle this character.
+      const fluxPrompt = `This is a pixel-preserving edit. The composition must remain EXACTLY identical to the original image.
 
-Preserve exactly:
-- face shape, eye style, pink blush cheeks, purple spiky hair
-- chibi proportions and body structure
-- thick black outlines and flat solid colors
-- the exact same drawing quality and cartoon style
+Keep EXACTLY:
+- same crop and camera framing
+- same face position and head size
+- same character silhouette and body placement
+- same proportions and pose
+- same chibi cartoon art style with thick black outlines and flat solid colors
 
-ONLY add these items on top of the existing character:
+DO NOT zoom in, zoom out, recrop, reposition the character, redraw the pose, or alter the framing in any way.
+
+The final image must look like the SAME image with only these accessories applied on top:
 - ${fluxAdditions}
 
-Do NOT:
-- clean up or smooth the drawing
-- make it more polished or vectorized
-- alter proportions, face features, or eye style
-- change the art style in any way
-
-The result must look like the SAME original character with the new items added on top.${extraPart}`;
+Do NOT redraw, re-render, or reinterpret. Do NOT clean up lines or add shading. This is an accessory-only edit — 90% of pixels should remain unchanged.${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
@@ -372,7 +368,7 @@ The result must look like the SAME original character with the new items added o
         body: JSON.stringify({
           prompt: fluxPrompt,
           image_url: `https://monad-terminal.xyz/chog/pfp/${styleFilename}`,
-          guidance_scale: 2.5,
+          guidance_scale: 3,
           num_images: 1,
           output_format: 'png',
           safety_tolerance: '5',
