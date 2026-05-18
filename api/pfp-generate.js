@@ -123,7 +123,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle, customPrompt } = req.body || {};
+  const { action, wallet, txHash, image, chogStyle, bgTemplate, artStyle, customPrompt, model, promptVersion } = req.body || {};
   const session = getSession(req);
 
   // ── GET CREDITS ──────────────────────────────────
@@ -232,13 +232,9 @@ module.exports = async function handler(req, res) {
     }
 
     const bgPart = bgTemplate || 'solid flat bright blue background #00AAFF, no gradients';
-    const stylePart = artStyle ? `, ${artStyle}` : '';
-    const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
-    // Step 2: text-only generation — no style reference image contamination
-    // Full character spec produces consistent CHOG NFT style every time
-    const styleSep = artStyle ? `, ${artStyle}` : '';
-    const chogPrompt = `High-quality CHOG NFT collection profile picture. Flat 2D chibi cartoon, professional NFT art.
+    // ── Prompt v1: detailed spec (original) ──
+    const promptV1 = `High-quality CHOG NFT collection profile picture. Flat 2D chibi cartoon, professional NFT art.
 
 VISUAL STYLE (critical — match CHOG NFT collection exactly):
 - Bold thick black outlines on every single shape and detail
@@ -267,17 +263,31 @@ CHARACTER:
 - Small curved mouth/smile
 - Bold thick black outlines on every facial feature
 
-OUTFIT (recreate faithfully — fills lower half and bleeds off right/bottom edges): ${outfit}.${extraPart}
+OUTFIT (recreate faithfully — fills lower half and bleeds off right/bottom edges): ${outfit}.
 
 BACKGROUND: ${bgPart}.
 
-STYLE: Flat 2D NFT cartoon${styleSep}, bold black outlines, vivid saturated flat colors, zero gradients, professional CHOG NFT collection quality.`;
+STYLE: Flat 2D NFT cartoon, bold black outlines, vivid saturated flat colors, zero gradients, professional CHOG NFT collection quality.`;
+
+    // ── Prompt v2: simple (new default) ──
+    const promptV2 = `CHOG NFT profile picture. Flat 2D chibi cartoon, bold black outlines, vivid flat solid colors, zero gradients.
+
+COMPOSITION: Character right-shifted, left 20% open background, outfit and arms bleed off right and bottom edges, head fills top 35% of frame, slight 3/4 angle (~20°), both eyes visible.
+
+CHARACTER: Round face, ${skinTone} skin, dark purple spiky hair (6-8 sharp triangular spikes fanning upper-left), large solid black circle eyes with white shine dot, small round pink nose, pink blush cheeks, small smile. Bold thick black outlines everywhere.
+
+OUTFIT: ${outfit}.
+
+BACKGROUND: ${bgPart}.`;
+
+    const useModel = model || 'gpt-image-2';
+    const chogPrompt = promptVersion === 1 ? promptV1 : promptV2;
 
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
       body: JSON.stringify({
-        model: 'gpt-image-2',
+        model: useModel,
         prompt: chogPrompt,
         n: 1,
         size: '1024x1024',

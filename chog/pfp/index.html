@@ -302,6 +302,21 @@ input[type=file]{display:none;}
     </div>
   </div>
 
+  <!-- MODEL + PROMPT MODE -->
+  <div style="background:rgba(138,92,246,0.06);border:1px solid rgba(138,92,246,0.18);border-radius:14px;padding:12px 14px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:14px;">
+    <div style="flex:1;min-width:160px;">
+      <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:8px;">MODEL</div>
+      <div id="modelChips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
+    <div>
+      <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:8px;">PROMPT MODE</div>
+      <div style="display:flex;gap:6px;">
+        <button id="promptV1Btn" class="model-chip" onclick="setPromptVersion(1)">Detailed</button>
+        <button id="promptV2Btn" class="model-chip active" onclick="setPromptVersion(2)">Simple</button>
+      </div>
+    </div>
+  </div>
+
   <!-- PANELS -->
   <div class="panels">
     <div class="panel">
@@ -323,44 +338,6 @@ input[type=file]{display:none;}
       <div class="result-box" id="resultBox">
         <div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>
       </div>
-    </div>
-  </div>
-
-  <!-- BACKGROUND TEMPLATES -->
-  <div class="option-section" id="bgSection" style="margin-top:10px;">
-    <div class="option-header" onclick="toggleSection('bgSection')">
-      <div class="option-header-left">
-        <div class="option-checkbox"></div>
-        <span class="option-label">Background</span>
-        <span class="option-optional">(check to customize)</span>
-      </div>
-    </div>
-    <div class="option-body"><div class="bg-grid-sel" id="bgGrid"></div></div>
-  </div>
-
-  <!-- ART STYLE -->
-  <div class="option-section" id="styleSection">
-    <div class="option-header" onclick="toggleSection('styleSection')">
-      <div class="option-header-left">
-        <div class="option-checkbox"></div>
-        <span class="option-label">Art Style</span>
-        <span class="option-optional">(check to customize)</span>
-      </div>
-    </div>
-    <div class="option-body"><div class="style-chips" id="styleChips"></div></div>
-  </div>
-
-  <!-- CUSTOM PROMPT -->
-  <div class="option-section" id="promptSection">
-    <div class="option-header" onclick="toggleSection('promptSection')">
-      <div class="option-header-left">
-        <div class="option-checkbox"></div>
-        <span class="option-label">Additional Prompt</span>
-        <span class="option-optional">(check to customize)</span>
-      </div>
-    </div>
-    <div class="option-body">
-      <textarea id="customPrompt" placeholder="e.g. holding a sword, sitting on a throne, laughing..." style="width:100%;min-height:60px;background:rgba(255,255,255,.03);border:1px solid rgba(138,92,246,.2);border-radius:10px;padding:10px 13px;color:#d4c8f0;font-family:'Outfit',sans-serif;font-size:13px;line-height:1.55;resize:none;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor='rgba(138,92,246,.52)'" onblur="this.style.borderColor='rgba(138,92,246,.2)'"></textarea>
     </div>
   </div>
 
@@ -426,6 +403,13 @@ const ART_STYLES = [
   { id:'sketch',     label:'Sketch',     prompt:'pencil sketch style, hand-drawn rough graphite lines' },
 ];
 
+const MODELS = [
+  { id: 'gpt-image-1',            label: 'GPT-1' },
+  { id: 'gpt-image-1-5',          label: 'GPT-1.5' },
+  { id: 'gpt-image-2',            label: 'GPT-2', default: true },
+  { id: 'gpt-image-2-2025-04-26', label: 'GPT-2 04/26' },
+];
+
 let chogBaseUrl = CHOG_STYLE2;
 let b64 = null, resultUrl = null;
 let pfpWallet = null, pfpProvider = null;
@@ -433,41 +417,30 @@ let xSession = null;
 let totalCredits = 0;
 let selectedBg = BG_TEMPLATES[0];
 let selectedStyle = ART_STYLES[0];
+let selectedModel = 'gpt-image-2';
+let selectedPromptVersion = 2;
 
-/* ── COLLAPSIBLE SECTIONS ── */
-function toggleSection(id) {
-  document.getElementById(id).classList.toggle('open');
-}
-
-/* ── BUILD BG + STYLE SELECTORS ── */
+/* ── BUILD MODEL CHIPS ── */
 function buildSelectors() {
-  const bgGrid = document.getElementById('bgGrid');
-  BG_TEMPLATES.forEach((bg, i) => {
-    const el = document.createElement('div');
-    el.className = 'bg-swatch' + (i === 0 ? ' active' : '');
-    el.dataset.id = bg.id;
-    el.title = bg.label;
-    el.style.background = bg.color;
-    el.onclick = () => {
-      selectedBg = bg;
-      document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
-      el.classList.add('active');
-    };
-    bgGrid.appendChild(el);
-  });
-
-  const chips = document.getElementById('styleChips');
-  ART_STYLES.forEach((s, i) => {
+  const chips = document.getElementById('modelChips');
+  MODELS.forEach(m => {
     const el = document.createElement('button');
-    el.className = 'style-chip' + (i === 0 ? ' active' : '');
-    el.textContent = s.label;
+    el.className = 'model-chip' + (m.default ? ' active' : '');
+    el.textContent = m.label;
+    el.id = 'model_' + m.id.replace(/[^a-z0-9]/gi, '_');
     el.onclick = () => {
-      selectedStyle = s;
-      document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('active'));
+      selectedModel = m.id;
+      document.querySelectorAll('#modelChips .model-chip').forEach(c => c.classList.remove('active'));
       el.classList.add('active');
     };
     chips.appendChild(el);
   });
+}
+
+function setPromptVersion(v) {
+  selectedPromptVersion = v;
+  document.getElementById('promptV1Btn').classList.toggle('active', v === 1);
+  document.getElementById('promptV2Btn').classList.toggle('active', v === 2);
 }
 
 /* ── INIT: check session on load ── */
@@ -602,32 +575,46 @@ function getWalletName(p) {
 
 function openWalletModal() {
   const providers = getAllProviders();
-  if (!providers.length) { alert('No wallet detected. Please install MetaMask or Rabby.'); return; }
+  const providerByType = {};
+  for (const p of providers) providerByType[getWalletType(p)] = p;
 
   const list = document.getElementById('walletList');
   list.innerHTML = '';
 
-  const priority = ['backpack','metamask','phantom'];
-  const main = providers.filter(p => priority.includes(getWalletType(p)));
-  const others = providers.filter(p => !priority.includes(getWalletType(p)));
+  const TOP = [
+    { type: 'backpack', name: 'Backpack', icon: '🎒', url: 'https://www.backpack.app/' },
+    { type: 'metamask', name: 'MetaMask', icon: '🦊', url: 'https://metamask.io/download/' },
+    { type: 'phantom',  name: 'Phantom',  icon: '👻', url: 'https://phantom.app/download' },
+  ];
 
-  function addBtn(p) {
-    const w = getWalletName(p);
+  for (const w of TOP) {
+    const p = providerByType[w.type];
     const btn = document.createElement('button');
     btn.className = 'wallet-option';
-    btn.innerHTML = `<span class="wallet-icon">${w.icon}</span>${w.name}`;
-    btn.onclick = () => { closeWalletModal(); connectWithProvider(p); };
+    if (p) {
+      btn.innerHTML = `<span class="wallet-icon">${w.icon}</span><span>${w.name}</span>`;
+      btn.onclick = () => { closeWalletModal(); connectWithProvider(p); };
+    } else {
+      btn.innerHTML = `<span class="wallet-icon">${w.icon}</span><span style="flex:1">${w.name}</span><span style="font-size:10px;color:#6b5f8a;font-family:'Space Mono',monospace;">install →</span>`;
+      btn.onclick = () => window.open(w.url, '_blank');
+    }
     list.appendChild(btn);
   }
 
-  main.forEach(addBtn);
-
+  const others = providers.filter(p => !['backpack','metamask','phantom'].includes(getWalletType(p)));
   if (others.length) {
     const divider = document.createElement('div');
     divider.style.cssText = 'font-size:10px;font-family:Space Mono,monospace;color:#4a3d6b;letter-spacing:1px;text-align:center;padding:8px 0 4px;';
-    divider.textContent = 'OTHER';
+    divider.textContent = 'OTHER WALLETS';
     list.appendChild(divider);
-    others.forEach(addBtn);
+    for (const p of others) {
+      const w = getWalletName(p);
+      const btn = document.createElement('button');
+      btn.className = 'wallet-option';
+      btn.innerHTML = `<span class="wallet-icon">${w.icon}</span>${w.name}`;
+      btn.onclick = () => { closeWalletModal(); connectWithProvider(p); };
+      list.appendChild(btn);
+    }
   }
 
   document.getElementById('walletModal').style.display = 'flex';
@@ -938,9 +925,8 @@ async function runAll() {
         wallet: pfpWallet,
         image: b64,
         chogStyle: chogBaseUrl,
-        bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '',
-        artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '',
-        customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '',
+        model: selectedModel,
+        promptVersion: selectedPromptVersion,
       }),
     });
     stageTimers.forEach(clearTimeout);
