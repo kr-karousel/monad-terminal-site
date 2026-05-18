@@ -477,7 +477,8 @@ Keep: round chibi face, large black eyes, pink blush, thick black outlines, flat
       if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses strip (tight)
       const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-      const editPrompt = `Apply to the masked regions of this CHOG cartoon: ${styleDesc}.${extraPart} Keep CHOG's face, eyes, blush cheeks, and thick-outline flat-color art style exactly as-is.`;
+      // BACKUP PROMPT v1: `Apply to the masked regions of this CHOG cartoon: ${styleDesc}.${extraPart} Keep CHOG's face, eyes, blush cheeks, and thick-outline flat-color art style exactly as-is.`
+      const editPrompt = `${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
 
       const gptQuality = (quality === 'medium') ? 'medium' : 'high';
       const form = new FormData();

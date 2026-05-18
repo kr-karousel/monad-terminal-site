@@ -197,18 +197,6 @@ input[type=file]{display:none;}
   </div>
   <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 0.1 MON → +5 generations</button>
   <div class="style-row">
-    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">ENGINE</div>
-    <button id="modelFluxBtn" class="model-chip active" onclick="setGenModel('flux')">flux-kontext</button>
-    <button id="modelGptBtn"  class="model-chip"        onclick="setGenModel('gpt')">gpt-image-1.5</button>
-    <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← pick render engine</div>
-  </div>
-  <div class="style-row">
-    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">QUALITY</div>
-    <button id="qualityHighBtn"   class="model-chip active" onclick="setQuality('high')">high</button>
-    <button id="qualityMediumBtn" class="model-chip"        onclick="setQuality('medium')">medium</button>
-    <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← speed vs quality</div>
-  </div>
-  <div class="style-row">
     <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">BASE STYLE</div>
     <div id="style2Btn" class="style-thumb active" onclick="setChogStyle(2)"><img src="/chog/pfp/3.png" alt="Style 2"></div>
     <div id="style1Btn" class="style-thumb" onclick="setChogStyle(1)"><img src="/chog/pfp/2.png" alt="Style 1"></div>
@@ -578,18 +566,8 @@ function setChogStyle(n) {
   document.getElementById('style2Btn').classList.toggle('active', n === 2);
   document.getElementById('style3Btn').classList.toggle('active', n === 3);
 }
-let selectedGenModel = 'flux';
-function setGenModel(m) {
-  selectedGenModel = m;
-  document.getElementById('modelGptBtn').classList.toggle('active', m === 'gpt');
-  document.getElementById('modelFluxBtn').classList.toggle('active', m === 'flux');
-}
-let selectedQuality = 'high';
-function setQuality(q) {
-  selectedQuality = q;
-  document.getElementById('qualityHighBtn').classList.toggle('active', q === 'high');
-  document.getElementById('qualityMediumBtn').classList.toggle('active', q === 'medium');
-}
+const selectedGenModel = 'gpt';
+const selectedQuality  = 'high';
 function handleFile(e) {
   const f = e.target.files[0]; if (!f) return;
   const reader = new FileReader();
