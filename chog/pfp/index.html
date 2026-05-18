@@ -161,7 +161,8 @@ input[type=file]{display:none;}
 </style>
 </head>
 <body>
-<div class="bg-grid"></div>
+<canvas id="bgCanvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;"></canvas>
+<div class="bg-grid" style="opacity:0.3;"></div>
 <div class="wrap">
   <div class="header">
     <div class="badge"><div class="dot"></div>MONAD MAINNET · $CHOG</div>
@@ -618,6 +619,7 @@ async function runAll() {
   btn.disabled = true;
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('shareBtn').style.display = 'none';
+  setBgGenerating(true);
   document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">👀 CHOG is checking out your style...</div></div>';
   setStatus('🔍 Scanning your outfit... CHOG is very curious 🦔');
 
@@ -660,6 +662,7 @@ async function runAll() {
     setStatus('✦ CHOG is ready to slay! GM fren 🦔', 'ok');
     saveHistory(resultUrl);
     btn.disabled = false;
+    setBgGenerating(false);
     document.getElementById('genWarnBanner')?.remove();
     window.removeEventListener('beforeunload', beforeUnloadHandler);
   } catch (err) {
@@ -667,11 +670,80 @@ async function runAll() {
     document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
     if (err.message.includes('No credits') || err.message.includes('Pay')) document.getElementById('payBtn').style.display = 'block';
     setStatus('✗ ' + err.message, true); btn.disabled = false;
+    setBgGenerating(false);
     document.getElementById('genWarnBanner')?.remove();
     window.removeEventListener('beforeunload', beforeUnloadHandler);
   }
 }
 function generatePFP() { runAll(); }
+
+/* ── Background cube animation ─────────────────────────────── */
+(function() {
+  const canvas = document.getElementById('bgCanvas');
+  const ctx    = canvas.getContext('2d');
+  const SIZE   = 30, GAP = 3, STEP = SIZE + GAP;
+  const PALETTE = [
+    [138, 92,  246], // purple
+    [ 99,102,  241], // indigo
+    [ 59,130,  246], // blue
+    [ 20,184,  166], // teal
+    [236, 72,  153], // pink
+    [168, 85,  247], // violet
+  ];
+  let cols, rows, cubes, t = 0, waveT = 0;
+  let generating = false;
+
+  function init() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    cols = Math.ceil(canvas.width  / STEP) + 1;
+    rows = Math.ceil(canvas.height / STEP) + 1;
+    cubes = [];
+    for (let r = 0; r < rows; r++)
+      for (let c = 0; c < cols; c++)
+        cubes.push({
+          x: c * STEP, y: r * STEP, c, r,
+          rgb: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+          phase: Math.random() * Math.PI * 2,
+          spd:   0.25 + Math.random() * 0.4,
+        });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    t      += 0.012;
+    waveT  += generating ? 0.055 : 0;
+
+    for (const cb of cubes) {
+      let alpha;
+      if (generating) {
+        // diagonal wave ripple
+        const norm = (cb.c * 1.2 + cb.r) / (cols * 1.2 + rows);
+        const wave = (Math.sin(norm * Math.PI * 7 - waveT * 4) + 1) / 2;
+        alpha = 0.06 + wave * 0.38;
+      } else {
+        // slow subtle twinkle
+        const pulse = (Math.sin(t * cb.spd + cb.phase) + 1) / 2;
+        alpha = 0.03 + pulse * 0.13;
+      }
+
+      const [r, g, b] = cb.rgb;
+      ctx.save();
+      if (alpha > 0.1) {
+        ctx.shadowColor = `rgba(${r},${g},${b},0.9)`;
+        ctx.shadowBlur  = generating ? 14 : 8;
+      }
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      ctx.fillRect(cb.x, cb.y, SIZE, SIZE);
+      ctx.restore();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.setBgGenerating = v => { generating = v; if (v) waveT = 0; };
+  window.addEventListener('resize', init);
+  init(); draw();
+})();
 async function shareOnX() {
   const text = 'just turned my PFP into a CHOG 🦔\n\ntry it at monad-terminal.xyz/chog/pfp\n\n#CHOG #Monad';
   if (resultUrl) {
