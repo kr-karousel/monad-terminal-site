@@ -264,10 +264,11 @@ async function _handler(req, res) {
     else await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
 
     // STEP 1+2 in parallel: vision extraction + base image fetch
-    let styleFilename = 'CHOG.jpg';
+    let styleFilename = '2.png';
     if (chogStyle) {
-      if (chogStyle.includes('IMG_20260516')) styleFilename = 'IMG_20260516_025404_862.jpg';
-      else if (chogStyle.includes('CH_og'))   styleFilename = 'CH_og.jpg';
+      if (chogStyle.includes('3.png'))      styleFilename = '3.png';
+      else if (chogStyle.includes('CH_og')) styleFilename = 'CH_og.png';
+      else if (chogStyle.includes('2.png')) styleFilename = '2.png';
     }
 
     const [visionRes, baseImgRes] = await Promise.all([
