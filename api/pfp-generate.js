@@ -339,7 +339,7 @@ async function _handler(req, res) {
 
     const styleDesc = [
       semantics.hair        ? `hair: ${sanitize(semantics.hair)}`                                                                          : null,
-      semantics.hairpin     ? `hair accessory (IMPORTANT — render prominently): ${sanitize(semantics.hairpin)}`                            : null,
+      semantics.hairpin     ? `hair accessory: ${sanitize(semantics.hairpin)}`                                                             : null,
       semantics.hat         ? `headwear: ${sanitize(semantics.hat)}`                                                                        : null,
       semantics.face        ? `face detail: ${sanitize(semantics.face)}`                                                                    : null,
       chogStyle === '2'     ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                        : null,
@@ -347,16 +347,28 @@ async function _handler(req, res) {
       semantics.accessories ? `accessories: ${sanitize(semantics.accessories)}`                                                             : null,
     ].filter(Boolean).join('; ');
 
+    // Build mandatory items reminder — things that must visibly appear in output
+    const mandatoryItems = [
+      semantics.hat         ? sanitize(semantics.hat)         : null,
+      semantics.hairpin     ? sanitize(semantics.hairpin)     : null,
+      semantics.accessories ? sanitize(semantics.accessories) : null,
+      chogStyle === '2'     ? 'cigarette in mouth'            : null,
+    ].filter(Boolean);
+    const mandatoryReminder = mandatoryItems.length
+      ? ` MUST visibly appear in final image (do not omit any): ${mandatoryItems.join(', ')}.`
+      : '';
+
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.08, 0.00, 0.92, 0.30], // hair zone
+      [0.05, 0.00, 0.95, 0.32], // hair + top-of-head zone (wider for accessories)
       [0.10, 0.58, 0.90, 0.95], // outfit zone
     ];
-    if (chogStyle === '2') editZones.push([0.20, 0.55, 0.80, 0.70]);
-    if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.22]);
-    if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]);
+    if (chogStyle === '2')  editZones.push([0.20, 0.55, 0.80, 0.70]); // cigarette zone
+    if (semantics.hat)      editZones.push([0.05, 0.00, 0.95, 0.20]); // hat zone (very top)
+    if (semantics.hairpin)  editZones.push([0.05, 0.00, 0.95, 0.28]); // hairpin zone
+    if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const ART_STYLE = 'CHOG NFT art style: thick bold black outlines, flat solid colors with no gradients, large circular anime eyes, cute chibi proportions, bold graphic look';
@@ -365,7 +377,7 @@ async function _handler(req, res) {
       ? 'Composition (LOCK — do not change): face angled left, bold diagonal crop, head and spikes partially cut off by frame edges, asymmetric — NOT centered, NOT fully in frame'
       : 'Composition (LOCK — do not change): head and spikes partially cut off by frame edges, face off-center and diagonally cropped, asymmetric — NOT centered, NOT fully revealed';
 
-    const editPrompt = `${ART_STYLE}. ${COMPOSITION}. Apply ONLY to the unmasked edit zones — ${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `${ART_STYLE}. ${COMPOSITION}. Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
     // Fetch example.jpg as additional style reference
     let exampleBuffer = null;
