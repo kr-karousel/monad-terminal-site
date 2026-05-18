@@ -345,21 +345,24 @@ async function _handler(req, res) {
         (bgTemplate || semantics.background) ? `background: ${bgTemplate || semantics.background}` : null,
       ].filter(Boolean).join('\n- ');
 
-      const fluxPrompt = `This is a pixel-preserving edit. The composition must remain EXACTLY identical to the original image.
+      const fluxPrompt = `This is a pixel-preserving accessory edit of the input image. Do NOT change the composition or framing.
+
+CRITICAL FRAMING — must match input image exactly:
+- Extreme close-up portrait: the face fills 70-80% of the frame
+- The top of the head and hair are cropped/cut off at the top edge of the image
+- Only face and upper chest/shoulders are visible — NO full body, NO legs
+- Character is centered, face occupies most of the canvas
+- Same tight portrait crop as the input image
 
 Keep EXACTLY:
-- same crop and camera framing
-- same face position and head size
-- same character silhouette and body placement
-- same proportions and pose
-- same chibi cartoon art style with thick black outlines and flat solid colors
+- same crop, same camera distance, same face position and head size
+- same chibi cartoon art style: thick black outlines, flat solid colors, no gradients
+- same face features: large black eyes, pink blush circles on cheeks, small nose and mouth
 
-DO NOT zoom in, zoom out, recrop, reposition the character, redraw the pose, or alter the framing in any way.
-
-The final image must look like the SAME image with only these accessories applied on top:
+ONLY apply these changes on top of the existing character:
 - ${fluxAdditions}
 
-Do NOT redraw, re-render, or reinterpret. Do NOT clean up lines or add shading. This is an accessory-only edit — 90% of pixels should remain unchanged.${extraPart}`;
+DO NOT zoom out or show the full body. DO NOT redraw or re-render. DO NOT smooth lines or add shading. This is an accessory-only edit — the face and composition must remain unchanged.${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
