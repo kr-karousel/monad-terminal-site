@@ -361,16 +361,14 @@ async function _handler(req, res) {
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
-    // x2 (right boundary) capped at 0.68 — right 32% stays opaque/preserved
-    // so the base image's crop (frame cuts just past right eye) is mechanically enforced
     const editZones = [
-      [0.05, 0.00, 0.68, 0.32], // hair + top-of-head zone
-      [0.05, 0.58, 0.72, 0.95], // outfit zone
+      [0.05, 0.00, 0.95, 0.32], // hair + top-of-head zone (wider for accessories)
+      [0.10, 0.58, 0.90, 0.95], // outfit zone
     ];
-    if (chogStyle === '2')  editZones.push([0.15, 0.55, 0.65, 0.70]); // cigarette zone, left-biased
-    if (semantics.hat)      editZones.push([0.05, 0.00, 0.68, 0.20]); // hat zone (very top)
-    if (semantics.hairpin)  editZones.push([0.05, 0.00, 0.68, 0.28]); // hairpin zone
-    if (semantics.glasses)  editZones.push([0.22, 0.33, 0.65, 0.42]); // glasses zone
+    if (chogStyle === '2')  editZones.push([0.20, 0.55, 0.80, 0.70]); // cigarette zone
+    if (semantics.hat)      editZones.push([0.05, 0.00, 0.95, 0.20]); // hat zone (very top)
+    if (semantics.hairpin)  editZones.push([0.05, 0.00, 0.95, 0.28]); // hairpin zone
+    if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const ART_STYLE = 'Art style: thick bold black outlines, flat solid colors, large circular anime eyes, cute chibi proportions';
