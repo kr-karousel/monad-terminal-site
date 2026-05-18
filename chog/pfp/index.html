@@ -38,7 +38,7 @@
 }
 body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;}
 .bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(138,92,246,0.055) 1px,transparent 1px),linear-gradient(90deg,rgba(138,92,246,0.055) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
-.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:32px 20px 48px;}
+.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:32px 20px 48px;background:rgba(10,10,18,0.72);backdrop-filter:blur(2px);}
 .header{text-align:center;margin-bottom:28px;}
 .badge{display:inline-flex;align-items:center;gap:8px;background:rgba(138,92,246,0.14);border:1px solid rgba(138,92,246,0.35);border-radius:999px;padding:6px 18px;font-size:12px;font-family:'Space Mono',monospace;color:#c4b5fd;margin-bottom:14px;letter-spacing:1px;}
 .dot{width:7px;height:7px;background:var(--purple);border-radius:50%;animation:pulse 2s ease-in-out infinite;}
@@ -683,12 +683,10 @@ function generatePFP() { runAll(); }
   const ctx    = canvas.getContext('2d');
   const SIZE   = 30, GAP = 3, STEP = SIZE + GAP;
   const PALETTE = [
-    [138, 92,  246], // purple
-    [ 99,102,  241], // indigo
-    [ 59,130,  246], // blue
-    [ 20,184,  166], // teal
-    [236, 72,  153], // pink
-    [168, 85,  247], // violet
+    [138, 92, 246], // purple
+    [109, 40, 217], // purple-dark
+    [ 99,102, 241], // indigo
+    [ 79,114, 255], // blue-purple
   ];
   let cols, rows, cubes, t = 0, waveT = 0;
   let generating = false;
@@ -705,33 +703,31 @@ function generatePFP() { runAll(); }
           x: c * STEP, y: r * STEP, c, r,
           rgb: PALETTE[Math.floor(Math.random() * PALETTE.length)],
           phase: Math.random() * Math.PI * 2,
-          spd:   0.25 + Math.random() * 0.4,
+          spd:   0.06 + Math.random() * 0.08,
         });
   }
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    t      += 0.012;
-    waveT  += generating ? 0.055 : 0;
+    t     += 0.004;
+    waveT += generating ? 0.03 : 0;
 
     for (const cb of cubes) {
       let alpha;
       if (generating) {
-        // diagonal wave ripple
         const norm = (cb.c * 1.2 + cb.r) / (cols * 1.2 + rows);
         const wave = (Math.sin(norm * Math.PI * 7 - waveT * 4) + 1) / 2;
-        alpha = 0.06 + wave * 0.38;
+        alpha = 0.02 + wave * 0.18;
       } else {
-        // slow subtle twinkle
         const pulse = (Math.sin(t * cb.spd + cb.phase) + 1) / 2;
-        alpha = 0.03 + pulse * 0.13;
+        alpha = 0.01 + pulse * 0.055;
       }
 
       const [r, g, b] = cb.rgb;
       ctx.save();
-      if (alpha > 0.1) {
-        ctx.shadowColor = `rgba(${r},${g},${b},0.9)`;
-        ctx.shadowBlur  = generating ? 14 : 8;
+      if (alpha > 0.06) {
+        ctx.shadowColor = `rgba(${r},${g},${b},0.7)`;
+        ctx.shadowBlur  = generating ? 10 : 5;
       }
       ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
       ctx.fillRect(cb.x, cb.y, SIZE, SIZE);
