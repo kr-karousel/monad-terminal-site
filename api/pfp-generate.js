@@ -288,13 +288,8 @@ async function _handler(req, res) {
     if (useTwitterFree) await markFreeUsed(session.id);
     else await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
 
-    // STEP 1+2 in parallel: vision extraction + base image fetch
-    let styleFilename = '2.png';
-    if (chogStyle) {
-      if (chogStyle.includes('3.png'))      styleFilename = '3.png';
-      else if (chogStyle.includes('CH_og')) styleFilename = 'CH_og.png';
-      else if (chogStyle.includes('2.png')) styleFilename = '2.png';
-    }
+    // Base image fixed to 3.png
+    const styleFilename = '3.png';
 
     const [visionRes, baseImgRes] = await Promise.all([
       fetch('https://api.openai.com/v1/chat/completions', {
