@@ -478,7 +478,15 @@ Keep: round chibi face, large black eyes, pink blush, thick black outlines, flat
       const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
       // BACKUP PROMPT v1: `Apply to the masked regions of this CHOG cartoon: ${styleDesc}.${extraPart} Keep CHOG's face, eyes, blush cheeks, and thick-outline flat-color art style exactly as-is.`
-      const editPrompt = `${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
+      // BACKUP PROMPT v2: `${styleDesc}.${extraPart ? ' ' + extraPart : ''}`
+      const editPrompt = `Generate in the style of the reference examples. Apply: ${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
+
+      // Fetch example.jpg to send as additional style reference
+      let exampleBuffer = null;
+      try {
+        const exRes = await fetch('https://monad-terminal.xyz/chog/pfp/example.jpg');
+        if (exRes.ok) exampleBuffer = Buffer.from(await exRes.arrayBuffer());
+      } catch (e) { console.warn('[gpt] example fetch failed:', e.message); }
 
       const gptQuality = (quality === 'medium') ? 'medium' : 'high';
       const form = new FormData();
@@ -489,6 +497,7 @@ Keep: round chibi face, large black eyes, pink blush, thick black outlines, flat
       form.append('quality', gptQuality);
       form.append('input_fidelity', 'high');
       form.append('image', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
+      if (exampleBuffer) form.append('image', new Blob([exampleBuffer], { type: 'image/jpeg' }), 'example.jpg');
       form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
 
       const genRes = await fetch('https://api.openai.com/v1/images/edits', {
