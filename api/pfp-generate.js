@@ -325,7 +325,7 @@ async function _handler(req, res) {
 
       const fluxPrompt = `Take this CHOG hedgehog cartoon character and dress it with: ${styleDesc}. Keep the character's identity intact — same face, same eyes, same pink cheeks, same purple spiky hedgehog crown of hair. Keep the original simple cartoon art style with thick black outlines and flat colors. Do not change the character into a different style or species. No weapons or held objects.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
 
-      // Submit to async queue (sync endpoint exceeds Vercel 60s timeout)
+      // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
         method: 'POST',
         headers: { 'Authorization': `Key ${FAL_KEY}`, 'Content-Type': 'application/json' },
@@ -346,15 +346,16 @@ async function _handler(req, res) {
         return res.status(500).json({ error: submitData.detail || submitData.error || `fal.ai submit ${submitRes.status}` });
       }
 
-      const reqId = submitData.request_id;
-      const statusUrl = `https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${reqId}/status`;
-      const resultUrl = `https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${reqId}`;
-      const deadline = Date.now() + 50000; // 50s budget within Vercel 60s
+      // Use URLs from submit response
+      const statusUrl  = submitData.status_url  || `https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${submitData.request_id}/status`;
+      const resultUrl  = submitData.response_url || `https://queue.fal.run/fal-ai/flux-pro/kontext/requests/${submitData.request_id}`;
+      const deadline   = Date.now() + 54000; // 54s — leave 6s buffer before Vercel kills at 60s
+
+      await new Promise(r => setTimeout(r, 3000)); // initial wait before first poll
 
       let fluxResult;
       while (Date.now() < deadline) {
-        await new Promise(r => setTimeout(r, 2000));
-        const sRes = await fetch(statusUrl, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
+        const sRes  = await fetch(statusUrl, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
         const sData = await sRes.json().catch(() => ({}));
         if (sData.status === 'COMPLETED') {
           const rRes = await fetch(resultUrl, { headers: { 'Authorization': `Key ${FAL_KEY}` } });
@@ -364,8 +365,9 @@ async function _handler(req, res) {
         if (sData.status === 'FAILED') {
           return res.status(500).json({ error: `fal.ai FAILED: ${JSON.stringify(sData).slice(0, 300)}` });
         }
+        await new Promise(r => setTimeout(r, 3000)); // poll every 3s
       }
-      if (!fluxResult) return res.status(504).json({ error: 'Flux generation timeout (>50s)' });
+      if (!fluxResult) return res.status(504).json({ error: 'Flux generation timeout — try again or use gpt-image-1.5' });
       imageUrl = fluxResult.images?.[0]?.url;
 
     } else {
