@@ -33,154 +33,196 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --purple:#8b5cf6;--purple-dark:#6d28d9;--purple-light:#a78bfa;
-  --bg:#0a0a12;--panel:rgba(255,255,255,0.03);--border:rgba(138,92,246,0.22);
-  --text:#e8e0ff;--text-muted:#7c6fa0;--text-dim:#4a3d6b;
+  --bg:#07070f;--panel:rgba(255,255,255,0.025);--border:rgba(138,92,246,0.18);
+  --text:#ede8ff;--text-muted:#7c6fa0;--text-dim:#4a3d6b;
 }
 body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh;}
-.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(138,92,246,0.055) 1px,transparent 1px),linear-gradient(90deg,rgba(138,92,246,0.055) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
-.wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:32px 20px 48px;}
+
+/* Subtle scanline overlay — Monad terminal feel */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.025) 3px,rgba(0,0,0,0.025) 4px);pointer-events:none;z-index:4;}
+
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(138,92,246,0.038) 1px,transparent 1px),linear-gradient(90deg,rgba(138,92,246,0.038) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+
+.wrap{position:relative;z-index:3;max-width:780px;margin:0 auto;padding:36px 22px 52px;background:rgba(7,7,15,0.6);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-left:1px solid rgba(138,92,246,0.08);border-right:1px solid rgba(138,92,246,0.08);min-height:100vh;}
 
 /* ── HEADER ─────────────────────── */
-.header{text-align:center;margin-bottom:28px;}
-.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(138,92,246,0.14);border:1px solid rgba(138,92,246,0.35);border-radius:999px;padding:6px 18px;font-size:12px;font-family:'Space Mono',monospace;color:#c4b5fd;margin-bottom:14px;letter-spacing:1px;}
-.dot{width:7px;height:7px;background:var(--purple);border-radius:50%;animation:pulse 2s ease-in-out infinite;}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.45;transform:scale(.75);}}
-h1{font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1.1;margin-bottom:6px;}
-.purple{color:var(--purple-light);}
-.sub{font-size:13px;color:var(--text-muted);font-family:'Space Mono',monospace;}
+.header{text-align:center;margin-bottom:32px;}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(138,92,246,0.1);border:1px solid rgba(138,92,246,0.28);border-radius:999px;padding:5px 16px;font-size:11px;font-family:'Space Mono',monospace;color:#a78bfa;margin-bottom:16px;letter-spacing:1.5px;animation:fade-up .7s ease both;}
+@keyframes fade-up{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:none;}}
+.dot{width:6px;height:6px;background:#8b5cf6;border-radius:50%;box-shadow:0 0 10px rgba(138,92,246,.9);animation:dot-pulse 2s ease-in-out infinite;}
+@keyframes dot-pulse{0%,100%{opacity:1;box-shadow:0 0 10px rgba(138,92,246,.9);}50%{opacity:.4;box-shadow:0 0 4px rgba(138,92,246,.4);}}
+h1{font-size:44px;font-weight:900;letter-spacing:-1.8px;line-height:1;margin-bottom:8px;animation:fade-up .7s ease .08s both;}
+.purple{
+  background:linear-gradient(90deg,#7c3aed,#a78bfa,#c4b5fd,#a78bfa,#7c3aed);
+  background-size:300% auto;
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:title-shimmer 5s linear infinite;
+}
+@keyframes title-shimmer{to{background-position:300% center;}}
+.sub{font-size:13px;color:var(--text-muted);font-family:'Space Mono',monospace;animation:fade-up .7s ease .16s both;}
 
 /* ── HOWTO ───────────────────────── */
-.howto{background:rgba(109,40,217,0.08);border:1px solid rgba(138,92,246,0.2);border-radius:14px;padding:16px 20px;margin-bottom:20px;}
+.howto{background:rgba(109,40,217,0.06);border:1px solid rgba(138,92,246,0.15);border-radius:14px;padding:16px 20px;margin-bottom:20px;}
 .howto-title{font-size:11px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:10px;}
 .step{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;}
 .step:last-child{margin-bottom:0;}
-.step-num{width:22px;height:22px;background:rgba(138,92,246,0.25);border:1px solid rgba(138,92,246,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c4b5fd;flex-shrink:0;margin-top:1px;}
+.step-num{width:22px;height:22px;background:rgba(138,92,246,0.18);border:1px solid rgba(138,92,246,0.4);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#c4b5fd;flex-shrink:0;margin-top:1px;}
 .step-text{font-size:12.5px;color:#a89ec0;line-height:1.5;}
 
 /* ── AUTH ROW ────────────────────── */
 .auth-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
-
-.x-login-btn{display:flex;align-items:center;gap:8px;background:#000;border:1px solid rgba(255,255,255,.2);border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 18px;cursor:pointer;transition:all .2s;flex-shrink:0;}
-.x-login-btn:hover{background:#111;border-color:rgba(255,255,255,.4);}
+.x-login-btn{display:flex;align-items:center;gap:8px;background:#000;border:1px solid rgba(255,255,255,.18);border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 18px;cursor:pointer;transition:all .22s;flex-shrink:0;}
+.x-login-btn:hover{background:#111;border-color:rgba(255,255,255,.4);box-shadow:0 4px 18px rgba(0,0,0,.5);}
 .x-icon-sm{font-family:'Space Mono',monospace;font-weight:700;font-size:14px;}
-
-.x-session{display:none;align-items:center;gap:10px;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:8px 14px;flex:1;min-width:0;}
+.x-session{display:none;align-items:center;gap:10px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px 14px;flex:1;min-width:0;}
 .x-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;}
 .x-username{font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.x-free-badge{font-size:10px;font-family:'Space Mono',monospace;color:#86efac;background:rgba(134,239,172,.12);border:1px solid rgba(134,239,172,.3);border-radius:999px;padding:3px 10px;flex-shrink:0;white-space:nowrap;}
-.x-used-badge{font-size:10px;font-family:'Space Mono',monospace;color:#7c6fa0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:3px 10px;flex-shrink:0;white-space:nowrap;}
+.x-free-badge{font-size:10px;font-family:'Space Mono',monospace;color:#86efac;background:rgba(134,239,172,.1);border:1px solid rgba(134,239,172,.28);border-radius:999px;padding:3px 10px;flex-shrink:0;white-space:nowrap;}
+.x-used-badge{font-size:10px;font-family:'Space Mono',monospace;color:#7c6fa0;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:999px;padding:3px 10px;flex-shrink:0;white-space:nowrap;}
 .x-logout{background:none;border:none;color:#4a3d6b;font-size:16px;cursor:pointer;padding:2px 4px;flex-shrink:0;}
 .x-logout:hover{color:#7c6fa0;}
 
 .wallet-row{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
-.wallet-btn{background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;flex-shrink:0;}
-.wallet-info{display:none;flex:1;min-width:0;background:rgba(138,92,246,.08);border:1px solid rgba(138,92,246,.25);border-radius:12px;padding:9px 14px;font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;align-items:center;gap:10px;}
-.pay-btn{display:none;background:rgba(138,92,246,.15);border:1px solid rgba(138,92,246,.4);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;white-space:nowrap;}
-.pay-btn:hover{background:rgba(138,92,246,.25);}
+.wallet-btn{background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;padding:10px 20px;cursor:pointer;flex-shrink:0;transition:all .22s;}
+.wallet-btn:hover{box-shadow:0 4px 22px rgba(138,92,246,.55);transform:translateY(-1px);}
+.wallet-info{display:none;flex:1;min-width:0;background:rgba(138,92,246,.06);border:1px solid rgba(138,92,246,.22);border-radius:12px;padding:9px 14px;font-family:'Space Mono',monospace;font-size:12px;color:#c4b5fd;align-items:center;gap:10px;}
+.pay-btn{display:none;background:rgba(138,92,246,.12);border:1px solid rgba(138,92,246,.36);border-radius:12px;color:#c4b5fd;font-family:'Space Mono',monospace;font-size:11px;padding:10px 16px;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.pay-btn:hover{background:rgba(138,92,246,.22);box-shadow:0 0 18px rgba(138,92,246,.28);}
 
 /* ── CREDIT DOTS ─────────────────── */
 .credit-dots{display:flex;gap:5px;align-items:center;flex-shrink:0;}
 .cdot{width:9px;height:9px;border-radius:50%;transition:all .35s ease;}
-.cdot.on{background:#22c55e;box-shadow:0 0 8px rgba(34,197,94,.6),inset 0 0 2px rgba(255,255,255,.4);}
-.cdot.off{background:rgba(34,197,94,.08);box-shadow:inset 0 0 0 1px rgba(34,197,94,.15);}
+.cdot.on{background:#22c55e;box-shadow:0 0 8px rgba(34,197,94,.7),inset 0 0 2px rgba(255,255,255,.4);}
+.cdot.off{background:rgba(34,197,94,.06);box-shadow:inset 0 0 0 1px rgba(34,197,94,.12);}
 
 /* ── PANELS ──────────────────────── */
 .panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:6px;}
-.panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px;position:relative;overflow:hidden;}
-.panel::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(138,92,246,0.04),transparent 55%);pointer-events:none;}
+.panel{background:rgba(255,255,255,0.022);border:1px solid rgba(138,92,246,0.16);border-radius:16px;padding:14px;position:relative;overflow:hidden;transition:border-color .3s,box-shadow .3s;}
+.panel::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(138,92,246,0.05),transparent 60%);pointer-events:none;}
+.panel:hover{border-color:rgba(138,92,246,.38);box-shadow:0 0 28px rgba(138,92,246,.09),inset 0 1px 0 rgba(255,255,255,.04);}
 .panel-label{font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;}
 .panel-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.use-x-pfp{font-size:10px;font-family:'Space Mono',monospace;color:var(--purple);background:rgba(138,92,246,.1);border:1px solid rgba(138,92,246,.25);border-radius:6px;padding:3px 10px;cursor:pointer;transition:all .15s;}
-.use-x-pfp:hover{background:rgba(138,92,246,.2);}
+.use-x-pfp{font-size:10px;font-family:'Space Mono',monospace;color:var(--purple);background:rgba(138,92,246,.08);border:1px solid rgba(138,92,246,.22);border-radius:6px;padding:3px 10px;cursor:pointer;transition:all .15s;}
+.use-x-pfp:hover{background:rgba(138,92,246,.18);}
 
-.drop-zone{border:1.5px dashed rgba(138,92,246,0.3);border-radius:10px;aspect-ratio:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
-.drop-zone:hover{border-color:rgba(138,92,246,.7);}
-.drop-zone.dragging{border-color:var(--purple);background:rgba(138,92,246,.08);}
+.drop-zone{border:1.5px dashed rgba(138,92,246,0.24);border-radius:10px;aspect-ratio:1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.drop-zone:hover{border-color:rgba(138,92,246,.62);box-shadow:inset 0 0 24px rgba(138,92,246,.05);}
+.drop-zone.dragging{border-color:var(--purple);background:rgba(138,92,246,.07);box-shadow:inset 0 0 32px rgba(138,92,246,.12);}
 .drop-zone.has-img{border-style:solid;border-color:rgba(138,92,246,.45);}
-.dz-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(10,10,18,.38);}
+.dz-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(7,7,15,.35);}
 .dz-icon{font-size:28px;}
 .dz-text{font-size:13px;color:#e0d8ff;font-weight:600;}
 .dz-sub{font-size:11px;color:#a78bfa;font-family:'Space Mono',monospace;}
 
-.result-box{aspect-ratio:1;width:100%;border-radius:10px;background:rgba(138,92,246,.05);border:1px solid rgba(138,92,246,.14);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+/* Result box */
+.result-box{aspect-ratio:1;width:100%;border-radius:10px;background:rgba(138,92,246,.04);border:1px solid rgba(138,92,246,.12);display:flex;align-items:center;justify-content:center;overflow:hidden;transition:border-color .5s,box-shadow .5s;}
+.result-box.done{border-color:rgba(138,92,246,.55);box-shadow:0 0 0 1px rgba(138,92,246,.2),0 0 40px rgba(138,92,246,.18);}
 .result-box img{width:100%;height:100%;object-fit:cover;border-radius:10px;}
+.result-box.done img{animation:img-reveal .65s cubic-bezier(.22,.61,.36,1) both;}
+@keyframes img-reveal{from{opacity:0;filter:brightness(1.4) saturate(0);transform:scale(.97);}to{opacity:1;filter:none;transform:scale(1);}}
 .ph{display:flex;flex-direction:column;align-items:center;gap:8px;}
-.ph-icon{font-size:30px;}
+.ph-icon{font-size:30px;opacity:.35;}
 .ph-text{font-size:12px;color:var(--text-dim);font-family:'Space Mono',monospace;}
-.spinner-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;}
-.spinner{width:32px;height:32px;border:2px solid rgba(138,92,246,.2);border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite;}
+
+/* Dual-ring spinner */
+.spinner-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;}
+.spinner{width:38px;height:38px;position:relative;}
+.spinner::before,.spinner::after{content:'';position:absolute;border-radius:50%;}
+.spinner::before{inset:0;border:2px solid rgba(138,92,246,.12);border-top-color:var(--purple);animation:spin .75s linear infinite;}
+.spinner::after{inset:7px;border:1.5px solid rgba(168,85,247,.1);border-bottom-color:#a855f7;animation:spin 1.2s linear infinite reverse;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.spinner-text{font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;animation:blink 1.4s ease-in-out infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.35;}}
-@keyframes toastIn{from{transform:translateX(120%);opacity:0;}to{transform:translateX(0);opacity:1;}}
-@keyframes toastOut{from{transform:translateX(0);opacity:1;}to{transform:translateX(120%);opacity:0;}}
+.spinner-text{font-size:11px;color:#7c6fa0;font-family:'Space Mono',monospace;text-align:center;max-width:160px;animation:blink 1.6s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.28;}}
+@keyframes toastIn{from{transform:translateX(110%);opacity:0;}to{transform:none;opacity:1;}}
+@keyframes toastOut{from{opacity:1;}to{transform:translateX(110%);opacity:0;}}
 
 /* ── STYLE SWITCHER ──────────────── */
 .style-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
-.style-thumb{cursor:pointer;border-radius:10px;overflow:hidden;width:52px;height:52px;border:2px solid rgba(138,92,246,.25);flex-shrink:0;transition:all .2s;opacity:.6;}
-.style-thumb.active{border-color:var(--purple);box-shadow:0 0 10px rgba(138,92,246,.5);opacity:1;}
+.style-thumb{cursor:pointer;border-radius:10px;overflow:hidden;width:52px;height:52px;border:2px solid rgba(138,92,246,.18);flex-shrink:0;transition:all .22s;opacity:.5;}
+.style-thumb.active{border-color:var(--purple);box-shadow:0 0 16px rgba(138,92,246,.6),0 0 4px rgba(138,92,246,.4);opacity:1;}
+.style-thumb:hover:not(.active){opacity:.82;border-color:rgba(138,92,246,.42);}
 .style-thumb img{width:100%;height:100%;object-fit:cover;}
 
 /* ── COLLAPSIBLE SECTIONS ────────── */
-.option-section{background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;transition:border-color .2s;}
-.option-section.open{border-color:rgba(138,92,246,.5);}
-.option-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;user-select:none;}
-.option-header:hover{background:rgba(138,92,246,.05);}
+.option-section{background:rgba(255,255,255,.02);border:1px solid rgba(138,92,246,.14);border-radius:14px;margin-bottom:10px;overflow:hidden;transition:border-color .22s,box-shadow .22s;}
+.option-section.open{border-color:rgba(138,92,246,.4);box-shadow:0 0 18px rgba(138,92,246,.07);}
+.option-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;user-select:none;transition:background .15s;}
+.option-header:hover{background:rgba(138,92,246,.04);}
 .option-header-left{display:flex;align-items:center;gap:10px;}
 .option-label{font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;text-transform:uppercase;transition:color .2s;}
 .option-section.open .option-label{color:#c4b5fd;}
 .option-optional{font-size:9px;font-family:'Space Mono',monospace;color:#4a3d6b;letter-spacing:0;text-transform:none;}
-.option-checkbox{width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(138,92,246,.4);background:rgba(138,92,246,.05);display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0;}
-.option-section.open .option-checkbox{background:var(--purple);border-color:var(--purple);}
+.option-checkbox{width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(138,92,246,.35);background:rgba(138,92,246,.04);display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0;}
+.option-section.open .option-checkbox{background:var(--purple);border-color:var(--purple);box-shadow:0 0 8px rgba(138,92,246,.5);}
 .option-checkbox::after{content:'✓';font-size:11px;color:#fff;font-weight:700;opacity:0;transition:opacity .18s;}
 .option-section.open .option-checkbox::after{opacity:1;}
 .option-body{display:none;padding:0 14px 14px;}
 .option-section.open .option-body{display:block;}
 .bg-grid-sel{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px;}
 .bg-swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .18s;flex-shrink:0;}
-.bg-swatch:hover{transform:scale(1.12);}
-.bg-swatch.active{border-color:#fff;box-shadow:0 0 0 2px var(--purple);}
+.bg-swatch:hover{transform:scale(1.16);}
+.bg-swatch.active{border-color:#fff;box-shadow:0 0 0 2px var(--purple),0 0 12px rgba(138,92,246,.5);}
 .bg-swatch[data-id="white"]{border-color:rgba(138,92,246,.3);}
 .style-chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:4px;}
-.style-chip{font-size:11px;padding:5px 12px;border-radius:999px;border:1px solid rgba(138,92,246,.25);color:var(--text-muted);cursor:pointer;transition:all .15s;font-family:'Space Mono',monospace;background:transparent;}
+.style-chip{font-size:11px;padding:5px 12px;border-radius:999px;border:1px solid rgba(138,92,246,.2);color:var(--text-muted);cursor:pointer;transition:all .15s;font-family:'Space Mono',monospace;background:transparent;}
 .style-chip:hover{border-color:rgba(138,92,246,.5);color:var(--purple-light);}
-.style-chip.active{background:rgba(138,92,246,.25);border-color:var(--purple);color:#dbb8ff;}
+.style-chip.active{background:rgba(138,92,246,.2);border-color:var(--purple);color:#dbb8ff;box-shadow:0 0 10px rgba(138,92,246,.2);}
 
 /* ── BUTTONS ─────────────────────── */
-.btn-row{display:flex;gap:10px;align-items:center;margin-top:12px;}
-.gen-btn{flex:1;height:46px;background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:all .2s;position:relative;overflow:hidden;}
-.gen-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);pointer-events:none;}
-.gen-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(139,92,246,.42);}
-.gen-btn:active:not(:disabled){transform:scale(.98);}
-.gen-btn:disabled{opacity:.38;cursor:not-allowed;transform:none;}
-.icon-btn{width:46px;height:46px;background:rgba(255,255,255,.04);border:1px solid rgba(138,92,246,.25);border-radius:12px;color:var(--purple);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .15s;}
-.icon-btn:hover{background:rgba(138,92,246,.1);border-color:rgba(138,92,246,.5);}
+.btn-row{display:flex;gap:10px;align-items:center;margin-top:14px;}
 
-.share-btn{display:none;width:100%;height:42px;background:rgba(0,0,0,.8);border:1px solid rgba(255,255,255,.15);border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-top:10px;}
-.share-btn:hover{background:rgba(20,20,20,.9);border-color:rgba(255,255,255,.35);}
+/* Gen button — glows + pulses during generation */
+.gen-btn{flex:1;height:48px;background:linear-gradient(135deg,#6d28d9,#8b5cf6);border:none;border-radius:13px;color:#fff;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;}
+.gen-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transform:translateX(-100%);}
+.gen-btn:hover:not(:disabled)::before{animation:btn-shine .55s ease forwards;}
+@keyframes btn-shine{to{transform:translateX(100%);}}
+.gen-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 30px rgba(109,40,217,.5),0 0 60px rgba(138,92,246,.2);}
+.gen-btn:active:not(:disabled){transform:scale(.98);}
+.gen-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+body.generating .gen-btn{animation:gen-pulse 2s ease-in-out infinite;cursor:not-allowed;}
+@keyframes gen-pulse{
+  0%,100%{box-shadow:0 0 20px rgba(138,92,246,.45),0 0 0 0 rgba(138,92,246,.4);}
+  50%{box-shadow:0 0 40px rgba(138,92,246,.75),0 0 0 6px rgba(138,92,246,.0);}
+}
+
+/* Neon ring around gen btn during generation */
+.gen-btn-wrap{flex:1;position:relative;border-radius:14px;}
+.gen-btn-wrap::after{content:'';position:absolute;inset:-2px;border-radius:15px;background:conic-gradient(from 0turn,#6d28d9 0%,#a78bfa 25%,#6366f1 50%,#a78bfa 75%,#6d28d9 100%);opacity:0;transition:opacity .4s;z-index:0;}
+body.generating .gen-btn-wrap::after{opacity:1;animation:ring-spin 2.5s linear infinite;}
+@keyframes ring-spin{to{transform:rotate(1turn);}}
+.gen-btn-wrap .gen-btn{position:relative;z-index:1;width:100%;}
+
+.icon-btn{width:48px;height:48px;background:rgba(255,255,255,.03);border:1px solid rgba(138,92,246,.2);border-radius:12px;color:var(--purple);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .18s;}
+.icon-btn:hover{background:rgba(138,92,246,.1);border-color:rgba(138,92,246,.5);box-shadow:0 0 14px rgba(138,92,246,.22);}
+
+.share-btn{display:none;width:100%;height:42px;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;cursor:pointer;align-items:center;justify-content:center;gap:8px;transition:all .2s;margin-top:10px;}
+.share-btn:hover{background:rgba(20,20,20,.85);border-color:rgba(255,255,255,.3);box-shadow:0 4px 16px rgba(0,0,0,.4);}
 
 /* ── STATUS ──────────────────────── */
-.status{font-size:12px;color:#6b5f8a;margin-top:10px;min-height:16px;font-family:'Space Mono',monospace;}
+.status{font-size:12px;color:#6b5f8a;margin-top:10px;min-height:16px;font-family:'Space Mono',monospace;transition:color .2s;}
 .status.err{color:#f87171;}
 .status.ok{color:#86efac;}
 
 /* ── WALLET MODAL ────────────────── */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;display:flex;align-items:center;justify-content:center;}
-.modal{background:#0f0c1e;border:1px solid rgba(138,92,246,.35);border-radius:18px;padding:24px;width:300px;max-width:92vw;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+.modal{background:#090714;border:1px solid rgba(138,92,246,.3);border-radius:18px;padding:24px;width:300px;max-width:92vw;box-shadow:0 24px 64px rgba(0,0,0,.6),0 0 40px rgba(138,92,246,.08);}
 .modal-title{font-size:13px;font-family:'Space Mono',monospace;color:#c4b5fd;letter-spacing:1px;margin-bottom:16px;text-align:center;}
-.wallet-option{display:flex;align-items:center;gap:12px;width:100%;background:rgba(255,255,255,.03);border:1px solid rgba(138,92,246,.2);border-radius:12px;padding:13px 16px;cursor:pointer;margin-bottom:8px;transition:all .15s;color:#e8e0ff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;}
+.wallet-option{display:flex;align-items:center;gap:12px;width:100%;background:rgba(255,255,255,.025);border:1px solid rgba(138,92,246,.18);border-radius:12px;padding:13px 16px;cursor:pointer;margin-bottom:8px;transition:all .15s;color:#e8e0ff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;}
 .wallet-option:last-child{margin-bottom:0;}
-.wallet-option:hover{background:rgba(138,92,246,.12);border-color:rgba(138,92,246,.5);}
+.wallet-option:hover{background:rgba(138,92,246,.1);border-color:rgba(138,92,246,.48);box-shadow:0 0 14px rgba(138,92,246,.14);}
 .wallet-option img{width:30px;height:30px;border-radius:8px;}
-.wallet-option .wallet-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(138,92,246,.15);}
-.modal-cancel{width:100%;margin-top:10px;background:none;border:1px solid rgba(255,255,255,.08);border-radius:10px;color:#6b5f8a;font-family:'Space Mono',monospace;font-size:11px;padding:9px;cursor:pointer;transition:all .15s;}
-.modal-cancel:hover{border-color:rgba(255,255,255,.2);color:#a89ec0;}
+.wallet-option .wallet-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(138,92,246,.12);}
+.modal-cancel{width:100%;margin-top:10px;background:none;border:1px solid rgba(255,255,255,.07);border-radius:10px;color:#6b5f8a;font-family:'Space Mono',monospace;font-size:11px;padding:9px;cursor:pointer;transition:all .15s;}
+.modal-cancel:hover{border-color:rgba(255,255,255,.18);color:#a89ec0;}
 
 /* ── FOOTER ──────────────────────── */
-.footer{text-align:center;margin-top:28px;font-size:11px;color:#3a3055;font-family:'Space Mono',monospace;letter-spacing:1px;}
-.footer span{color:#5b4a8a;}
+.footer{text-align:center;margin-top:32px;font-size:11px;color:#2a2040;font-family:'Space Mono',monospace;letter-spacing:1px;}
+.footer span{color:#4a3d6b;}
 
 input[type=file]{display:none;}
+.model-chip{cursor:pointer;padding:6px 12px;border-radius:8px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.5px;color:#6b5f8a;border:1px solid rgba(138,92,246,.22);background:transparent;transition:all .2s;}
+.model-chip.active{background:rgba(138,92,246,.2);border-color:var(--purple);color:#dbb8ff;}
 </style>
 </head>
 <body>
@@ -219,29 +261,45 @@ input[type=file]{display:none;}
   <!-- WALLET ROW -->
   <div class="wallet-row">
     <button id="walletBtn" class="wallet-btn" onclick="openWalletModal()">🔗 Connect Wallet</button>
-    <div id="walletInfo" class="wallet-info">
-      <span id="walletAddr" style="color:#7c6fa0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
-      <span style="color:#3a3055;flex-shrink:0;">·</span>
-      <span id="creditDisplay" style="color:#a78bfa;font-weight:700;flex-shrink:0;"></span>
-      <div id="creditDots" class="credit-dots"></div>
-      <button onclick="disconnectWallet()" title="Disconnect" style="background:none;border:none;color:#4a3d6b;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;">✕</button>
+    <div id="walletInfo" class="wallet-info" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <div style="display:flex;align-items:center;gap:8px;width:100%;">
+        <span id="walletAddr" style="color:#7c6fa0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;flex:1;"></span>
+        <button onclick="disconnectWallet()" title="Disconnect" style="background:none;border:none;color:#4a3d6b;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;width:100%;">
+        <span id="creditDisplay" style="font-size:12px;font-weight:700;"></span>
+        <div id="creditDots" class="credit-dots"></div>
+      </div>
     </div>
     <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 0.1 MON → +5 generations</button>
   </div>
 
+  <!-- GENERATION COUNTER BANNER -->
+  <div id="genCountBanner" style="display:none;background:linear-gradient(135deg,rgba(109,40,217,0.18),rgba(138,92,246,0.1));border:1px solid rgba(138,92,246,0.3);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:none;">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.2px;margin-bottom:4px;">GENERATIONS LEFT</div>
+        <div id="genCountNum" style="font-size:26px;font-weight:900;color:#c4b5fd;line-height:1;letter-spacing:-0.5px;">0</div>
+      </div>
+      <div id="genCountDots" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:120px;"></div>
+    </div>
+  </div>
+
   <!-- CHOG STYLE SWITCHER -->
-  <div class="style-row">
-    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;white-space:nowrap;">BASE STYLE</div>
-    <div id="style2Btn" class="style-thumb active" onclick="setChogStyle(2)">
-      <img src="/chog/pfp/IMG_20260516_025404_862.jpg" alt="Style 2">
+  <div style="background:rgba(138,92,246,0.06);border:1px solid rgba(138,92,246,0.18);border-radius:14px;padding:12px 14px;margin-bottom:12px;">
+    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:10px;">BASE STYLE</div>
+    <div style="display:flex;gap:12px;align-items:center;">
+      <div id="style2Btn" class="style-thumb active" onclick="setChogStyle(2)" style="width:68px;height:68px;">
+        <img src="/chog/pfp/IMG_20260516_025404_862.jpg" alt="Style 2">
+      </div>
+      <div id="style1Btn" class="style-thumb" onclick="setChogStyle(1)" style="width:56px;height:56px;">
+        <img src="/chog/pfp/CHOG.jpg" alt="Style 1">
+      </div>
+      <div id="style3Btn" class="style-thumb" onclick="setChogStyle(3)" style="width:56px;height:56px;">
+        <img src="/chog/pfp/CH_og.jpg" alt="Style 3">
+      </div>
+      <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;line-height:1.5;">pick your<br>CHOG base</div>
     </div>
-    <div id="style1Btn" class="style-thumb" onclick="setChogStyle(1)">
-      <img src="/chog/pfp/CHOG.jpg" alt="Style 1">
-    </div>
-    <div id="style3Btn" class="style-thumb" onclick="setChogStyle(3)">
-      <img src="/chog/pfp/CH_og.jpg" alt="Style 3">
-    </div>
-    <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;">← pick CHOG art style</div>
   </div>
 
   <!-- PANELS -->
@@ -308,7 +366,9 @@ input[type=file]{display:none;}
 
   <!-- BUTTONS -->
   <div class="btn-row">
-    <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate CHOG PFP</button>
+    <div class="gen-btn-wrap">
+      <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate CHOG PFP</button>
+    </div>
     <button class="icon-btn" id="dlBtn" onclick="openResult()" style="display:none" title="Open image">⬇</button>
     <button class="icon-btn" onclick="resetAll()" title="Reset">↺</button>
   </div>
@@ -706,9 +766,9 @@ function updateCreditUI(d) {
     const wc = d.walletCredits;
     const disp = document.getElementById('creditDisplay');
     if (wc > 0) {
-      disp.innerHTML = `<span style="color:#86efac;">✦ ${wc} credit${wc === 1 ? '' : 's'} available</span>`;
+      disp.innerHTML = `<span style="color:#86efac;">✦ ${wc} credit${wc === 1 ? '' : 's'}</span>`;
     } else {
-      disp.innerHTML = `<span style="color:#fca5a5;">✗ 0 credits — pay to unlock</span>`;
+      disp.innerHTML = `<span style="color:#fca5a5;">✗ no credits</span>`;
     }
     const dots = document.getElementById('creditDots');
     dots.innerHTML = Array.from({length:5},(_,i) =>
@@ -717,6 +777,23 @@ function updateCreditUI(d) {
     document.getElementById('payBtn').style.display = wc < 3 ? 'block' : 'none';
   }
   totalCredits = d.total ?? 0;
+  // Update generation counter banner
+  const banner = document.getElementById('genCountBanner');
+  const freeLeft = (xSession && !xSession.usedFree && d.twitterFree !== false) ? 1 : 0;
+  const walletLeft = pfpWallet && d.walletCredits !== undefined ? d.walletCredits : 0;
+  const total = freeLeft + walletLeft;
+  if (total > 0 || pfpWallet) {
+    banner.style.display = 'block';
+    document.getElementById('genCountNum').textContent = total;
+    document.getElementById('genCountNum').style.color = total > 0 ? '#c4b5fd' : '#f87171';
+    const dotsEl = document.getElementById('genCountDots');
+    const maxDots = Math.max(total, 5);
+    dotsEl.innerHTML = Array.from({length: maxDots}, (_, i) =>
+      `<div class="cdot ${i < total ? 'on' : 'off'}"></div>`
+    ).join('');
+  } else {
+    banner.style.display = 'none';
+  }
   updateGenBtn();
 }
 
@@ -872,7 +949,9 @@ async function runAll() {
 
     resultUrl = d.url;
     updateCreditUI(d);
-    document.getElementById('resultBox').innerHTML = `<img src="${resultUrl}" alt="CHOG PFP" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    const rb = document.getElementById('resultBox');
+    rb.innerHTML = `<img src="${resultUrl}" alt="CHOG PFP" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    rb.classList.add('done');
     document.getElementById('dlBtn').style.display = 'flex';
     document.getElementById('shareBtn').style.display = 'flex';
     setStatus('✦ Your CHOG PFP is ready! GM fren 🦔', 'ok');
@@ -892,72 +971,157 @@ async function runAll() {
 
 function generatePFP() { runAll(); }
 
-/* ── Background cube animation ─────────────────────────────── */
+/* ── Monad particle network background ──────────────────────── */
 (function() {
   const canvas = document.getElementById('bgCanvas');
-  const ctx    = canvas.getContext('2d');
-  const SIZE   = 30, GAP = 3, STEP = SIZE + GAP;
+  const ctx = canvas.getContext('2d');
+
   const PALETTE = [
-    [138, 92, 246], // purple
-    [109, 40, 217], // purple-dark
-    [ 99,102, 241], // indigo
-    [ 79,114, 255], // blue-purple
+    [138, 92, 246],
+    [109, 40, 217],
+    [99, 102, 241],
+    [168, 85, 247],
+    [124, 58, 237],
   ];
-  let cols, rows, cubes, t = 0, waveT = 0;
+  const NODE_COUNT = 72;
+  const LINK_DIST  = 155;
+  const LINK_DIST_G = 200; // wider links during generation
+
+  let W, H, nodes, t = 0;
   let generating = false;
+  let rings = [];      // expanding wave rings
+  let packets = [];    // data packets travelling edges
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
 
   function init() {
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-    cols = Math.ceil(canvas.width  / STEP) + 1;
-    rows = Math.ceil(canvas.height / STEP) + 1;
-    cubes = [];
-    for (let r = 0; r < rows; r++)
-      for (let c = 0; c < cols; c++)
-        cubes.push({
-          x: c * STEP, y: r * STEP, c, r,
-          rgb: PALETTE[Math.floor(Math.random() * PALETTE.length)],
-          phase: Math.random() * Math.PI * 2,
-          spd:   0.06 + Math.random() * 0.08,
-        });
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    nodes = Array.from({length: NODE_COUNT}, () => ({
+      x: rand(0, W), y: rand(0, H),
+      vx: rand(-.25, .25), vy: rand(-.25, .25),
+      r: rand(1.8, 3.2),
+      phase: rand(0, Math.PI * 2),
+      spd: rand(0.35, 0.75),
+      rgb: PALETTE[Math.floor(Math.random() * PALETTE.length)],
+      glow: 0,
+    }));
+    rings = []; packets = [];
   }
 
+  function dsq(a, b) { return (a.x-b.x)**2 + (a.y-b.y)**2; }
+
   function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    t     += 0.004;
-    waveT += generating ? 0.03 : 0;
+    ctx.clearRect(0, 0, W, H);
+    t += 0.007;
 
-    for (const cb of cubes) {
-      let alpha, glowAlpha;
-      if (generating) {
-        const norm = (cb.c * 1.2 + cb.r) / (cols * 1.2 + rows);
-        const wave = (Math.sin(norm * Math.PI * 7 - waveT * 4) + 1) / 2;
-        alpha = 0.08 + wave * 0.52;
-        glowAlpha = wave;
-      } else {
-        const pulse = (Math.sin(t * cb.spd + cb.phase) + 1) / 2;
-        alpha = 0.06 + pulse * 0.28;
-        glowAlpha = pulse * 0.7;
+    /* move nodes */
+    for (const n of nodes) {
+      n.x += n.vx; n.y += n.vy;
+      if (n.x < 0 || n.x > W) { n.vx *= -1; n.x = Math.max(0, Math.min(W, n.x)); }
+      if (n.y < 0 || n.y > H) { n.vy *= -1; n.y = Math.max(0, Math.min(H, n.y)); }
+      const pulse = (Math.sin(t * n.spd + n.phase) + 1) / 2;
+      n.glow = generating ? 0.45 + pulse * 0.55 : 0.12 + pulse * 0.3;
+    }
+
+    /* wave rings */
+    if (generating && Math.random() < 0.025) {
+      rings.push({ x: W / 2, y: H / 2, r: 0, maxR: Math.hypot(W, H) * 0.7, spd: rand(2.5, 4) });
+    }
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const ring = rings[i];
+      ring.r += ring.spd;
+      const life = 1 - ring.r / ring.maxR;
+      if (life <= 0) { rings.splice(i, 1); continue; }
+      // boost nearby nodes
+      for (const n of nodes) {
+        if (Math.abs(Math.hypot(n.x - ring.x, n.y - ring.y) - ring.r) < 28)
+          n.glow = Math.min(1, n.glow + 0.55);
       }
-
-      const [r, g, b] = cb.rgb;
       ctx.save();
-      ctx.shadowColor = `rgba(${r},${g},${b},${glowAlpha.toFixed(2)})`;
-      ctx.shadowBlur  = generating ? 22 : 14;
-      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
-      ctx.fillRect(cb.x, cb.y, SIZE, SIZE);
-      if (alpha > 0.18) {
-        ctx.shadowBlur = generating ? 30 : 20;
-        ctx.strokeStyle = `rgba(${r},${g},${b},${Math.min(alpha * 1.6, 0.9)})`;
-        ctx.lineWidth = 0.8;
-        ctx.strokeRect(cb.x + 0.4, cb.y + 0.4, SIZE - 0.8, SIZE - 0.8);
-      }
+      ctx.beginPath();
+      ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(138,92,246,${(life * 0.38).toFixed(3)})`;
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = 'rgba(138,92,246,.7)';
+      ctx.shadowBlur = 14;
+      ctx.stroke();
       ctx.restore();
     }
+
+    const thresh = generating ? LINK_DIST_G : LINK_DIST;
+    const threshSq = thresh * thresh;
+
+    /* edges */
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const sq = dsq(nodes[i], nodes[j]);
+        if (sq > threshSq) continue;
+        const prox = 1 - Math.sqrt(sq) / thresh;
+        const avg = (nodes[i].glow + nodes[j].glow) / 2;
+        const a = prox * avg * (generating ? 0.65 : 0.3);
+        const [r, g, b] = nodes[i].rgb;
+        ctx.save();
+        if (a > 0.25) { ctx.shadowColor = `rgba(${r},${g},${b},.5)`; ctx.shadowBlur = 6; }
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.strokeStyle = `rgba(${r},${g},${b},${a.toFixed(3)})`;
+        ctx.lineWidth = generating ? 1.1 : 0.75;
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    /* data packets */
+    if (generating && Math.random() < 0.07) {
+      const i = Math.floor(Math.random() * nodes.length);
+      const j = Math.floor(Math.random() * nodes.length);
+      if (i !== j && dsq(nodes[i], nodes[j]) < LINK_DIST_G * LINK_DIST_G)
+        packets.push({ a: nodes[i], b: nodes[j], p: 0, spd: rand(0.012, 0.022) });
+    }
+    for (let i = packets.length - 1; i >= 0; i--) {
+      const pk = packets[i];
+      pk.p += pk.spd;
+      if (pk.p >= 1) { packets.splice(i, 1); continue; }
+      const px = pk.a.x + (pk.b.x - pk.a.x) * pk.p;
+      const py = pk.a.y + (pk.b.y - pk.a.y) * pk.p;
+      ctx.save();
+      ctx.shadowColor = 'rgba(196,181,253,.95)';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = 'rgba(220,200,255,.95)';
+      ctx.fillRect(px - 2.5, py - 2.5, 5, 5);
+      ctx.restore();
+    }
+
+    /* nodes */
+    for (const n of nodes) {
+      const [r, g, b] = n.rgb;
+      const nr = n.r * (1 + n.glow * 0.45);
+      ctx.save();
+      ctx.shadowColor = `rgba(${r},${g},${b},${n.glow.toFixed(2)})`;
+      ctx.shadowBlur = generating ? 22 : 12;
+      // halo
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, nr + 4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${(n.glow * 0.12).toFixed(3)})`;
+      ctx.fill();
+      // core
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, nr, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${(0.45 + n.glow * 0.55).toFixed(3)})`;
+      ctx.fill();
+      ctx.restore();
+    }
+
     requestAnimationFrame(draw);
   }
 
-  window.setBgGenerating = v => { generating = v; if (v) waveT = 0; };
+  window.setBgGenerating = v => {
+    generating = v;
+    document.body.classList.toggle('generating', v);
+    if (!v) { rings = []; packets = []; }
+  };
   window.addEventListener('resize', init);
   init(); draw();
 })();
@@ -1023,7 +1187,9 @@ function resetAll() {
   const dz2 = document.getElementById('dropZone');
   dz2.className = 'drop-zone';
   dz2.innerHTML = '<div class="dz-overlay"><div class="dz-icon">🖼</div><div class="dz-text">Drop your reference image</div><div class="dz-sub">any character · outfit · PFP</div></div>';
-  document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
+  const rb2 = document.getElementById('resultBox');
+  rb2.innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
+  rb2.classList.remove('done');
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('shareBtn').style.display = 'none';
   document.getElementById('genBtn').disabled = true;
