@@ -233,7 +233,7 @@ module.exports = async function handler(req, res) {
 
 COMPOSITION (critical): The character is shown from the top of the hair spikes down to approximately waist level. The full head including all hair spikes fits within the top 45% of the square frame. The neck, shoulders, and outfit clearly fill the bottom 45% of the frame. There is a small gap of background visible above the tallest hair spike. Do NOT crop the hair or zoom in — this is a bust/portrait shot showing significant body.
 
-CHARACTER: CHOG chibi character. Flat peach round face. Dark purple spiky hair with multiple sharp triangular spikes pointing upward, thick black outlines. Eyes: two large solid black oval dots, each with a small white shine spot. Round pink blush circles on each cheek. Small curved smile. Tiny stub body with visible hands. Bold thick black cartoon outlines on everything.
+CHARACTER: CHOG chibi character. Flat peach round face. Dark purple spiky hair with multiple sharp triangular spikes pointing upward, thick black outlines. Eyes: two large solid black oval dots, each with a small white shine spot. Small round pink dot nose in the center of the face — always present, never omitted. Round pink blush circles on each cheek. Small curved smile. Tiny stub body with visible hands. Bold thick black cartoon outlines on everything.
 
 OUTFIT (must dominate the bottom half of the image): ${outfit}.${extraPart}
 
