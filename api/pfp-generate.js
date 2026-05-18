@@ -338,7 +338,6 @@ async function _handler(req, res) {
     form.append('size', '1024x1024');
     form.append('quality', 'medium');
     form.append('input_fidelity', 'high');
-    form.append('response_format', 'b64_json');
     form.append('image', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
     form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
 
