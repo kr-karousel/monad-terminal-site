@@ -214,7 +214,7 @@ module.exports = async function handler(req, res) {
           role: 'user',
           content: [
             { type: 'image_url', image_url: { url: image } },
-            { type: 'text', text: 'Analyze this image carefully and return ONLY valid JSON with two fields. "skin": return "light peach" unless the main character/person clearly has dark brown or black skin tone — if light/pale/cream/anime/cartoon, always return "light peach". "outfit": describe ALL visible items in detail — exact hat/crown style and material, jacket/shirt exact color and style, any small figures or accessories attached to the body, items held, jewelry, badges, patterns. Be specific and detailed (e.g. "gold crown with red gemstones, yellow hoodie with zipper, small gold skull figure on left shoulder"). Max 80 words. Return ONLY: {"skin":"...","outfit":"..."}' }
+            { type: 'text', text: 'Analyze this image carefully and return ONLY valid JSON with two fields. "skin": ONLY return a non-peach value if this is clearly a REAL PHOTOGRAPH of a human person with visibly dark/brown skin. If the image is ANY form of cartoon, illustration, anime, drawing, sticker, NFT, or digital art — always return "light peach" no matter what. "outfit": describe every visible item in detail including (1) headwear ON TOP OF OR ABOVE the hair: crowns, hats, halos, bows, ribbons, pins, flowers — describe exactly; (2) clothing: jacket/shirt color and style; (3) body accessories: small figures on shoulders, items held, jewelry, badges, patterns. Be specific (e.g. "gold crown with red gemstone details on top of hair, yellow zip-up hoodie, small golden skull figure sitting on left shoulder"). Max 80 words. Return ONLY: {"skin":"...","outfit":"..."}' }
           ]
         }]
       }),
@@ -249,9 +249,11 @@ VISUAL STYLE (critical — match CHOG NFT collection exactly):
 
 COMPOSITION (CHOG NFT signature layout — follow exactly):
 - Character positioned toward the RIGHT side of the square frame
-- LEFT 20-25% of frame shows open background — this is intentional
+- LEFT 20-30% of frame shows open background — this is intentional and important
 - RIGHT edge and BOTTOM edge: outfit and arms bleed off frame, no margin
-- Head sits in upper-center-right area; hair spikes fan to upper-left into the background space
+- Head occupies the top 35-40% of frame height — NOT larger, do not zoom in
+- Outfit and body fill the bottom 55-60% of the frame
+- Hair spikes fan to upper-left into the background space
 - Top of tallest hair spike may be slightly cropped at top edge
 
 CAMERA ANGLE: Slight 3/4 turn (~20 degrees to one side). Both eyes fully visible. Classic CHOG NFT pose.
