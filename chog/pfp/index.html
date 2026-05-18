@@ -241,13 +241,20 @@ input[type=file]{display:none;}
   </div>
   <div class="btn-row">
     <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate CHOG PFP</button>
-    <button class="icon-btn" id="dlBtn" onclick="openResult()" style="display:none" title="Open image">⬇</button>
+    <button class="icon-btn" id="dlBtn" onclick="downloadResult()" style="display:none" title="Download">⬇</button>
     <button class="icon-btn" onclick="resetAll()" title="Reset">↺</button>
   </div>
   <button class="share-btn" id="shareBtn" onclick="shareOnX()">
     <span style="font-family:'Space Mono',monospace;font-weight:700;">𝕏</span> Share your CHOG PFP
   </button>
   <div class="status" id="statusMsg"></div>
+
+  <!-- Generation History -->
+  <div id="historySection" style="display:none;margin-top:20px;">
+    <div style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1.5px;margin-bottom:10px;">HISTORY</div>
+    <div id="historyGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;"></div>
+  </div>
+
   <div class="footer">made by <span>Karousel</span> · monad-terminal.xyz/chog/pfp</div>
 </div>
 <div id="walletModal" class="modal-bg" style="display:none;" onclick="if(event.target===this)closeWalletModal()">
@@ -319,6 +326,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (params.get('login') === 'ok') history.replaceState({}, '', '/chog/pfp');
   if (params.get('error')) setStatus('✗ X login failed: ' + params.get('error'), true);
   try { const r = await fetch('/api/pfp-session'); const d = await r.json(); if (d.loggedIn) setXSession(d); } catch {}
+  renderHistory();
 });
 function loginWithX() { window.location.href = '/api/twitter-auth'; }
 function logoutX() {
@@ -634,6 +642,7 @@ async function runAll() {
     document.getElementById('dlBtn').style.display = 'flex';
     document.getElementById('shareBtn').style.display = 'flex';
     setStatus('✦ Your CHOG PFP is ready! GM fren 🦔', 'ok');
+    saveHistory(resultUrl);
     btn.disabled = false;
   } catch (err) {
     stageTimers.forEach(clearTimeout);
@@ -677,7 +686,56 @@ function showToast(msg, type) {
   toast.textContent = msg; container.appendChild(toast);
   setTimeout(() => { toast.style.animation = 'toastOut .25s ease forwards'; setTimeout(() => toast.remove(), 250); }, type === true ? 6000 : 4000);
 }
-function openResult() { if (resultUrl) window.open(resultUrl, '_blank'); }
+async function downloadResult() {
+  if (!resultUrl) return;
+  try {
+    const res = await fetch(resultUrl);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'chog-pfp-' + Date.now() + '.png';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    window.open(resultUrl, '_blank');
+  }
+}
+
+const HISTORY_KEY = 'chog_pfp_history';
+const HISTORY_MAX = 20;
+
+function saveHistory(url) {
+  try {
+    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    hist.unshift({ url, ts: Date.now() });
+    if (hist.length > HISTORY_MAX) hist.length = HISTORY_MAX;
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+    renderHistory();
+  } catch (e) {}
+}
+
+function renderHistory() {
+  try {
+    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    const sec  = document.getElementById('historySection');
+    const grid = document.getElementById('historyGrid');
+    if (!hist.length) { sec.style.display = 'none'; return; }
+    sec.style.display = 'block';
+    grid.innerHTML = hist.map((h, i) =>
+      `<div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid rgba(138,92,246,.25);cursor:pointer;" onclick="viewHistory(${i})" title="${new Date(h.ts).toLocaleString()}">
+        <img src="${h.url}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.parentElement.style.display='none'">
+      </div>`
+    ).join('');
+  } catch (e) {}
+}
+
+function viewHistory(i) {
+  try {
+    const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    if (hist[i]) { resultUrl = hist[i].url; document.getElementById('resultBox').innerHTML = `<img src="${resultUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`; document.getElementById('dlBtn').style.display = 'flex'; document.getElementById('shareBtn').style.display = 'flex'; }
+  } catch (e) {}
+}
 function resetAll() {
   b64 = null; resultUrl = null;
   const dz2 = document.getElementById('dropZone'); dz2.className = 'drop-zone';
