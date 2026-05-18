@@ -335,29 +335,35 @@ async function _handler(req, res) {
     if (genModel === 'flux') {
       if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
-      const fluxBg = bgTemplate || semantics.background || 'solid flat blue background';
-      const fluxExpr = semantics.expression || 'neutral';
-
-      const fluxChanges = [
-        semantics.hair        ? `Hair changed to: ${semantics.hair}.`                        : null,
-        semantics.hat         ? `On the head: ${semantics.hat}.`                              : null,
-        semantics.face        ? `Face prop: ${semantics.face}.`                               : null,
+      const fluxAdditions = [
+        semantics.hair        ? `hair: ${semantics.hair}`                                     : null,
+        semantics.hat         ? `hat/headwear: ${semantics.hat}`                              : null,
+        semantics.face        ? `face prop: ${semantics.face}`                                : null,
         semantics.outfit || semantics.clothing
-                              ? `Outfit: ${semantics.outfit || semantics.clothing}.`          : null,
-        semantics.accessories ? `Accessories/props: ${semantics.accessories}.`                : null,
-        `Expression: ${fluxExpr}.`,
-        `Background: ${fluxBg}.`,
-      ].filter(Boolean).join('\n');
+                              ? `outfit: ${semantics.outfit || semantics.clothing}`           : null,
+        semantics.accessories ? `accessories: ${semantics.accessories}`                       : null,
+        semantics.expression  ? `expression: ${semantics.expression}`                         : null,
+        (bgTemplate || semantics.background) ? `background: ${bgTemplate || semantics.background}` : null,
+      ].filter(Boolean).join('\n- ');
 
-      const fluxPrompt = `This is CHOG — a chibi cartoon hedgehog with a big round head, small body, large glossy black eyes, pink blush circles on cheeks, a small dot nose, tiny mouth, and signature purple spiky hair. Art style: thick black outlines, flat solid colors, clean cartoon illustration, no gradients.
+      const fluxPrompt = `The character in this image must remain visually identical. Do NOT redraw, re-render, reinterpret, or restyle this character.
 
-Keep the CHOG character identity exactly: same round face shape, same large black eyes with white highlights, same pink blush cheeks, same small nose and mouth, same chibi proportions, same thick-outline cartoon art style.
+Preserve exactly:
+- face shape, eye style, pink blush cheeks, purple spiky hair
+- chibi proportions and body structure
+- thick black outlines and flat solid colors
+- the exact same drawing quality and cartoon style
 
-IMPORTANT CHANGES — apply ALL of these precisely:
-${fluxChanges}
-Close-up portrait framing: head and upper chest visible, character centered.
+ONLY add these items on top of the existing character:
+- ${fluxAdditions}
 
-Do NOT change the face shape, eye style, or cheek blush. Do NOT add realistic shading or photorealistic textures. Do NOT change the thick black outline cartoon style.${extraPart}`;
+Do NOT:
+- clean up or smooth the drawing
+- make it more polished or vectorized
+- alter proportions, face features, or eye style
+- change the art style in any way
+
+The result must look like the SAME original character with the new items added on top.${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
@@ -366,7 +372,7 @@ Do NOT change the face shape, eye style, or cheek blush. Do NOT add realistic sh
         body: JSON.stringify({
           prompt: fluxPrompt,
           image_url: `https://monad-terminal.xyz/chog/pfp/${styleFilename}`,
-          guidance_scale: 3.5,
+          guidance_scale: 2.5,
           num_images: 1,
           output_format: 'png',
           safety_tolerance: '5',
