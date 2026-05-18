@@ -618,8 +618,18 @@ async function runAll() {
   btn.disabled = true;
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('shareBtn').style.display = 'none';
-  document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
-  setStatus('🔍 Analyzing your reference image...');
+  document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">👀 CHOG is checking out your style...</div></div>';
+  setStatus('🔍 Scanning your outfit... CHOG is very curious 🦔');
+
+  // Warn user not to close/refresh
+  const warnBanner = document.createElement('div');
+  warnBanner.id = 'genWarnBanner';
+  warnBanner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(109,40,217,0.95);color:#fff;font-family:Space Mono,monospace;font-size:11px;text-align:center;padding:10px 16px;z-index:9998;letter-spacing:.5px;backdrop-filter:blur(8px);';
+  warnBanner.textContent = '✦ CHOG is getting dressed — please don\'t close or refresh this page! ✦';
+  document.body.appendChild(warnBanner);
+  const beforeUnloadHandler = e => { e.preventDefault(); e.returnValue = ''; };
+  window.addEventListener('beforeunload', beforeUnloadHandler);
+
   if (canUseXFree) {
     updateCreditUI({ twitterFree: false, walletCredits: pfpWallet ? totalCredits : 0, total: pfpWallet ? totalCredits : 0 });
   } else if (canUseWallet) {
@@ -627,10 +637,10 @@ async function runAll() {
     updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: newWalletCredits, total: newWalletCredits + (xSession && !xSession.usedFree ? 1 : 0) });
   }
   const stages = [
-    { delay:0,     text:'analyzing outfit...',  toast:'🔍 Analyzing outfit & accessories...' },
-    { delay:6000,  text:'composing CHOG...',    toast:'🎨 Composing CHOG with your outfit...' },
-    { delay:15000, text:'rendering details...', toast:'✨ Surgical edit rendering (30-60s)...' },
-    { delay:35000, text:'finalizing...',        toast:'🦔 Almost there...' },
+    { delay:0,     text:'👀 CHOG is checking out your style...',      toast:'👀 CHOG is studying your outfit very carefully...' },
+    { delay:6000,  text:'👗 CHOG is trying on your outfit...',         toast:'👗 CHOG is squeezing into that outfit right now...' },
+    { delay:15000, text:'💇 CHOG is getting a fresh hair appointment...',toast:'💇 The hairdresser is working on CHOG\'s look...' },
+    { delay:35000, text:'🪞 CHOG is checking the mirror...',           toast:'🪞 Almost done! CHOG is putting on the final touches...' },
   ];
   const stageTimers = stages.map(s => setTimeout(() => {
     const spinTxt = document.querySelector('.spinner-text');
@@ -647,14 +657,18 @@ async function runAll() {
     document.getElementById('resultBox').innerHTML = `<img src="${resultUrl}" alt="CHOG PFP" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
     document.getElementById('dlBtn').style.display = 'flex';
     document.getElementById('shareBtn').style.display = 'flex';
-    setStatus('✦ Your CHOG PFP is ready! GM fren 🦔', 'ok');
+    setStatus('✦ CHOG is ready to slay! GM fren 🦔', 'ok');
     saveHistory(resultUrl);
     btn.disabled = false;
+    document.getElementById('genWarnBanner')?.remove();
+    window.removeEventListener('beforeunload', beforeUnloadHandler);
   } catch (err) {
     stageTimers.forEach(clearTimeout);
     document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
     if (err.message.includes('No credits') || err.message.includes('Pay')) document.getElementById('payBtn').style.display = 'block';
     setStatus('✗ ' + err.message, true); btn.disabled = false;
+    document.getElementById('genWarnBanner')?.remove();
+    window.removeEventListener('beforeunload', beforeUnloadHandler);
   }
 }
 function generatePFP() { runAll(); }
