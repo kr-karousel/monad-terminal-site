@@ -342,6 +342,7 @@ async function _handler(req, res) {
       semantics.hairpin     ? `hair accessory: ${sanitize(semantics.hairpin)}`                   : null,
       semantics.hat         ? `headwear: ${sanitize(semantics.hat)}`                             : null,
       semantics.face        ? `face item: ${sanitize(semantics.face)}`                           : null,
+      chogStyle === '2'     ? `mouth: cigarette hanging from the corner of the mouth — REQUIRED, always visible, never omit` : null,
       `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
       semantics.accessories ? `accessories: ${sanitize(semantics.accessories)}`                  : null,
     ].filter(Boolean).join(', ');
@@ -354,6 +355,7 @@ async function _handler(req, res) {
       [0.08, 0.00, 0.92, 0.30], // hair zone — tighter sides
       [0.10, 0.58, 0.90, 0.95], // outfit zone — tighter sides
     ];
+    if (chogStyle === '2') editZones.push([0.20, 0.55, 0.80, 0.70]); // mouth/cigarette zone for style 2
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.22]);
     if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]);
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
