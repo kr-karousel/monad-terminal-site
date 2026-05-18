@@ -338,15 +338,18 @@ async function _handler(req, res) {
       form.append('n', '1');
       form.append('size', '1024x1024');
       form.append('quality', 'medium');
-      form.append('image[]', new Blob([baseBuffer], { type: 'image/jpeg' }), 'chog.jpg');
-      form.append('image[]', new Blob([refBuffer], { type: 'image/jpeg' }), 'reference.jpg');
+      form.append('image', new Blob([baseBuffer], { type: 'image/jpeg' }), 'chog.jpg');
+      form.append('image', new Blob([refBuffer], { type: 'image/jpeg' }), 'reference.jpg');
 
       const genRes = await fetch('https://api.openai.com/v1/images/edits', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
         body: form,
       });
-      const gd = await genRes.json();
+      const rawText = await genRes.text();
+      let gd;
+      try { gd = JSON.parse(rawText); }
+      catch { return res.status(500).json({ error: `OpenAI non-JSON response: ${rawText.slice(0, 200)}` }); }
       if (gd.error) return res.status(500).json({ error: gd.error.message });
       const img = gd.data[0];
       imageUrl = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
@@ -370,9 +373,12 @@ async function _handler(req, res) {
         headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
         body: form,
       });
-      const gd = await genRes.json();
-      if (gd.error) return res.status(500).json({ error: gd.error.message });
-      const img = gd.data[0];
+      const rawText2 = await genRes.text();
+      let gd2;
+      try { gd2 = JSON.parse(rawText2); }
+      catch { return res.status(500).json({ error: `OpenAI non-JSON (dall-e-2): ${rawText2.slice(0, 200)}` }); }
+      if (gd2.error) return res.status(500).json({ error: gd2.error.message });
+      const img = gd2.data[0];
       imageUrl = img.url || (img.b64_json ? `data:image/png;base64,${img.b64_json}` : null);
     }
 
