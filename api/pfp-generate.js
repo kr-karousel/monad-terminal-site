@@ -336,14 +336,14 @@ async function _handler(req, res) {
       if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
       const fluxAdditions = [
-        semantics.hair        ? `hair color and style: ${semantics.hair}`                         : null,
-        semantics.hairpin     ? `hair decoration (bow/ribbon/clip): ${semantics.hairpin}`         : null,
+        // hair color intentionally excluded — CHOG's purple hair is always preserved
+        semantics.hairpin     ? `hair decoration (bow/ribbon/clip on the purple hair): ${semantics.hairpin}` : null,
         semantics.hat         ? `hat on head: ${semantics.hat}`                                   : null,
-        semantics.face        ? `face detail: ${semantics.face}`                                  : null,
+        semantics.face        ? `face accessory: ${semantics.face}`                               : null,
         semantics.outfit || semantics.clothing
                               ? `outfit visible on chest/shoulders: ${semantics.outfit || semantics.clothing}` : null,
         semantics.accessories ? `accessories: ${semantics.accessories}`                           : null,
-      ].filter(Boolean).join('\n- ');
+      ].filter(Boolean).join('\n- ') || 'no accessories — keep character as-is';
 
       // Build composite: [base CHOG 1024x1024] | [example grid 1024x1024]
       // Upload to fal.ai storage → use URL as image_url for Flux
