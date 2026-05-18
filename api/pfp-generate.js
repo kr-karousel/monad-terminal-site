@@ -296,12 +296,12 @@ async function _handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
         body: JSON.stringify({
-          model: 'gpt-4o-mini', max_tokens: 200,
+          model: 'gpt-4o', max_tokens: 400,
           messages: [{
             role: 'user',
             content: [
-              { type: 'image_url', image_url: { url: image } },
-              { type: 'text', text: 'Extract every visual element of this character image. Return ONLY this JSON (no markdown): {"hair": "exact hair color, shape, volume and texture", "hairpin": "any bow, ribbon, clip, pin, flower or decoration attached to the hair — describe color and shape exactly, or null", "hat": "any hat or hard headwear sitting on top of the head — describe exactly, or null", "face": "glasses, sunglasses, cigar, pipe, mask, eye makeup, eyelashes, or any face prop — describe exactly, or null", "expression": "describe the facial expression and mood — e.g. sassy, angry, smiling, serious", "outfit": "full outfit — every color, pattern (stripes, polka dots etc), garment type, collar, buttons, any text/badge/logo with exact wording and placement", "accessories": "scarves, belts, props, weapons, wings, or anything else on the body — describe exactly, or null", "background": "background color or scene description if visible"}' }
+              { type: 'image_url', image_url: { url: image, detail: 'high' } },
+              { type: 'text', text: 'Analyze this character image meticulously. Return ONLY this JSON (no markdown): {"hair": "exact color name, shape (e.g. twin tails, short bob, long wavy), volume, and texture", "hairpin": "LOOK CAREFULLY at every part of the hair — any bow, ribbon, clip, scrunchie, flower, pin, or decoration. Describe: exact color, size relative to head (small/medium/large/huge), shape, and exact location (e.g. left side, top-center, behind ear). If truly none, null", "hat": "any hat or hard headwear sitting ON TOP of the head — describe type, color, shape, or null", "face": "list every face detail: glasses type and color, eyelashes (long/short/none), blush marks, any cigar/cigarette/pipe in mouth, mask, eye makeup — describe each exactly, or null", "expression": "exact facial expression e.g. smug smirk, angry scowl, cheerful smile, winking, serious deadpan", "outfit": "every garment from top to bottom — exact colors for each piece, patterns (stripes/dots/plaid etc), collar shape, trim, ruffles, buttons, any text/logo with exact wording and placement", "accessories": "everything else: scarves, belts, jewelry, wings, tail, hand props — describe exactly, or null", "background": "background color or scene"}' }
             ]
           }]
         }),
@@ -338,29 +338,34 @@ async function _handler(req, res) {
     const sanitize = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
 
     const styleDesc = [
-      semantics.hair        ? `hair: ${sanitize(semantics.hair)}`                                : null,
-      semantics.hairpin     ? `hair accessory: ${sanitize(semantics.hairpin)}`                   : null,
-      semantics.hat         ? `headwear: ${sanitize(semantics.hat)}`                             : null,
-      semantics.face        ? `face item: ${sanitize(semantics.face)}`                           : null,
-      chogStyle === '2'     ? `mouth: cigarette hanging from the corner of the mouth — REQUIRED, always visible, never omit` : null,
+      semantics.hair        ? `hair: ${sanitize(semantics.hair)}`                                                                          : null,
+      semantics.hairpin     ? `hair accessory (IMPORTANT — render prominently): ${sanitize(semantics.hairpin)}`                            : null,
+      semantics.hat         ? `headwear: ${sanitize(semantics.hat)}`                                                                        : null,
+      semantics.face        ? `face detail: ${sanitize(semantics.face)}`                                                                    : null,
+      chogStyle === '2'     ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                        : null,
       `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
-      semantics.accessories ? `accessories: ${sanitize(semantics.accessories)}`                  : null,
-    ].filter(Boolean).join(', ');
+      semantics.accessories ? `accessories: ${sanitize(semantics.accessories)}`                                                             : null,
+    ].filter(Boolean).join('; ');
 
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
-    // Zones: hair (above face) | face band y=0.32~0.58 PROTECTED | outfit (below face)
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.08, 0.00, 0.92, 0.30], // hair zone — tighter sides
-      [0.10, 0.58, 0.90, 0.95], // outfit zone — tighter sides
+      [0.08, 0.00, 0.92, 0.30], // hair zone
+      [0.10, 0.58, 0.90, 0.95], // outfit zone
     ];
-    if (chogStyle === '2') editZones.push([0.20, 0.55, 0.80, 0.70]); // mouth/cigarette zone for style 2
+    if (chogStyle === '2') editZones.push([0.20, 0.55, 0.80, 0.70]);
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.22]);
     if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]);
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const editPrompt = `The reference grid shows the exact composition to preserve: character head and spikes are partially cut off by the frame edges, face is off-center and diagonally cropped, asymmetric — NOT centered, NOT fully revealed. Maintain this identical framing and crop from the base image. Apply ONLY to the unmasked edit zones: ${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
+    const ART_STYLE = 'CHOG NFT art style: thick bold black outlines, flat solid colors with no gradients, large circular anime eyes, cute chibi proportions, bold graphic look';
+
+    const COMPOSITION = chogStyle === '2'
+      ? 'Composition (LOCK — do not change): face angled left, bold diagonal crop, head and spikes partially cut off by frame edges, asymmetric — NOT centered, NOT fully in frame'
+      : 'Composition (LOCK — do not change): head and spikes partially cut off by frame edges, face off-center and diagonally cropped, asymmetric — NOT centered, NOT fully revealed';
+
+    const editPrompt = `${ART_STYLE}. ${COMPOSITION}. Apply ONLY to the unmasked edit zones — ${styleDesc}.${extraPart ? ' ' + extraPart : ''}`;
 
     // Fetch example.jpg as additional style reference
     let exampleBuffer = null;
