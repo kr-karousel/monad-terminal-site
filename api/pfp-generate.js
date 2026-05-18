@@ -204,7 +204,7 @@ module.exports = async function handler(req, res) {
 };
 
 async function _handler(req, res) {
-  const { action, wallet, txHash, image, chogStyle, genModel, bgTemplate, artStyle, customPrompt } = req.body || {};
+  const { action, wallet, txHash, image, chogStyle, genModel, bgTemplate, artStyle, customPrompt, quality } = req.body || {};
   const session = getSession(req);
 
   if (action === 'credits') {
@@ -381,25 +381,13 @@ async function _handler(req, res) {
       } catch (e) { console.warn('[flux] composite skipped:', e.message); }
 
       const fluxPrompt = useComposite
-        ? `This image has TWO PANELS side by side.
-LEFT PANEL: The CHOG character to edit.
-RIGHT PANEL: 9 style reference examples — these show the correct CHOG art style and portrait framing to match.
+        ? `TWO PANELS: LEFT = character to edit, RIGHT = 9 style examples showing correct art style and portrait framing.
 
-FIXED (never change):
-- Face shape: round chibi face with large black eyes, white highlight, pink blush circles on cheeks
-- Art style: thick black outlines, flat solid colors, no gradients, no shading
-- Skin tone: light cream
-- Background: blue
-- Framing: extreme close-up portrait matching the RIGHT PANEL examples (face fills frame, head slightly cropped at top, shoulders/outfit visible)
-
-APPLY these changes to the LEFT character:
+Edit the LEFT character to look like the RIGHT panel examples in art style and framing. Apply:
 - ${fluxAdditions}
 
-Hair color and style CAN change to match the reference. Face shape and art style must stay exactly as shown in the RIGHT PANEL examples.${extraPart}`
-        : `Edit this CHOG character. Art style and face shape are fixed: thick black outlines, flat solid colors, round chibi face, large black eyes, pink blush, light skin, blue background.
-APPLY:
-- ${fluxAdditions}
-Hair can change. Do NOT change face shape or art style.${extraPart}`;
+Keep: round chibi face, large black eyes, pink blush, thick black outlines, flat solid colors, blue background, close-up portrait crop (face fills frame).${extraPart}`
+        : `Edit this chibi cartoon character. Apply: ${fluxAdditions}. Keep: round face, large black eyes, pink blush cheeks, thick black outlines, flat solid colors, blue background.${extraPart}`;
 
       // Submit to async queue
       const submitRes = await fetch('https://queue.fal.run/fal-ai/flux-pro/kontext', {
@@ -489,14 +477,15 @@ Hair can change. Do NOT change face shape or art style.${extraPart}`;
       if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses strip (tight)
       const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-      const editPrompt = `Edit ONLY the transparent masked regions of this CHOG hedgehog cartoon. The face band (eyes, nose, cheeks, mouth) is fully protected — DO NOT alter the face in any way. Apply the described HAIR in the masked top region, layering it over/around the existing purple spikes. Apply the described OUTFIT including shoulder details in the masked bottom region. Strictly preserve the CHOG cartoon drawing style: thick black outlines, flat solid colors. Do NOT polish, smooth, vectorize, or restyle. Apply: ${styleDesc}. NO weapons.${bgPart ? ' ' + bgPart : ''}${extraPart}`;
+      const editPrompt = `Apply to the masked regions of this CHOG cartoon: ${styleDesc}.${extraPart} Keep CHOG's face, eyes, blush cheeks, and thick-outline flat-color art style exactly as-is.`;
 
+      const gptQuality = (quality === 'medium') ? 'medium' : 'high';
       const form = new FormData();
       form.append('model', 'gpt-image-1.5');
       form.append('prompt', editPrompt);
       form.append('n', '1');
       form.append('size', '1024x1024');
-      form.append('quality', 'high');
+      form.append('quality', gptQuality);
       form.append('input_fidelity', 'high');
       form.append('image', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
       form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
