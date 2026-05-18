@@ -220,8 +220,6 @@ body.generating .gen-btn{animation:gen-wave 1.8s ease-in-out infinite;}
 .footer span{color:#4a3d6b;}
 
 input[type=file]{display:none;}
-.model-chip{cursor:pointer;padding:6px 12px;border-radius:8px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.5px;color:#6b5f8a;border:1px solid rgba(138,92,246,.22);background:transparent;transition:all .2s;}
-.model-chip.active{background:rgba(138,92,246,.2);border-color:var(--purple);color:#dbb8ff;}
 </style>
 </head>
 <body>
@@ -265,23 +263,15 @@ input[type=file]{display:none;}
         <span id="walletAddr" style="color:#7c6fa0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;flex:1;"></span>
         <button onclick="disconnectWallet()" title="Disconnect" style="background:none;border:none;color:#4a3d6b;font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;">✕</button>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;width:100%;">
-        <span id="creditDisplay" style="font-size:12px;font-weight:700;"></span>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:10px;font-family:'Space Mono',monospace;color:#6b5f8a;letter-spacing:1px;">GEN LEFT</span>
+          <span id="creditDisplay" style="font-size:13px;font-weight:900;letter-spacing:-0.3px;"></span>
+        </div>
         <div id="creditDots" class="credit-dots"></div>
       </div>
     </div>
     <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 0.1 MON → +5 generations</button>
-  </div>
-
-  <!-- GENERATION COUNTER BANNER -->
-  <div id="genCountBanner" style="display:none;background:linear-gradient(135deg,rgba(109,40,217,0.18),rgba(138,92,246,0.1));border:1px solid rgba(138,92,246,0.3);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:none;">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-      <div>
-        <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.2px;margin-bottom:4px;">GENERATIONS LEFT</div>
-        <div id="genCountNum" style="font-size:26px;font-weight:900;color:#c4b5fd;line-height:1;letter-spacing:-0.5px;">0</div>
-      </div>
-      <div id="genCountDots" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;max-width:120px;"></div>
-    </div>
   </div>
 
   <!-- CHOG STYLE SWITCHER -->
@@ -300,24 +290,6 @@ input[type=file]{display:none;}
         <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:7px;font-family:'Space Mono',monospace;color:#7c6fa0;text-align:center;line-height:1.3;">COMING<br>SOON</div>
       </div>
       <div style="font-size:11px;color:#6b5f8a;font-family:'Space Mono',monospace;line-height:1.5;">pick your<br>CHOG base</div>
-    </div>
-  </div>
-
-  <!-- MODEL + PROMPT SELECTOR -->
-  <div style="background:rgba(138,92,246,0.06);border:1px solid rgba(138,92,246,0.18);border-radius:14px;padding:12px 14px;margin-bottom:12px;display:flex;flex-direction:column;gap:10px;">
-    <div>
-      <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:8px;">MODEL</div>
-      <div style="display:flex;gap:6px;">
-        <button class="model-chip" onclick="setModel('gpt-image-1',this)">GPT-1</button>
-        <button class="model-chip active" onclick="setModel('gpt-image-2',this)">GPT-2</button>
-      </div>
-    </div>
-    <div>
-      <div style="font-size:10px;font-family:'Space Mono',monospace;color:#8b5cf6;letter-spacing:1.5px;margin-bottom:8px;">PROMPT</div>
-      <div style="display:flex;gap:6px;">
-        <button class="model-chip active" id="promptExBtn" onclick="setPrompt('ex',this)">prompt(ex)</button>
-        <button class="model-chip" id="promptNewBtn" onclick="setPrompt('new',this)">new</button>
-      </div>
     </div>
   </div>
 
@@ -458,21 +430,7 @@ let xSession = null;
 let totalCredits = 0;
 let selectedBg = BG_TEMPLATES[0];
 let selectedStyle = ART_STYLES[0];
-let selectedModel = 'gpt-image-2';
-let selectedPrompt = 'ex';
 let genHistory = [];
-
-function setModel(id, el) {
-  selectedModel = id;
-  el.closest('div').querySelectorAll('.model-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-}
-
-function setPrompt(id, el) {
-  selectedPrompt = id;
-  el.closest('div').querySelectorAll('.model-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-}
 
 /* ── COLLAPSIBLE SECTIONS ── */
 function toggleSection(id) {
@@ -801,38 +759,24 @@ function updateCreditUI(d) {
     badge.className = d.twitterFree ? 'x-free-badge' : 'x-used-badge';
     xSession.usedFree = !d.twitterFree;
   }
-  // Wallet credits display
-  if (pfpWallet && d.walletCredits !== undefined) {
-    const wc = d.walletCredits;
+  totalCredits = d.total ?? 0;
+  // Wallet panel: show total (wallet credits + free) when wallet connected
+  if (pfpWallet) {
+    const freeLeft = (xSession && !xSession.usedFree && d.twitterFree !== false) ? 1 : 0;
+    const wc = d.walletCredits !== undefined ? d.walletCredits : 0;
+    const total = freeLeft + wc;
     const disp = document.getElementById('creditDisplay');
-    if (wc > 0) {
-      disp.innerHTML = `<span style="color:#86efac;">✦ ${wc} credit${wc === 1 ? '' : 's'}</span>`;
+    if (total > 0) {
+      disp.innerHTML = `<span style="color:#86efac;">${total}</span>`;
     } else {
-      disp.innerHTML = `<span style="color:#fca5a5;">✗ no credits</span>`;
+      disp.innerHTML = `<span style="color:#fca5a5;">0</span>`;
     }
     const dots = document.getElementById('creditDots');
-    dots.innerHTML = Array.from({length:5},(_,i) =>
-      `<div class="cdot ${i < wc ? 'on' : 'off'}"></div>`
-    ).join('');
-    document.getElementById('payBtn').style.display = wc < 3 ? 'block' : 'none';
-  }
-  totalCredits = d.total ?? 0;
-  // Update generation counter banner
-  const banner = document.getElementById('genCountBanner');
-  const freeLeft = (xSession && !xSession.usedFree && d.twitterFree !== false) ? 1 : 0;
-  const walletLeft = pfpWallet && d.walletCredits !== undefined ? d.walletCredits : 0;
-  const total = freeLeft + walletLeft;
-  if (total > 0 || pfpWallet) {
-    banner.style.display = 'block';
-    document.getElementById('genCountNum').textContent = total;
-    document.getElementById('genCountNum').style.color = total > 0 ? '#c4b5fd' : '#f87171';
-    const dotsEl = document.getElementById('genCountDots');
     const maxDots = Math.max(total, 5);
-    dotsEl.innerHTML = Array.from({length: maxDots}, (_, i) =>
+    dots.innerHTML = Array.from({length: maxDots}, (_, i) =>
       `<div class="cdot ${i < total ? 'on' : 'off'}"></div>`
     ).join('');
-  } else {
-    banner.style.display = 'none';
+    document.getElementById('payBtn').style.display = wc < 3 ? 'block' : 'none';
   }
   updateGenBtn();
 }
@@ -979,10 +923,6 @@ async function runAll() {
         wallet: pfpWallet,
         image: b64,
         chogStyle: chogBaseUrl,
-        model: selectedModel,
-        promptMode: selectedPrompt,
-        bgTemplate: document.getElementById('bgSection').classList.contains('open') ? selectedBg.prompt : '',
-        artStyle: document.getElementById('styleSection').classList.contains('open') ? selectedStyle.prompt : '',
         customPrompt: document.getElementById('promptSection').classList.contains('open') ? document.getElementById('customPrompt').value.trim() : '',
       }),
     });
