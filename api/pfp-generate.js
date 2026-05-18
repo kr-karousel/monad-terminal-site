@@ -374,8 +374,8 @@ async function _handler(req, res) {
     const ART_STYLE = 'Art style: thick bold black outlines, flat solid colors, large circular anime eyes, cute chibi proportions';
 
     const COMPOSITION = chogStyle === '2'
-      ? '⚠ COMPOSITION IS THE #1 PRIORITY — copy the base image framing exactly: face turned left, strong diagonal crop, head and spikes cut off by frame edges, character is NOT centered, NOT fully visible. Do NOT reframe. Do NOT center. Do NOT show the full head.'
-      : '⚠ COMPOSITION IS THE #1 PRIORITY — copy the base image framing exactly: head and spikes cut off by the frame edges, face is off-center and diagonally cropped, asymmetric. Do NOT reframe. Do NOT center. Do NOT show the full head.';
+      ? '⚠ COMPOSITION IS THE #1 PRIORITY — copy the base image framing exactly: face turned left, strong diagonal crop, head and spikes cut off by frame edges, right side of face cropped at the cheek — ear must NOT be visible, character is NOT centered, NOT fully visible. Do NOT reframe. Do NOT center. Do NOT show the full head. Do NOT show the ear.'
+      : '⚠ COMPOSITION IS THE #1 PRIORITY — copy the base image framing exactly: head and spikes cut off by the frame edges, face is off-center and diagonally cropped, right side of face cropped at the cheek — ear must NOT be visible, asymmetric. Do NOT reframe. Do NOT center. Do NOT show the full head. Do NOT show the ear.';
 
     const editPrompt = `${COMPOSITION} ${ART_STYLE}. Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
