@@ -229,13 +229,13 @@ module.exports = async function handler(req, res) {
 
     // Step 2: text-only generation — no style reference image contamination
     // Full character spec produces consistent CHOG NFT style every time
-    const chogPrompt = `Flat 2D chibi cartoon NFT profile picture of CHOG character. Large round head filling most of the frame, tiny small body. Flat peach skin. Dark purple spiky hair with multiple sharp triangular spikes pointing up and outward, thick black outlines. Eyes: exactly two small solid black oval dots side by side, NO white sclera, NO shine, NO iris — just flat black dots. Round pink blush circle on each cheek. Tiny simple curved smile, no teeth. Bold thick solid black cartoon outlines on all shapes.
+    const chogPrompt = `Flat 2D chibi cartoon NFT profile picture of CHOG character. Square frame composition: head centered in the upper 55% of the frame, shoulders and upper chest with outfit clearly visible in the lower 45%. Flat peach skin. Dark purple spiky hair with multiple sharp triangular spikes pointing up and outward, thick black outlines. Eyes: exactly two small solid black oval dots side by side, NO white sclera, NO shine, NO iris — just flat black dots. Round pink blush circle on each cheek. Tiny simple curved smile, no teeth. Bold thick solid black cartoon outlines on all shapes.
 
-Outfit: ${outfit}.${extraPart}
+Outfit (must be clearly visible): ${outfit}.${extraPart}
 
 Background: ${bgPart}.
 
-Style: flat 2D illustration${stylePart}, zero gradients, zero shading, zero texture, bold solid colors only, clean crisp edges, square frame, character centered, CHOG NFT collection art style.`;
+Style: flat 2D illustration${stylePart}, zero gradients, zero shading, zero texture, bold solid colors only, clean crisp edges, square frame, CHOG NFT collection art style. The outfit and clothing must occupy the bottom third of the image.`;
 
     const genRes = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
