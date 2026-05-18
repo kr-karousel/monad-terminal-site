@@ -274,7 +274,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image } },
-              { type: 'text', text: 'Extract every visual element of this character image. Return ONLY this JSON (no markdown): {"hair": "exact hair color, shape, volume and texture", "hat": "any hat, headwear, or object on top of the head — describe exactly, or null", "face": "glasses, cigar, pipe, mask, or face prop — describe exactly, or null", "expression": "describe the facial expression and mood — e.g. sassy, angry, smiling, serious", "outfit": "full outfit — every color, pattern (stripes, polka dots etc), garment type, collar, buttons, any text/badge/logo with exact wording and placement", "accessories": "scarves, belts, props, weapons, wings, or anything else on the body — describe exactly, or null", "background": "background color or scene description if visible"}' }
+              { type: 'text', text: 'Extract every visual element of this character image. Return ONLY this JSON (no markdown): {"hair": "exact hair color, shape, volume and texture", "hairpin": "any bow, ribbon, clip, pin, flower or decoration attached to the hair — describe color and shape exactly, or null", "hat": "any hat or hard headwear sitting on top of the head — describe exactly, or null", "face": "glasses, sunglasses, cigar, pipe, mask, eye makeup, eyelashes, or any face prop — describe exactly, or null", "expression": "describe the facial expression and mood — e.g. sassy, angry, smiling, serious", "outfit": "full outfit — every color, pattern (stripes, polka dots etc), garment type, collar, buttons, any text/badge/logo with exact wording and placement", "accessories": "scarves, belts, props, weapons, wings, or anything else on the body — describe exactly, or null", "background": "background color or scene description if visible"}' }
             ]
           }]
         }),
@@ -336,11 +336,12 @@ async function _handler(req, res) {
       if (!FAL_KEY) return res.status(500).json({ error: 'FAL_KEY not configured' });
 
       const fluxAdditions = [
-        semantics.hair        ? `hair: ${semantics.hair}`                                     : null,
-        semantics.hat         ? `hat/headwear: ${semantics.hat}`                              : null,
-        semantics.face        ? `face prop: ${semantics.face}`                                : null,
+        semantics.hair        ? `hair color and style: ${semantics.hair}`                     : null,
+        semantics.hairpin     ? `hair decoration (bow/ribbon/clip on hair): ${semantics.hairpin}` : null,
+        semantics.hat         ? `hat on head: ${semantics.hat}`                               : null,
+        semantics.face        ? `face detail: ${semantics.face}`                              : null,
         semantics.outfit || semantics.clothing
-                              ? `outfit: ${semantics.outfit || semantics.clothing}`           : null,
+                              ? `outfit (must be visible on chest/shoulders): ${semantics.outfit || semantics.clothing}` : null,
         semantics.accessories ? `accessories: ${semantics.accessories}`                       : null,
         (bgTemplate || semantics.background) ? `background: ${bgTemplate || semantics.background}` : null,
       ].filter(Boolean).join('\n- ');
@@ -418,13 +419,15 @@ DO NOT zoom out or show the full body. DO NOT redraw or re-render. DO NOT smooth
           const fluxImg = await Jimp.read(fluxImgBuf);
           const fw = fluxImg.getWidth();
           const fh = fluxImg.getHeight();
-          // Crop: full width, top 62% of height — captures face+head, cuts off body/legs
-          const cropH = Math.floor(fh * 0.62);
-          fluxImg.crop(0, 0, fw, cropH);
+          // Square crop from top-center: shows face + shoulders/outfit, no legs
+          // 75% of the shorter side → centered horizontally, starts from top
+          const size = Math.floor(Math.min(fw, fh) * 0.75);
+          const x = Math.floor((fw - size) / 2);
+          fluxImg.crop(x, 0, size, size);
           fluxImg.resize(1024, 1024, Jimp.RESIZE_BICUBIC);
           const croppedBuf = await fluxImg.getBufferAsync(Jimp.MIME_PNG);
           imageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
-          console.log('[flux] post-crop applied:', fw, 'x', fh, '→ crop', fw, 'x', cropH, '→ 1024x1024');
+          console.log('[flux] post-crop applied:', fw, 'x', fh, '→ square', size, 'x', size, 'at x:', x, '→ 1024x1024');
         } catch (e) {
           console.warn('[flux] post-crop failed, using raw URL:', e.message);
           imageUrl = rawFluxUrl;
