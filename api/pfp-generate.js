@@ -445,9 +445,9 @@ async function _handler(req, res) {
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
     const eyelashPart = (semantics.eyelash === true || semantics.eyelash === 'true')
-      ? ' Add eyelashes in the eye zone to match the reference.'
+      ? ' If the reference character is female or has prominent eyelashes, add eyelashes to the eyes.'
       : '';
-    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. The second image is the style reference — extract only its hair color, outfit, and accessories and apply them onto the CHOG base. Do not copy the reference composition or background. Keep the CHOG face, spikes, and body shape unchanged. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base — follow its art style (thick black outlines, flat solid colors, no gradients), composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges), and pose exactly. The second image is the style reference — apply only its hair color and style, outfit, and accessories onto the CHOG base. If the reference hair is spiky, keep the base spikes and only change the color. Do not extract or change the eyes, pupils, or nose — use them exactly as in the base. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
