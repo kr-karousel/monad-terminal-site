@@ -435,13 +435,6 @@ async function _handler(req, res) {
 
     const editPrompt = `${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
-    // Fetch example.jpg as additional style reference
-    let exampleBuffer = null;
-    try {
-      const exRes = await fetch('https://monad-terminal.xyz/chog/pfp/example.jpg');
-      if (exRes.ok) exampleBuffer = Buffer.from(await exRes.arrayBuffer());
-    } catch (e) { console.warn('[gpt] example fetch failed:', e.message); }
-
     const form = new FormData();
     form.append('model', 'gpt-image-1');
     form.append('prompt', editPrompt);
@@ -450,7 +443,6 @@ async function _handler(req, res) {
     form.append('quality', 'medium');
     form.append('input_fidelity', 'high');
     form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
-    if (exampleBuffer) form.append('image[]', new Blob([exampleBuffer], { type: 'image/jpeg' }), 'example.jpg');
     form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
