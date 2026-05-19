@@ -496,7 +496,7 @@ async function _handler(req, res) {
       const eyeX = match ? parseFloat(match[1]) : null;
       console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
 
-      const MARGIN = 0.21;
+      const MARGIN = 0.23;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95 && (eyeX + MARGIN) < 0.97) {
         const rawBuf = compositeUrl.startsWith('data:')
           ? Buffer.from(compositeUrl.split(',')[1], 'base64')
