@@ -418,7 +418,7 @@ async function _handler(req, res) {
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.15, 0.07, 0.85, 0.22], // hair color zone
+      [0.15, 0.07, 0.85, 0.18], // hair color zone
       [0.10, 0.78, 0.90, 0.95], // outfit zone
     ];
     // style 2: cigarette already drawn in base 2.png — do NOT open mouth zone, preserve as-is
@@ -433,7 +433,7 @@ async function _handler(req, res) {
       ? 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. ALL face features (eyes, nose, mouth, cigarette, cheeks) are locked from the base image — use them exactly as-is, apply zero facial features from the reference image.'
       : 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. FACE FEATURES: preserve nose (tiny dark dot) and mouth (thin curved line) exactly as base — do not omit.';
 
-    const COMPOSITION = 'COMPOSITION: face occupies the LEFT 75% of the image — large and close-up. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye. Eyes sit in the UPPER-MIDDLE vertical zone. Body/torso is only visible in the bottom 20% of the image. Do NOT zoom out. Do NOT center.';
+    const COMPOSITION = 'COMPOSITION: face occupies the LEFT 80% of the image — large and close-up. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye. Eyes sit in the UPPER-MIDDLE vertical zone. Body/torso is only visible in the bottom 20% of the image. Do NOT zoom out. Do NOT center.';
 
     const editPrompt = `${IDENTITY_LOCK} ${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
