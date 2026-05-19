@@ -398,11 +398,9 @@ async function _handler(req, res) {
       semantics.hairpin        ? `hair accessory: ${sanitize(semantics.hairpin)}`                                                          : null,
       semantics.hat            ? `headwear: ${sanitize(semantics.hat)}`                                                                    : null,
       semantics.face           ? `face detail: ${sanitize(semantics.face)}`                                                               : null,
-      semantics.mouth && chogStyle !== '2' ? `mouth expression: ${sanitize(semantics.mouth)}`                                             : null,
       chogStyle === '2'        ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                    : null,
       `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
       semantics.accessories    ? `accessories: ${sanitize(semantics.accessories)}`                                                         : null,
-      semantics.special_effects ? `special effects: ${sanitize(semantics.special_effects)}`                                               : null,
     ].filter(Boolean).join('; ');
 
     // Build mandatory items reminder — things that must visibly appear in output
@@ -427,11 +425,6 @@ async function _handler(req, res) {
     if (semantics.hat)            editZones.push([0.10, 0.00, 0.90, 0.18]); // hat zone — top only
     if (semantics.hairpin)        editZones.push([0.15, 0.07, 0.85, 0.22]); // hairpin zone
     if (semantics.glasses)        editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
-    if (semantics.special_effects) {
-      // Open background strips for aura/glow — NOT the face/body area
-      editZones.push([0.00, 0.00, 0.14, 0.90]); // left background
-      editZones.push([0.00, 0.00, 1.00, 0.07]); // top background strip
-    }
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const IDENTITY_LOCK = 'DO NOT REDRAW the character. The existing character image must remain visually identical — do NOT change: face shape, head shape, spike silhouette, spike count/direction, hair shape, eye placement, or face proportions. The face silhouette must exactly match the base image — the lower jaw and cheeks must be large, round and prominent. The face is partially cut off by the frame edges — preserve this exactly. Do NOT generate a new version of the character. Hair shape and spike pattern must stay identical to the base image — ONLY the hair color may change. The face (eyes, nose, mouth, cheeks, expression, all facial features) must be taken EXACTLY from the base image — do NOT apply any facial feature from the reference image. Only ADD accessories/outfit/effects into the unmasked zones.';
