@@ -423,7 +423,7 @@ async function _handler(req, res) {
     const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
     const editZones = [];
     if (!isNude)           editZones.push([0.15, 0.87, 0.85, 0.97]); // outfit zone (skip if nude reference)
-    if (isNude && semantics.skin_color) editZones.push([0.22, 0.22, 0.78, 0.60]); // face skin zone (nude ref only)
+
     if (!isSpiky)          editZones.push([0.10, 0.00, 0.90, 0.15]); // hair color zone (non-spiky only)
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
     if (semantics.hairpin) editZones.push([0.10, 0.05, 0.55, 0.28]);
