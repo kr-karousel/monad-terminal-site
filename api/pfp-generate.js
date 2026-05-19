@@ -446,13 +446,54 @@ async function _handler(req, res) {
 
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
+    // Smart crop: detect right-eye X position with GPT-4o-mini, then square-crop just past it
+    let finalImageUrl = imageUrl;
+    try {
+      const eyeContent = imgData.url
+        ? { type: 'image_url', image_url: { url: imgData.url, detail: 'low' } }
+        : { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } };
+
+      const eyeRes = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          max_tokens: 20,
+          messages: [{ role: 'user', content: [
+            eyeContent,
+            { type: 'text', text: 'Find the character\'s right eye (on the right side of the image from viewer perspective). Return ONLY JSON: {"x": 0.XX} where x is the fraction (0.0–1.0) from the left edge to the outer-right edge of that eye.' }
+          ]}]
+        })
+      });
+      const eyeData = await eyeRes.json();
+      const raw = eyeData.choices?.[0]?.message?.content?.trim() || '';
+      const match = raw.match(/\{[^}]*"x"\s*:\s*([\d.]+)[^}]*\}/);
+      const eyeX = match ? parseFloat(match[1]) : null;
+      console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
+
+      if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
+        const MARGIN = 0.07;
+        const rawBuf = imageUrl.startsWith('data:')
+          ? Buffer.from(imageUrl.split(',')[1], 'base64')
+          : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
+        const jimg = await Jimp.read(rawBuf);
+        const cropSide = Math.round(Math.min(eyeX + MARGIN, 1.0) * jimg.bitmap.width);
+        jimg.crop(0, 0, cropSide, cropSide); // square from top-left
+        const croppedBuf = await jimg.getBufferAsync(Jimp.MIME_PNG);
+        finalImageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
+        console.log('[eye-crop] cropped to', cropSide, 'x', cropSide);
+      }
+    } catch (e) {
+      console.warn('[eye-crop] failed, using original:', e.message);
+    }
+
     // Upload to Supabase Storage and persist history per wallet
     // batchToken requests skip history write to avoid race conditions — client handles batch history
-    let persistentUrl = imageUrl;
+    let persistentUrl = finalImageUrl;
     let history = [];
     if (wallet) {
       try {
-        const stored = await uploadToStorage(imageUrl, wallet);
+        const stored = await uploadToStorage(finalImageUrl, wallet);
         if (stored) {
           persistentUrl = stored;
           if (!batchToken) history = await addToWalletHistory(wallet, stored);
