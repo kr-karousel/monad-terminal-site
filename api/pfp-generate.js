@@ -446,32 +446,8 @@ async function _handler(req, res) {
 
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
-    // Composite nose from base image (tiny region — no seam risk in flat skin area)
-    let processedUrl = imageUrl;
-    try {
-      const genBuf = imageUrl.startsWith('data:')
-        ? Buffer.from(imageUrl.split(',')[1], 'base64')
-        : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
-      const [genImg, baseImg] = await Promise.all([Jimp.read(genBuf), Jimp.read(baseBuffer)]);
-      const gw = genImg.bitmap.width, gh = genImg.bitmap.height;
-      if (baseImg.bitmap.width !== gw || baseImg.bitmap.height !== gh)
-        baseImg.resize(gw, gh, Jimp.RESIZE_NEAREST_NEIGHBOR);
-      // nose region: x 20–46%, y 43–54% — only copy dark pixels (the nose mark itself, not skin)
-      const x1 = Math.round(0.20 * gw), x2 = Math.round(0.46 * gw);
-      const y1 = Math.round(0.43 * gh), y2 = Math.round(0.54 * gh);
-      for (let y = y1; y < y2; y++) {
-        for (let x = x1; x < x2; x++) {
-          const p = Jimp.intToRGBA(baseImg.getPixelColor(x, y));
-          const lum = p.r * 0.299 + p.g * 0.587 + p.b * 0.114;
-          if (lum < 80) genImg.setPixelColor(baseImg.getPixelColor(x, y), x, y);
-        }
-      }
-      const noseBuf = await genImg.getBufferAsync(Jimp.MIME_PNG);
-      processedUrl = `data:image/png;base64,${noseBuf.toString('base64')}`;
-    } catch (e) { console.warn('[nose] composite failed:', e.message); }
-
     // Smart crop: detect right-eye X position with GPT-4o-mini, then crop just past it
-    let finalImageUrl = processedUrl;
+    let finalImageUrl = imageUrl;
     try {
       const eyeContent = imgData.url
         ? { type: 'image_url', image_url: { url: imgData.url, detail: 'low' } }
@@ -498,13 +474,14 @@ async function _handler(req, res) {
       const MARGIN = 0.17;
       const MIN_CROP = 0.72;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
-        const rawBuf = processedUrl.startsWith('data:')
-          ? Buffer.from(processedUrl.split(',')[1], 'base64')
-          : Buffer.from(await (await fetch(processedUrl)).arrayBuffer());
+        const rawBuf = imageUrl.startsWith('data:')
+          ? Buffer.from(imageUrl.split(',')[1], 'base64')
+          : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
         const jimg = await Jimp.read(rawBuf);
         const cropFraction = Math.max(eyeX + MARGIN, MIN_CROP);
         const cropSide = Math.round(Math.min(cropFraction, 1.0) * jimg.bitmap.width);
-        jimg.crop(0, jimg.bitmap.height - cropSide, cropSide, cropSide);
+        const cropY = Math.floor((jimg.bitmap.height - cropSide) / 2);
+        jimg.crop(0, cropY, cropSide, cropSide);
         const croppedBuf = await jimg.getBufferAsync(Jimp.MIME_PNG);
         finalImageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
         console.log('[eye-crop] eyeX:', eyeX, '→ cropSide:', cropSide);
