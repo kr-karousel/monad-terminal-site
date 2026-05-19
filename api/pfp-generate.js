@@ -433,6 +433,10 @@ async function _handler(req, res) {
         })
       );
       // Start fully opaque (preserved), punch holes where mask files are white
+      // BUT: protect background pixels from base image (blue ~= 0x4BB4FF area)
+      const baseJimp = await Jimp.read(baseBuffer);
+      baseJimp.resize(IMG_W, IMG_H, Jimp.RESIZE_NEAREST_NEIGHBOR);
+
       const combined = new Jimp(IMG_W, IMG_H, 0x000000FF);
       for (const buf of fetched.filter(Boolean)) {
         const img = await Jimp.read(buf);
@@ -441,7 +445,12 @@ async function _handler(req, res) {
           if (img.bitmap.data[idx] > 200 &&
               img.bitmap.data[idx + 1] > 200 &&
               img.bitmap.data[idx + 2] > 200) {
-            combined.bitmap.data[idx + 3] = 0; // transparent = editable
+            // Check base pixel — skip if it's background (blue-ish: R<120, G>150, B>200)
+            const br = baseJimp.bitmap.data[idx];
+            const bg = baseJimp.bitmap.data[idx + 1];
+            const bb = baseJimp.bitmap.data[idx + 2];
+            const isBackground = br < 120 && bg > 150 && bb > 180;
+            if (!isBackground) combined.bitmap.data[idx + 3] = 0; // transparent = editable
           }
         });
       }
@@ -459,7 +468,7 @@ async function _handler(req, res) {
     }
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
-    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. The second image is the style reference — extract its skin color, eye style, mouth expression, hair color and style, outfit, and accessories and apply them onto the CHOG base. Do not copy the reference composition or background. Keep the CHOG face structure, spikes, and body shape unchanged. Only the unmasked zones may be changed — every pixel outside the mask must stay exactly as in the base image, except skin color which should match the reference.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. The second image is the style reference — apply the following from it onto the CHOG base: (1) hair color and style, (2) eye shape and expression, (3) mouth expression, (4) outfit and accessories, (5) skin color. Keep the nose exactly as in the base (tiny pink dot — do not change it). Do not copy the reference composition or background. Keep the CHOG spikes if the reference hair is also spiky, otherwise reinterpret in CHOG art style. Keep body shape unchanged. Only modify the unmasked zones.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
