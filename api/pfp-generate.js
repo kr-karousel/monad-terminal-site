@@ -461,7 +461,7 @@ async function _handler(req, res) {
           max_tokens: 20,
           messages: [{ role: 'user', content: [
             eyeContent,
-            { type: 'text', text: 'Find the character\'s right eye (on the right side of the image from viewer perspective). Return ONLY JSON: {"x": 0.XX} where x is the fraction (0.0–1.0) from the left edge to the outer-right edge of that eye.' }
+            { type: 'text', text: 'Find the eye whose outer edge is furthest to the RIGHT side of this image. Return ONLY JSON: {"x": 0.XX} where x is the fraction (0.0–1.0) from the left edge of the image to the rightmost edge of that eye.' }
           ]}]
         })
       });
@@ -472,7 +472,7 @@ async function _handler(req, res) {
       console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
 
       if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
-        const MARGIN = 0.07;
+        const MARGIN = 0.10;
         const rawBuf = imageUrl.startsWith('data:')
           ? Buffer.from(imageUrl.split(',')[1], 'base64')
           : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
