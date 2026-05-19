@@ -408,8 +408,8 @@ async function _handler(req, res) {
     const ART_STYLE = '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, tiny dot nose, cute chibi proportions, spiky head. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.';
 
     const COMPOSITION = chogStyle === '2'
-      ? 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Face angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Do NOT center. Do NOT zoom out.'
-      : 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Do NOT center. Do NOT zoom out.';
+      ? 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Face angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Accessories and headwear may freely bleed off ANY frame edge — do NOT shrink or reposition them to fit inside the frame. Do NOT center. Do NOT zoom out.'
+      : 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Accessories and headwear may freely bleed off ANY frame edge — do NOT shrink or reposition them to fit inside the frame. Do NOT center. Do NOT zoom out.';
 
     const editPrompt = `${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
@@ -488,6 +488,26 @@ async function _handler(req, res) {
     } catch (e) {
       console.warn('[eye-crop] failed, using original:', e.message);
     }
+
+    // Composite nose+mouth region from base image to preserve exact CHOG facial features
+    try {
+      const genBuf = finalImageUrl.startsWith('data:')
+        ? Buffer.from(finalImageUrl.split(',')[1], 'base64')
+        : Buffer.from(await (await fetch(finalImageUrl)).arrayBuffer());
+      const [genImg, baseImg] = await Promise.all([Jimp.read(genBuf), Jimp.read(baseBuffer)]);
+      const gw = genImg.bitmap.width, gh = genImg.bitmap.height;
+      if (baseImg.bitmap.width !== gw || baseImg.bitmap.height !== gh)
+        baseImg.resize(gw, gh, Jimp.RESIZE_NEAREST_NEIGHBOR);
+      // nose+mouth zone: x 15–52%, y 42–63% (center-left face area)
+      const x1 = Math.round(0.15 * gw), x2 = Math.round(0.52 * gw);
+      const y1 = Math.round(0.42 * gh), y2 = Math.round(0.63 * gh);
+      for (let y = y1; y < y2; y++)
+        for (let x = x1; x < x2; x++)
+          genImg.setPixelColor(baseImg.getPixelColor(x, y), x, y);
+      const compositedBuf = await genImg.getBufferAsync(Jimp.MIME_PNG);
+      finalImageUrl = `data:image/png;base64,${compositedBuf.toString('base64')}`;
+      console.log('[nose-mouth] composited base region onto generated image');
+    } catch (e) { console.warn('[nose-mouth] composite failed:', e.message); }
 
     // Upload to Supabase Storage and persist history per wallet
     // batchToken requests skip history write to avoid race conditions — client handles batch history
