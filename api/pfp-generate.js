@@ -405,7 +405,7 @@ async function _handler(req, res) {
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const ART_STYLE = '⚠ ART STYLE — replicate the base CHOG image\'s linework exactly: outlines are jet-black, very thick (≥4% of canvas width), hard-edged with zero feathering — like a thick marker or ink stamp. Color fills are 100% flat solid: single-value hex fills, no gradients, no soft shading, no inner glow, no drop shadow, no texture. Skin = one flat uniform cream tone. Hair = one flat uniform color. Every shape boundary has the same heavy ink outline as the base image. This is a vector-graphic sticker aesthetic — not painterly, not anime-soft, not semi-realistic. The reference image supplies ONLY the outfit/hair/accessories color and shape — render them in CHOG\'s flat ink style, not the reference\'s rendering style.';
+    const ART_STYLE = '⚠ ART STYLE — replicate the base CHOG image\'s linework: outlines are jet-black, very thick, drawn with a slightly rough digital brush — lines have a natural hand-drawn wobble and imperfection, not perfectly smooth computer paths (think thick brush pen or bold marker with slight irregularity). Color fills are 100% flat solid: single uniform color per region, no gradients, no soft shading, no inner glow, no texture. Skin = one flat cream tone. This is a bold hand-drawn sticker aesthetic — chunky, slightly rough, full of character — not clean vector, not painterly, not anime-soft. The reference image supplies ONLY the outfit/hair/accessories — render them in CHOG\'s flat rough-ink style.';
 
     const COMPOSITION = chogStyle === '2'
       ? 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Face angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Do NOT center. Do NOT zoom out.'
@@ -477,11 +477,11 @@ async function _handler(req, res) {
           ? Buffer.from(imageUrl.split(',')[1], 'base64')
           : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
         const jimg = await Jimp.read(rawBuf);
-        const cropSide = Math.round(Math.min(eyeX + MARGIN, 1.0) * jimg.bitmap.width);
-        jimg.crop(0, 0, cropSide, cropSide); // square from top-left
+        const cropW = Math.round(Math.min(eyeX + MARGIN, 1.0) * jimg.bitmap.width);
+        jimg.crop(0, 0, cropW, jimg.bitmap.height); // width only — keep full height
         const croppedBuf = await jimg.getBufferAsync(Jimp.MIME_PNG);
         finalImageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
-        console.log('[eye-crop] cropped to', cropSide, 'x', cropSide);
+        console.log('[eye-crop] cropped to', cropW, 'x', jimg.bitmap.height);
       }
     } catch (e) {
       console.warn('[eye-crop] failed, using original:', e.message);
