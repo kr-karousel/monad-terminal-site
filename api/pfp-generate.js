@@ -427,7 +427,7 @@ async function _handler(req, res) {
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
     if (semantics.hairpin) editZones.push([0.10, 0.05, 0.55, 0.28]);
     if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
-    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.26, 0.90, 0.30]); // ultra-thin eyelid strip
+    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.268, 0.90, 0.274]); // ultra-thin eyelid strip (~6px)
     if (chogStyle !== '2') editZones.push([0.30, 0.69, 0.62, 0.74]); // mouth zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
@@ -438,7 +438,7 @@ async function _handler(req, res) {
     const hairInstruction = isSpiky
       ? 'Do not change the hair at all — shape, color, and spike direction stay identical to the base. Everything below the hairline is locked.'
       : 'Apply the reference hair color only — keep the base spike shape exactly.';
-    const editPrompt = `The first image is the CHOG base — its composition, framing, body pose, and arm position (arms crossed) are absolutely locked. Do not zoom out, do not change the crop, do not alter the pose. The face outline, eye shape, nose (tiny pink dot), and all facial proportions are locked. The second image is the style reference — apply only: (1) ${hairInstruction}, (2) outfit color/accessories in the very bottom zone only, (3) skin color if different, (4) mouth expression in the tight mouth zone only — do not let the mouth expand beyond the zone. Do not change the eyes, pupils, or nose. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients, no shading) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. Its composition, framing, body pose, and arm position are absolutely locked. Do not zoom out, do not change the crop, do not alter the pose. The face outline, eye shape, nose (tiny pink dot), and all facial proportions are locked. The second image is the style reference — apply only: (1) ${hairInstruction}, (2) outfit color/accessories in the very bottom zone only, (3) skin color if different, (4) mouth expression in the tight mouth zone only — do not let the mouth expand beyond the zone. Do not change the eyes, pupils, or nose. Do not copy the reference composition, pose, art style, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
