@@ -419,15 +419,29 @@ async function _handler(req, res) {
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
 
     // Build mask from uploaded PNG files (white = editable zone)
-    const editZones = [
-      [0.15, 0.07, 0.85, 0.18], // hair color zone
-      [0.10, 0.78, 0.90, 0.95], // outfit zone
-    ];
-    if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.18]);
-    if (semantics.hairpin) editZones.push([0.15, 0.07, 0.85, 0.22]);
-    if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]);
-    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.28, 0.90, 0.48]);
-    const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
+    let maskBuffer;
+    try {
+      const r = await fetch('https://monad-terminal.xyz/chog/pfp/maskzone.png');
+      if (!r.ok) throw new Error(`maskzone fetch failed: ${r.status}`);
+      const maskImg = await Jimp.read(Buffer.from(await r.arrayBuffer()));
+      maskImg.resize(IMG_W, IMG_H, Jimp.RESIZE_NEAREST_NEIGHBOR);
+      const combined = new Jimp(IMG_W, IMG_H, 0x000000FF);
+      maskImg.scan(0, 0, IMG_W, IMG_H, (x, y, idx) => {
+        if (maskImg.bitmap.data[idx] > 200 &&
+            maskImg.bitmap.data[idx + 1] > 200 &&
+            maskImg.bitmap.data[idx + 2] > 200) {
+          combined.bitmap.data[idx + 3] = 0;
+        }
+      });
+      maskBuffer = await combined.getBufferAsync(Jimp.MIME_PNG);
+      console.log('[mask] loaded from maskzone.png');
+    } catch (e) {
+      console.warn('[mask] fallback to rect zones:', e.message);
+      maskBuffer = makeMaskPng(IMG_W, IMG_H, [
+        [0.15, 0.07, 0.85, 0.18],
+        [0.10, 0.78, 0.90, 0.95],
+      ]);
+    }
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
     const eyelashPart = (semantics.eyelash === true || semantics.eyelash === 'true')
