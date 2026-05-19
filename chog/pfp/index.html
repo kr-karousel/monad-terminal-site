@@ -438,30 +438,6 @@ input[type=file]{display:none;}
     </div>
   </div>
 
-  <!-- BACKGROUND TEMPLATES -->
-  <div class="option-section" id="bgSection" style="margin-top:10px;">
-    <div class="option-header" onclick="toggleSection('bgSection')">
-      <div class="option-header-left">
-        <div class="option-checkbox"></div>
-        <span class="option-label">Background</span>
-        <span class="option-optional">(check to customize)</span>
-      </div>
-    </div>
-    <div class="option-body"><div class="bg-grid-sel" id="bgGrid"></div></div>
-  </div>
-
-  <!-- ART STYLE -->
-  <div class="option-section" id="styleSection">
-    <div class="option-header" onclick="toggleSection('styleSection')">
-      <div class="option-header-left">
-        <div class="option-checkbox"></div>
-        <span class="option-label">Art Style</span>
-        <span class="option-optional">(check to customize)</span>
-      </div>
-    </div>
-    <div class="option-body"><div class="style-chips" id="styleChips"></div></div>
-  </div>
-
   <!-- CUSTOM PROMPT -->
   <div class="option-section" id="promptSection">
     <div class="option-header" onclick="toggleSection('promptSection')">
@@ -590,33 +566,6 @@ function toggleSection(id) {
 
 /* ── BUILD BG + STYLE SELECTORS ── */
 function buildSelectors() {
-  const bgGrid = document.getElementById('bgGrid');
-  BG_TEMPLATES.forEach((bg, i) => {
-    const el = document.createElement('div');
-    el.className = 'bg-swatch' + (i === 0 ? ' active' : '');
-    el.dataset.id = bg.id;
-    el.title = bg.label;
-    el.style.background = bg.color;
-    el.onclick = () => {
-      selectedBg = bg;
-      document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
-      el.classList.add('active');
-    };
-    bgGrid.appendChild(el);
-  });
-
-  const chips = document.getElementById('styleChips');
-  ART_STYLES.forEach((s, i) => {
-    const el = document.createElement('button');
-    el.className = 'style-chip' + (i === 0 ? ' active' : '');
-    el.textContent = s.label;
-    el.onclick = () => {
-      selectedStyle = s;
-      document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('active'));
-      el.classList.add('active');
-    };
-    chips.appendChild(el);
-  });
 }
 
 /* ── INIT: check session on load ── */
