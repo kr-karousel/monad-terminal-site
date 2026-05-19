@@ -446,33 +446,8 @@ async function _handler(req, res) {
 
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
-    // Composite: restore all non-edit-zone pixels from base image (face/eyes/nose/mouth stay 100% base)
-    let compositeUrl = imageUrl;
-    try {
-      const genBuf = imageUrl.startsWith('data:')
-        ? Buffer.from(imageUrl.split(',')[1], 'base64')
-        : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
-      const [genImg, baseImg] = await Promise.all([Jimp.read(genBuf), Jimp.read(baseBuffer)]);
-      const gw = genImg.bitmap.width, gh = genImg.bitmap.height;
-      if (baseImg.bitmap.width !== gw || baseImg.bitmap.height !== gh)
-        baseImg.resize(gw, gh, Jimp.RESIZE_NEAREST_NEIGHBOR);
-      for (let y = 0; y < gh; y++) {
-        const fy = y / gh;
-        for (let x = 0; x < gw; x++) {
-          const fx = x / gw;
-          const inEdit = editZones.some(([rx1, ry1, rx2, ry2]) =>
-            fx >= rx1 && fx < rx2 && fy >= ry1 && fy < ry2
-          );
-          if (!inEdit) genImg.setPixelColor(baseImg.getPixelColor(x, y), x, y);
-        }
-      }
-      const compositedBuf = await genImg.getBufferAsync(Jimp.MIME_PNG);
-      compositeUrl = `data:image/png;base64,${compositedBuf.toString('base64')}`;
-      console.log('[composite] base face restored on generated image');
-    } catch (e) { console.warn('[composite] failed, using raw:', e.message); }
-
     // Smart crop: detect right-eye X position with GPT-4o-mini, then crop just past it
-    let finalImageUrl = compositeUrl;
+    let finalImageUrl = imageUrl;
     try {
       const eyeContent = imgData.url
         ? { type: 'image_url', image_url: { url: imgData.url, detail: 'low' } }
@@ -498,7 +473,7 @@ async function _handler(req, res) {
 
       const MARGIN = 0.23;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95 && (eyeX + MARGIN) < 0.97) {
-        const rawBuf = compositeUrl.startsWith('data:')
+        const rawBuf = imageUrl.startsWith('data:')
           ? Buffer.from(compositeUrl.split(',')[1], 'base64')
           : Buffer.from(await (await fetch(compositeUrl)).arrayBuffer());
         const jimg = await Jimp.read(rawBuf);
