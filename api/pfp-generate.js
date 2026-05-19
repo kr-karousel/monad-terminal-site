@@ -230,7 +230,7 @@ async function verifyPayment(txHash, fromWallet) {
   const to   = (tx.to || '').toLowerCase();
   const from = (tx.from || '').toLowerCase();
   const val  = BigInt(tx.value || '0x0');
-  const required = BigInt('0x16345785D8A0000');
+  const required = BigInt('0x56bc75e2d63100000');
   if (to   !== DEV_WALLET.toLowerCase()) return { ok: false, reason: 'Wrong recipient' };
   if (from !== fromWallet.toLowerCase()) return { ok: false, reason: 'Sender mismatch' };
   if (val  < required)                   return { ok: false, reason: 'Insufficient amount' };
@@ -315,7 +315,7 @@ async function _handler(req, res) {
       if (!wallet) return res.status(402).json({ error: 'Wallet required for batch generate' });
       walletRow = await getWalletRow(wallet);
       if (!walletRow || walletRow.credits < 10)
-        return res.status(402).json({ error: 'Need 10 credits for batch generate. Pay 0.1 MON to top up.' });
+        return res.status(402).json({ error: 'Need 10 credits for batch generate. Pay 100 MON to top up.' });
       await upsertWallet(wallet, walletRow.credits - 10, walletRow.used_txhashes || []);
       outBatchToken = makeBatchToken(wallet);
     } else {
@@ -326,10 +326,10 @@ async function _handler(req, res) {
         if (twitterRow && !twitterRow.used_free) useTwitterFree = true;
       }
       if (!useTwitterFree) {
-        if (!wallet) return res.status(402).json({ error: 'Connect X for 1 free generation, or pay 0.1 MON for more.' });
+        if (!wallet) return res.status(402).json({ error: 'Connect X for 1 free generation, or pay 100 MON for more.' });
         walletRow = await getWalletRow(wallet);
         if (!walletRow || walletRow.credits < 1)
-          return res.status(402).json({ error: 'No credits left. Pay 0.1 MON to get 10 more.' });
+          return res.status(402).json({ error: 'No credits left. Pay 100 MON to get 10 more.' });
       }
       if (useTwitterFree) await markFreeUsed(session.id);
       else await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);

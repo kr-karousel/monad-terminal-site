@@ -314,7 +314,7 @@ input[type=file]{display:none;}
     <div class="howto-title">💡 HOW IT WORKS</div>
     <div class="step"><div class="step-num">1</div><div class="step-text">Connect your X account → get <strong>1 free generation</strong></div></div>
     <div class="step"><div class="step-num">2</div><div class="step-text">Drop any reference image (character, outfit, NFT) → CHOG PFP auto-generates</div></div>
-    <div class="step"><div class="step-num">3</div><div class="step-text">Want more? Connect wallet and pay <strong>0.1 MON → +10 generations</strong></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Want more? Connect wallet and pay <strong>100 MON → +10 generations</strong></div></div>
     <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(138,92,246,0.12);font-size:11px;color:#5a4f72;font-family:'Space Mono',monospace;line-height:1.7;">
       Powered by <strong style="color:#7c6fa0;">gpt-image-1</strong> (OpenAI) ·
       Generations that violate OpenAI's content policy may be cancelled by the model automatically.
@@ -349,7 +349,7 @@ input[type=file]{display:none;}
       </div>
       <button onclick="disconnectWallet()" title="Disconnect" style="background:none;border:none;color:#4a3d6b;font-size:16px;cursor:pointer;padding:2px 4px;flex-shrink:0;">✕</button>
     </div>
-    <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 0.1 MON → +10 generations</button>
+    <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 100 MON → +10 generations</button>
   </div>
 
 
@@ -803,16 +803,16 @@ async function pfpPay() {
     });
     const balData = await balRes.json();
     const bal = BigInt(balData.result || '0x0');
-    const required = BigInt('0x16345785D8A0000'); // 0.1 MON
+    const required = BigInt('0x56bc75e2d63100000'); // 100 MON
     if (bal < required) {
       const balMon = Number(bal) / 1e18;
-      setStatus(`✗ Insufficient balance: ${balMon.toFixed(4)} MON (need 0.1+ MON)`, true);
+      setStatus(`✗ Insufficient balance: ${balMon.toFixed(2)} MON (need 100 MON)`, true);
       return;
     }
-    setStatus('💎 Sending 0.1 MON... (confirm in wallet)');
+    setStatus('💎 Sending 100 MON... (confirm in wallet)');
     const txHash = await pfpProvider.request({
       method: 'eth_sendTransaction',
-      params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x16345785D8A0000', gas: '0x5208', data: '0x' }]
+      params: [{ from: pfpWallet, to: DEV_WALLET, value: '0x56bc75e2d63100000', gas: '0x5208', data: '0x' }]
     });
     setStatus('⏳ Verifying payment on-chain... (tx: ' + txHash.slice(0,10) + '...)');
     // Retry verification up to 6 times (24s total) — Monad RPC can lag
@@ -900,7 +900,7 @@ function updateGenBtn() {
     btn.innerHTML = '🦔 Drop a reference image first';
   } else if (!hasCredits) {
     btn.disabled = false;
-    btn.innerHTML = '💎 Pay 0.1 MON to unlock 10 generations';
+    btn.innerHTML = '💎 Pay 100 MON to unlock 10 generations';
     btn.onclick = () => {
       if (!pfpWallet) { setStatus('⚠ Connect wallet first', true); return; }
       pfpPay();
@@ -924,15 +924,15 @@ function statusAfterUpload() {
   }
   // No credits left
   if (xSession && xSession.usedFree && !pfpWallet) {
-    setStatus('✗ Free generation already used. Connect wallet and pay 0.1 MON for 10 more.', true);
+    setStatus('✗ Free generation already used. Connect wallet and pay 100 MON for 10 more.', true);
     document.getElementById('payBtn').style.display = 'block';
   } else if (xSession && xSession.usedFree && pfpWallet) {
-    setStatus('✗ No credits left. Pay 0.1 MON to get 10 more generations.', true);
+    setStatus('✗ No credits left. Pay 100 MON to get 10 more generations.', true);
     document.getElementById('payBtn').style.display = 'block';
   } else if (!xSession && !pfpWallet) {
-    setStatus('⚠ Connect X for 1 free generation, or connect wallet to pay 0.1 MON for 10.', true);
+    setStatus('⚠ Connect X for 1 free generation, or connect wallet to pay 100 MON for 10.', true);
   } else if (!xSession && pfpWallet) {
-    setStatus('✗ No credits. Pay 0.1 MON for 10 generations, or connect X for 1 free.', true);
+    setStatus('✗ No credits. Pay 100 MON for 10 generations, or connect X for 1 free.', true);
     document.getElementById('payBtn').style.display = 'block';
   }
 }
@@ -1005,7 +1005,7 @@ async function runAll() {
 
   if (!canUseXFree && !canUseWallet) {
     if (!xSession) setStatus('⚠ Connect X for 1 free generation, or connect wallet', true);
-    else setStatus('⚠ No credits left — pay 0.1 MON for 10 more', true);
+    else setStatus('⚠ No credits left — pay 100 MON for 10 more', true);
     document.getElementById('payBtn').style.display = 'block';
     return;
   }
