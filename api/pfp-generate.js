@@ -425,16 +425,14 @@ async function _handler(req, res) {
     if (!isNude)           editZones.push([0.15, 0.87, 0.85, 0.97]); // outfit zone (skip if nude reference)
     if (!isSpiky)          editZones.push([0.15, 0.00, 0.85, 0.10]); // hair color zone (non-spiky only)
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
-    if (semantics.hairpin) editZones.push([0.10, 0.05, 0.55, 0.28]);
+    if (semantics.hairpin) editZones.push([0.22, 0.07, 0.55, 0.16]); // hairpin zone (crown area only)
     if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
-    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.268, 0.90, 0.274]); // ultra-thin eyelid strip (~6px)
+    // eyelash zone disabled: CHOG eye positions vary and thin strip causes asymmetric eye redraw
     if (chogStyle !== '2') editZones.push([0.30, 0.69, 0.62, 0.74]); // mouth zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
-    const eyelashPart = (semantics.eyelash === true || semantics.eyelash === 'true')
-      ? ' EYELASHES ONLY: draw 3-5 thin short stroke lines extending from the upper eyelid of the existing eyes. Do NOT change the eye shape, eye size, pupil, iris, or any other part of the eyes. The existing CHOG eyes must remain 100% unchanged beneath the lash strokes.'
-      : '';
+    const eyelashPart = '';
     const hairInstruction = isSpiky
       ? 'Do not change the hair at all — shape, color, and spike direction stay identical to the base. Everything below the hairline is locked.'
       : 'Apply the reference hair color only — keep the base spike shape exactly.';
