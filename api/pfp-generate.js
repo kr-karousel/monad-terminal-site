@@ -471,17 +471,19 @@ async function _handler(req, res) {
       const eyeX = match ? parseFloat(match[1]) : null;
       console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
 
-      const MARGIN = 0.16;
-      if (eyeX && eyeX > 0.25 && eyeX < 0.95 && (eyeX + MARGIN) < 0.97) {
+      const MARGIN = 0.18;
+      const MIN_CROP = 0.72; // safety floor — never crop narrower than this regardless of eye detection
+      if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
         const rawBuf = imageUrl.startsWith('data:')
           ? Buffer.from(imageUrl.split(',')[1], 'base64')
           : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
         const jimg = await Jimp.read(rawBuf);
-        const cropSide = Math.round(Math.min(eyeX + MARGIN, 1.0) * jimg.bitmap.width);
+        const cropFraction = Math.max(eyeX + MARGIN, MIN_CROP);
+        const cropSide = Math.round(Math.min(cropFraction, 1.0) * jimg.bitmap.width);
         jimg.crop(0, 0, cropSide, cropSide);
         const croppedBuf = await jimg.getBufferAsync(Jimp.MIME_PNG);
         finalImageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
-        console.log('[eye-crop] cropped to', cropSide, 'x', cropSide);
+        console.log('[eye-crop] eyeX:', eyeX, '→ cropSide:', cropSide);
       } else {
         console.log('[eye-crop] skipped — eyeX:', eyeX);
       }
