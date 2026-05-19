@@ -463,7 +463,7 @@ input[type=file]{display:none;}
   <!-- BUTTONS -->
   <div class="btn-row">
     <div class="gen-btn-wrap">
-      <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate CHOG PFP</button>
+      <button class="gen-btn" id="genBtn" onclick="generatePFP()" disabled>🦔 Generate PFP</button>
     </div>
     <button class="batch-btn" id="batchBtn" onclick="generateBatch()" disabled title="Generate 10 — costs 10 credits">🦔×10</button>
     <button class="icon-btn" id="dlBtn" onclick="downloadResult()" style="display:none" title="Download image">⬇</button>
@@ -936,7 +936,7 @@ function updateGenBtn() {
     };
   } else {
     btn.disabled = false;
-    btn.innerHTML = '🦔 Generate CHOG PFP';
+    btn.innerHTML = '🦔 Generate PFP';
     btn.onclick = generatePFP;
   }
   // Batch button: needs image + 10 wallet credits
@@ -1106,7 +1106,7 @@ async function runAll() {
     setStatus('✦ Your CHOG PFP is ready! GM fren 🦔', 'ok');
     document.body.classList.remove('generating');
     if (window.setBgGenerating) window.setBgGenerating(false);
-    btn.innerHTML = '🦔 Generate CHOG PFP';
+    btn.innerHTML = '🦔 Generate PFP';
     btn.disabled = false;
     btn.onclick = generatePFP;
     btn.style.pointerEvents = '';
@@ -1119,7 +1119,7 @@ async function runAll() {
       document.getElementById('payBtn').style.display = 'block';
     }
     setStatus('✗ ' + err.message, true);
-    btn.innerHTML = '🦔 Generate CHOG PFP';
+    btn.innerHTML = '🦔 Generate PFP';
     btn.disabled = false;
     btn.onclick = generatePFP;
     btn.style.pointerEvents = '';
