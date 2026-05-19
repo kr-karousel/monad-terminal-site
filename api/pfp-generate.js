@@ -421,14 +421,14 @@ async function _handler(req, res) {
     // Build mask from uploaded PNG files (white = editable zone)
     const isSpiky = /spik|pointy|sharp|zigzag|jagged/i.test(semantics.hair || '');
     const editZones = [
-      [0.10, 0.82, 0.90, 0.97], // outfit zone (below arms)
+      [0.15, 0.87, 0.85, 0.97], // outfit zone (very bottom only, arms excluded)
     ];
     if (!isSpiky)          editZones.push([0.15, 0.00, 0.85, 0.10]); // hair color zone (very top only, non-spiky)
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
     if (semantics.hairpin) editZones.push([0.10, 0.05, 0.55, 0.28]);
     if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
-    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.27, 0.90, 0.34]); // upper eyelid strip only
-    if (chogStyle !== '2') editZones.push([0.25, 0.68, 0.70, 0.76]); // mouth zone (strictly below nose)
+    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.27, 0.90, 0.34]);
+    if (chogStyle !== '2') editZones.push([0.30, 0.69, 0.62, 0.74]); // mouth zone (tight, strictly below nose)
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
@@ -436,9 +436,9 @@ async function _handler(req, res) {
       ? ' Add a few eyelash strokes above the existing eyes only — do NOT redraw or reshape the eyes or pupils in any way.'
       : '';
     const hairInstruction = isSpiky
-      ? 'Do not change the hair at all — shape and color stay identical to the base.'
+      ? 'Do not change the hair at all — shape, color, and spike direction stay identical to the base. Everything below the hairline is locked.'
       : 'Apply the reference hair color only — keep the base spike shape exactly.';
-    const editPrompt = `The first image is the CHOG base — follow its art style (thick black outlines, flat solid colors, no gradients), composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges), and body pose (including arm position) exactly. The face outline, eye shape, and nose (tiny pink dot) are absolutely locked — do not change them. The mouth zone is strictly in the lower face only — the nose must remain untouched above it. The second image is the style reference — apply only: (1) ${hairInstruction}, (2) outfit and accessories, (3) skin color if different, (4) mouth expression within the mouth zone only. Do not change the eyes, pupils, eye shape, or nose. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base — its composition, framing, body pose, and arm position (arms crossed) are absolutely locked. Do not zoom out, do not change the crop, do not alter the pose. The face outline, eye shape, nose (tiny pink dot), and all facial proportions are locked. The second image is the style reference — apply only: (1) ${hairInstruction}, (2) outfit color/accessories in the very bottom zone only, (3) skin color if different, (4) mouth expression in the tight mouth zone only — do not let the mouth expand beyond the zone. Do not change the eyes, pupils, or nose. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
