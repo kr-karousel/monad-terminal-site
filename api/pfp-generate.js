@@ -417,17 +417,46 @@ async function _handler(req, res) {
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
-    const editZones = [
-      [0.00, 0.00, 1.00, 0.37], // hair zone
-      [0.05, 0.27, 0.38, 0.50], // left eye zone
-      [0.72, 0.33, 1.00, 0.52], // right eye zone
-      [0.10, 0.78, 0.90, 0.95], // outfit zone
-    ];
-    if (chogStyle !== '2') editZones.push([0.12, 0.54, 0.68, 0.72]); // mouth zone (skip for style 2 — cigarette fixed)
-    if (semantics.hat)     editZones.push([0.00, 0.00, 1.00, 0.20]); // hat zone (overlaps hair)
-    if (semantics.hairpin) editZones.push([0.00, 0.00, 0.50, 0.30]); // hairpin zone (left side)
-    if (semantics.glasses) editZones.push([0.05, 0.27, 1.00, 0.52]); // glasses zone (full eye row)
-    const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
+
+    // Build mask from uploaded PNG files (white = editable zone)
+    const maskFiles = ['mask-hair.png', 'mask-eyes.png', 'mask-outfit.png'];
+    if (chogStyle !== '2') maskFiles.push('mask-mouth.png');
+
+    let maskBuffer;
+    try {
+      const fetched = await Promise.all(
+        maskFiles.map(async f => {
+          try {
+            const r = await fetch(`https://monad-terminal.xyz/chog/pfp/${f}`);
+            return r.ok ? Buffer.from(await r.arrayBuffer()) : null;
+          } catch { return null; }
+        })
+      );
+      // Start fully opaque (preserved), punch holes where mask files are white
+      const combined = new Jimp(IMG_W, IMG_H, 0x000000FF);
+      for (const buf of fetched.filter(Boolean)) {
+        const img = await Jimp.read(buf);
+        img.resize(IMG_W, IMG_H, Jimp.RESIZE_NEAREST_NEIGHBOR);
+        img.scan(0, 0, IMG_W, IMG_H, (x, y, idx) => {
+          if (img.bitmap.data[idx] > 200 &&
+              img.bitmap.data[idx + 1] > 200 &&
+              img.bitmap.data[idx + 2] > 200) {
+            combined.bitmap.data[idx + 3] = 0; // transparent = editable
+          }
+        });
+      }
+      maskBuffer = await combined.getBufferAsync(Jimp.MIME_PNG);
+      console.log('[mask] built from image files');
+    } catch (e) {
+      console.warn('[mask] fallback to rect zones:', e.message);
+      maskBuffer = makeMaskPng(IMG_W, IMG_H, [
+        [0.00, 0.00, 1.00, 0.37],
+        [0.05, 0.27, 0.38, 0.50],
+        [0.72, 0.33, 1.00, 0.52],
+        [0.10, 0.78, 0.90, 0.95],
+        ...(chogStyle !== '2' ? [[0.12, 0.54, 0.68, 0.72]] : []),
+      ]);
+    }
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
     const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. The second image is the style reference — extract its skin color, eye style, mouth expression, hair color and style, outfit, and accessories and apply them onto the CHOG base. Do not copy the reference composition or background. Keep the CHOG face structure, spikes, and body shape unchanged. Only modify the unmasked zones.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
