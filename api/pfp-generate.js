@@ -422,10 +422,10 @@ async function _handler(req, res) {
     const isSpiky = /spik|pointy|sharp|zigzag|jagged/i.test(semantics.hair || '');
     const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
     const editZones = [];
-    if (!isNude)           editZones.push([0.15, 0.87, 0.85, 0.97]); // outfit zone (skip if nude reference)
+    if (!isNude)           editZones.push([0.10, 0.80, 0.90, 0.97]); // outfit zone (skip if nude reference)
     if (!isSpiky)          editZones.push([0.10, 0.00, 0.90, 0.13]); // hair color zone (spike tips only)
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
-    if (semantics.hairpin) editZones.push([0.10, 0.10, 0.90, 0.25]); // hairpin zone (hair body, below spike tips — no overlap with hair color zone)
+    if (semantics.hairpin) editZones.push([0.10, 0.03, 0.90, 0.25]); // hairpin zone (from near top to cover bows sitting on spikes)
     if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
     const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
     if (isFemale)           editZones.push([0.10, 0.270, 0.90, 0.284]); // eyelash strip: top edge of eyes only (~14px)
