@@ -389,31 +389,6 @@ async function _handler(req, res) {
       baseBuffer = rawBaseBuffer;
     }
 
-    const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
-
-    const sanitize = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
-
-    const styleDesc = [
-      semantics.hair           ? `hair: ${sanitize(semantics.hair)}`                                                                       : null,
-      semantics.hairpin        ? `hair accessory: ${sanitize(semantics.hairpin)}`                                                          : null,
-      semantics.hat            ? `headwear: ${sanitize(semantics.hat)}`                                                                    : null,
-      semantics.face           ? `face detail: ${sanitize(semantics.face)}`                                                               : null,
-      chogStyle === '2'        ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                    : null,
-      `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
-      semantics.accessories    ? `accessories: ${sanitize(semantics.accessories)}`                                                         : null,
-    ].filter(Boolean).join('; ');
-
-    // Build mandatory items reminder — things that must visibly appear in output
-    const mandatoryItems = [
-      semantics.hat         ? sanitize(semantics.hat)         : null,
-      semantics.hairpin     ? sanitize(semantics.hairpin)     : null,
-      semantics.accessories ? sanitize(semantics.accessories) : null,
-      chogStyle === '2'     ? 'cigarette in mouth'            : null,
-    ].filter(Boolean);
-    const mandatoryReminder = mandatoryItems.length
-      ? ` MUST visibly appear in final image (do not omit any): ${mandatoryItems.join(', ')}.`
-      : '';
-
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
@@ -438,13 +413,7 @@ async function _handler(req, res) {
     const eyelashPart = (semantics.eyelash === true || semantics.eyelash === 'true')
       ? ' EYELASHES ONLY: draw 3-5 thin short stroke lines extending from the upper eyelid of the existing eyes. Do NOT change the eye shape, eye size, pupil, iris, or any other part of the eyes. The existing CHOG eyes must remain 100% unchanged beneath the lash strokes.'
       : '';
-    const skinInstruction = (isNude && semantics.skin_color)
-      ? ` The reference character is nude — apply the reference skin color (${semantics.skin_color}) to the CHOG face skin flat fill only. Do not change any facial features, just the flat skin color.`
-      : '';
-    const hairInstruction = isSpiky
-      ? 'Do not change the hair at all — shape, color, and spike direction stay identical to the base. Everything below the hairline is locked.'
-      : `Apply the reference hair color (${semantics.hair || 'as shown'}) to the base spikes — change the color fill only, keep spike shape identical to the base.`;
-    const editPrompt = `The first image is the CHOG base — its composition, framing, body pose, and arm position (arms crossed) are absolutely locked. Do not zoom out, do not change the crop, do not alter the pose. The face outline, eye shape, nose (tiny pink dot), and all facial proportions are locked. The second image is the style reference — apply only: (1) ${hairInstruction}, (2) outfit color/accessories in the very bottom zone only, (3) mouth expression in the tight mouth zone only — do not let the mouth expand beyond the zone. Do not change the eyes, pupils, or nose. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${skinInstruction}${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. The second image is the style reference — extract only its outfit, accessories${isNude ? ', skin color' : ''}${chogStyle !== '2' ? ', mouth expression' : ''} and apply them onto the CHOG base. Keep the CHOG face, spikes, and body shape unchanged. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
