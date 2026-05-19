@@ -10,6 +10,7 @@ const SESSION_SECRET  = process.env.SESSION_SECRET || 'chog-pfp-fallback-secret'
 const MONAD_RPC       = 'https://rpc.monad.xyz';
 const DEV_WALLET      = '0xf9bb715c1DC21EB661FCaC75d45BCf470235e0d8';
 const CREDITS_PER_PAYMENT = 10;
+const DEV_WALLETS = ['0x536bcf80556e021fbc3022c45799be409a22e864'];
 
 const SB_HEADERS = {
   'apikey': SB_KEY,
@@ -255,6 +256,8 @@ async function _handler(req, res) {
   const { action, wallet, txHash, image, chogStyle, customPrompt } = req.body || {};
   const session = getSession(req);
 
+  const isDevWallet = wallet && DEV_WALLETS.includes(wallet.toLowerCase());
+
   if (action === 'credits') {
     let twitterRow = session ? await getTwitterRow(session.id) : null;
     if (session && !twitterRow) {
@@ -263,7 +266,7 @@ async function _handler(req, res) {
     }
     const twitterFree = !!(twitterRow && !twitterRow.used_free);
     const walletRow = wallet ? await getWalletRow(wallet) : null;
-    const walletCredits = walletRow?.credits ?? 0;
+    const walletCredits = isDevWallet ? 9999 : (walletRow?.credits ?? 0);
     const history = walletRow?.recent_history || [];
     return res.json({ twitterFree, walletCredits, total: (twitterFree ? 1 : 0) + walletCredits, history });
   }
@@ -313,11 +316,15 @@ async function _handler(req, res) {
     } else if (batchMode) {
       // First batch call — deduct 10 credits atomically up front
       if (!wallet) return res.status(402).json({ error: 'Wallet required for batch generate' });
-      walletRow = await getWalletRow(wallet);
-      if (!walletRow || walletRow.credits < 10)
-        return res.status(402).json({ error: 'Need 10 credits for batch generate. Pay 100 MON to top up.' });
-      await upsertWallet(wallet, walletRow.credits - 10, walletRow.used_txhashes || []);
-      outBatchToken = makeBatchToken(wallet);
+      if (isDevWallet) {
+        outBatchToken = makeBatchToken(wallet);
+      } else {
+        walletRow = await getWalletRow(wallet);
+        if (!walletRow || walletRow.credits < 10)
+          return res.status(402).json({ error: 'Need 10 credits for batch generate. Pay 100 MON to top up.' });
+        await upsertWallet(wallet, walletRow.credits - 10, walletRow.used_txhashes || []);
+        outBatchToken = makeBatchToken(wallet);
+      }
     } else {
       // Normal single generation
       if (session) {
@@ -327,12 +334,14 @@ async function _handler(req, res) {
       }
       if (!useTwitterFree) {
         if (!wallet) return res.status(402).json({ error: 'Connect X for 1 free generation, or pay 100 MON for more.' });
-        walletRow = await getWalletRow(wallet);
-        if (!walletRow || walletRow.credits < 1)
-          return res.status(402).json({ error: 'No credits left. Pay 100 MON to get 10 more.' });
+        if (!isDevWallet) {
+          walletRow = await getWalletRow(wallet);
+          if (!walletRow || walletRow.credits < 1)
+            return res.status(402).json({ error: 'No credits left. Pay 100 MON to get 10 more.' });
+        }
       }
       if (useTwitterFree) await markFreeUsed(session.id);
-      else await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
+      else if (!isDevWallet) await upsertWallet(wallet, walletRow.credits - 1, walletRow.used_txhashes || []);
     }
 
     // Base image: 2.png or 3.png (default 3.png)
@@ -528,7 +537,9 @@ async function _handler(req, res) {
     }
 
     let walletCreditsNow;
-    if (batchMode) {
+    if (isDevWallet) {
+      walletCreditsNow = 9999;
+    } else if (batchMode) {
       walletCreditsNow = walletRow.credits - 10;
     } else if (batchToken) {
       walletCreditsNow = wallet ? ((await getWalletRow(wallet))?.credits ?? 0) : 0;
