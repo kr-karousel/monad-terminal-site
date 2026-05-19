@@ -315,6 +315,11 @@ input[type=file]{display:none;}
     <div class="step"><div class="step-num">1</div><div class="step-text">Connect your X account → get <strong>1 free generation</strong></div></div>
     <div class="step"><div class="step-num">2</div><div class="step-text">Drop any reference image (character, outfit, NFT) → CHOG PFP auto-generates</div></div>
     <div class="step"><div class="step-num">3</div><div class="step-text">Want more? Connect wallet and pay <strong>0.1 MON → +10 generations</strong></div></div>
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(138,92,246,0.12);font-size:11px;color:#5a4f72;font-family:'Space Mono',monospace;line-height:1.7;">
+      Powered by <strong style="color:#7c6fa0;">gpt-image-1</strong> (OpenAI) ·
+      Generations that violate OpenAI's content policy may be cancelled by the model automatically.
+      <span style="color:#4a3d6b;">Credits are not refunded for policy violations.</span>
+    </div>
   </div>
 
   <!-- X LOGIN ROW -->
@@ -1157,6 +1162,7 @@ async function generateBatch() {
     ? document.getElementById('customPrompt').value.trim() : '';
 
   let doneCount = 0;
+  let policyViolations = 0;
 
   // ── Step 1: first request — deducts 10 credits atomically, returns batchToken ──
   let batchToken = null;
@@ -1166,7 +1172,10 @@ async function generateBatch() {
       body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle, customPrompt, batchMode: true }),
     });
     const d0 = await r0.json();
-    if (!r0.ok) throw new Error(d0.error);
+    if (!r0.ok) {
+      if (d0.policyViolation) policyViolations++;
+      throw new Error(d0.error);
+    }
     batchToken = d0.batchToken;
     if (d0.walletCredits !== undefined) updateCreditUI(d0);
     batchResults[0] = d0.url;
@@ -1191,7 +1200,10 @@ async function generateBatch() {
         body: JSON.stringify({ action: 'generate', wallet: pfpWallet, image: b64, chogStyle, customPrompt, batchToken }),
       });
       const d = await res.json();
-      if (!res.ok) throw new Error(d.error);
+      if (!res.ok) {
+        if (d.policyViolation) policyViolations++;
+        throw new Error(d.error);
+      }
       batchResults[i] = d.url;
       doneCount++;
       setBatchProgress(doneCount, BATCH);
@@ -1212,19 +1224,25 @@ async function generateBatch() {
   const successCount = urls.length;
   const failCount = BATCH - successCount;
 
-  if (failCount > 0 && pfpWallet && batchToken) {
+  const refundCount = failCount - policyViolations;
+  if (refundCount > 0 && pfpWallet && batchToken) {
     try {
       const rf = await fetch(API_BASE, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'refund', wallet: pfpWallet, batchToken, count: failCount }),
+        body: JSON.stringify({ action: 'refund', wallet: pfpWallet, batchToken, count: refundCount }),
       });
       const rd = await rf.json();
       if (rd.ok) {
-        totalCredits += failCount;
+        totalCredits += refundCount;
         updateCreditUI({ walletCredits: rd.walletCredits, total: rd.walletCredits });
-        setStatus(`✓ ${failCount} failed — ${failCount} credit(s) refunded automatically`);
+        const msg = policyViolations > 0
+          ? `✓ ${refundCount} credit(s) refunded (${policyViolations} policy violation(s) not refunded)`
+          : `✓ ${refundCount} failed — ${refundCount} credit(s) refunded automatically`;
+        setStatus(msg);
       }
     } catch (e) { console.warn('[refund] failed:', e.message); }
+  } else if (failCount > 0 && policyViolations === failCount) {
+    setStatus(`✗ ${failCount} generation(s) cancelled — content policy violation (no refund)`);
   }
 
   // Update history with all successful URLs at once (server already stored #1)

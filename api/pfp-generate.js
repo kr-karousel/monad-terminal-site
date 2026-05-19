@@ -453,7 +453,12 @@ async function _handler(req, res) {
     let gd;
     try { gd = JSON.parse(rawText); }
     catch { return res.status(500).json({ error: `OpenAI non-JSON response: ${rawText.slice(0, 200)}` }); }
-    if (gd.error) return res.status(500).json({ error: gd.error.message });
+    if (gd.error) {
+      const isPolicyViolation = gd.error.code === 'content_policy_violation'
+        || (gd.error.message || '').toLowerCase().includes('safety')
+        || (gd.error.message || '').toLowerCase().includes('policy');
+      return res.status(isPolicyViolation ? 451 : 500).json({ error: gd.error.message, policyViolation: isPolicyViolation });
+    }
     const imgData = gd.data[0];
     const imageUrl = imgData.url || (imgData.b64_json ? `data:image/png;base64,${imgData.b64_json}` : null);
 
