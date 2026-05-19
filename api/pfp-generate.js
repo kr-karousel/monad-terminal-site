@@ -357,7 +357,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image, detail: 'high' } },
-              { type: 'text', text: 'Analyze this character image meticulously. Return ONLY this JSON (no markdown): {"hair": "exact color name, shape (e.g. twin tails, short bob, long wavy), volume, and texture", "hairpin": "LOOK CAREFULLY at every part of the hair — any bow, ribbon, clip, scrunchie, flower, pin, or decoration. Describe: exact color, size relative to head (small/medium/large/huge), shape, and exact location (e.g. left side, top-center, behind ear). If truly none, null", "hat": "any hat or hard headwear sitting ON TOP of the head — describe type, color, shape, or null", "face": "glasses type and color only — do NOT describe mouth, teeth, expression, or skin. If no glasses, null", "mouth": "describe the mouth/expression only — e.g. wide grin with yellow fangs, small smirk, open smile with tongue, neutral line. null if plain closed mouth", "outfit": "every garment from top to bottom — exact colors for each piece, patterns (stripes/dots/plaid etc), collar shape, trim, ruffles, buttons, any text/logo with exact wording and placement", "accessories": "everything else: scarves, belts, jewelry, wings, tail, hand props — describe exactly, or null", "special_effects": "any glow, aura, energy outline, sparkles, particle effects, or light effects around or behind the character — describe color and style exactly, or null", "background": "background color or scene"}' }
+              { type: 'text', text: 'Analyze this character image meticulously. Return ONLY this JSON (no markdown): {"hair": "exact color name, shape (e.g. twin tails, short bob, long wavy), volume, and texture", "hairpin": "LOOK CAREFULLY at every part of the hair — any bow, ribbon, clip, scrunchie, flower, pin, or decoration. Describe: exact color, size relative to head (small/medium/large/huge), shape, and exact location (e.g. left side, top-center, behind ear). If truly none, null", "hat": "any hat or hard headwear sitting ON TOP of the head — describe type, color, shape, or null", "face": "glasses type and color only — do NOT describe mouth, teeth, expression, or skin. If no glasses, null", "mouth": "describe the mouth/expression only — e.g. wide grin with yellow fangs, small smirk, open smile with tongue, neutral line. null if plain closed mouth", "eyelash": "true if the character has prominent/decorative eyelashes (long, curled, dramatic, or clearly drawn) OR if the character is clearly female — otherwise false", "outfit": "every garment from top to bottom — exact colors for each piece, patterns (stripes/dots/plaid etc), collar shape, trim, ruffles, buttons, any text/logo with exact wording and placement", "accessories": "everything else: scarves, belts, jewelry, wings, tail, hand props — describe exactly, or null", "special_effects": "any glow, aura, energy outline, sparkles, particle effects, or light effects around or behind the character — describe color and style exactly, or null", "background": "background color or scene"}' }
             ]
           }]
         }),
@@ -419,8 +419,9 @@ async function _handler(req, res) {
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
 
     // Build mask from uploaded PNG files (white = editable zone)
-    const maskFiles = ['mask-hair.png', 'mask-eyes.png', 'mask-outfit.png'];
+    const maskFiles = ['mask-hair.png', 'mask-outfit.png'];
     if (chogStyle !== '2') maskFiles.push('mask-mouth.png');
+    if (semantics.eyelash === true || semantics.eyelash === 'true') maskFiles.push('mask-eyelash.png');
 
     let maskBuffer;
     try {
@@ -468,7 +469,10 @@ async function _handler(req, res) {
     }
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
-    const editPrompt = `The first image is the CHOG base. You must follow it exactly for: face size and contour, eye position, nose position, mouth position, hair position, head angle, body angle, body pose, and overall composition/framing — these are all locked to the base and must not shift by even a pixel. Match its art style (thick black outlines, flat solid colors, no gradients) exactly. The second image is the style reference — apply only the following onto the CHOG base within the unmasked zones: (1) hair color and style, (2) eye shape and expression, (3) mouth expression, (4) outfit and accessories, (5) skin color. Keep the nose as a tiny pink dot. Do not copy the reference composition, pose, or background.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const eyelashPart = (semantics.eyelash === true || semantics.eyelash === 'true')
+      ? ' Apply eyelashes from the reference (prominent/decorative lashes) in the eyelash unmasked zone.'
+      : '';
+    const editPrompt = `The first image is the CHOG base. You must follow it exactly for: face size and contour, eye position, nose position, mouth position, hair position, head angle, body angle, body pose, and overall composition/framing — these are all locked to the base and must not shift by even a pixel. Match its art style (thick black outlines, flat solid colors, no gradients) exactly. The second image is the style reference — apply only the following onto the CHOG base within the unmasked zones: (1) hair color and style, (2) mouth expression, (3) outfit and accessories, (4) skin color. Do not change the eyes or pupils. Keep the nose as a tiny pink dot. Do not copy the reference composition, pose, or background.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
