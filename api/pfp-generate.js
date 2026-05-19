@@ -418,15 +418,15 @@ async function _handler(req, res) {
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.15, 0.07, 0.85, 0.18], // hair color zone
-      [0.10, 0.22, 0.90, 0.52], // eyes zone (higher start to fully cover eye area)
-      [0.15, 0.55, 0.85, 0.72], // mouth zone
+      [0.00, 0.00, 1.00, 0.37], // hair zone
+      [0.05, 0.27, 0.38, 0.50], // left eye zone
+      [0.72, 0.33, 1.00, 0.52], // right eye zone
       [0.10, 0.78, 0.90, 0.95], // outfit zone
     ];
-    if (chogStyle === '2') editZones.splice(2, 1); // remove mouth zone for style 2 — cigarette fixed
-    if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.18]); // hat zone
-    if (semantics.hairpin) editZones.push([0.15, 0.07, 0.85, 0.22]); // hairpin zone
-    if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
+    if (chogStyle !== '2') editZones.push([0.12, 0.54, 0.68, 0.72]); // mouth zone (skip for style 2 — cigarette fixed)
+    if (semantics.hat)     editZones.push([0.00, 0.00, 1.00, 0.20]); // hat zone (overlaps hair)
+    if (semantics.hairpin) editZones.push([0.00, 0.00, 0.50, 0.30]); // hairpin zone (left side)
+    if (semantics.glasses) editZones.push([0.05, 0.27, 1.00, 0.52]); // glasses zone (full eye row)
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
