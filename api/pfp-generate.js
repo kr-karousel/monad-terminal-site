@@ -446,33 +446,13 @@ async function _handler(req, res) {
 
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
-    // Auto-crop: trim right ~25% so the frame cuts just past the right eye (consistent composition)
-    let croppedImageUrl = imageUrl;
-    try {
-      let rawBuf;
-      if (imageUrl.startsWith('data:')) {
-        rawBuf = Buffer.from(imageUrl.split(',')[1], 'base64');
-      } else {
-        const r = await fetch(imageUrl);
-        rawBuf = Buffer.from(await r.arrayBuffer());
-      }
-      const jimg = await Jimp.read(rawBuf);
-      const cropW = Math.round(jimg.bitmap.width * 0.75);
-      jimg.crop(0, 0, cropW, jimg.bitmap.height);
-      const croppedBuf = await jimg.getBufferAsync(Jimp.MIME_PNG);
-      croppedImageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
-      console.log('[crop] auto-cropped to', cropW, 'x', jimg.bitmap.height);
-    } catch (e) {
-      console.warn('[crop] failed, using original:', e.message);
-    }
-
     // Upload to Supabase Storage and persist history per wallet
     // batchToken requests skip history write to avoid race conditions — client handles batch history
-    let persistentUrl = croppedImageUrl;
+    let persistentUrl = imageUrl;
     let history = [];
     if (wallet) {
       try {
-        const stored = await uploadToStorage(croppedImageUrl, wallet);
+        const stored = await uploadToStorage(imageUrl, wallet);
         if (stored) {
           persistentUrl = stored;
           if (!batchToken) history = await addToWalletHistory(wallet, stored);
