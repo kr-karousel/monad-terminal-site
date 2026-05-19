@@ -352,7 +352,7 @@ async function _handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
         body: JSON.stringify({
-          model: 'gpt-4o', max_tokens: 400,
+          model: 'gpt-4o', max_tokens: 800,
           messages: [{
             role: 'user',
             content: [
@@ -445,7 +445,7 @@ async function _handler(req, res) {
     } catch (e) { console.warn('[gpt] example fetch failed:', e.message); }
 
     const form = new FormData();
-    form.append('model', 'gpt-image-1');
+    form.append('model', 'gpt-image-1.5');
     form.append('prompt', editPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
