@@ -419,10 +419,11 @@ async function _handler(req, res) {
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
 
     // Build mask from uploaded PNG files (white = editable zone)
+    const isSpiky = /spik|pointy|sharp|zigzag|jagged/i.test(semantics.hair || '');
     const editZones = [
-      [0.10, 0.00, 0.90, 0.20], // hair zone (top, color only)
-      [0.10, 0.75, 0.90, 0.97], // outfit zone (bottom)
+      [0.10, 0.75, 0.90, 0.97], // outfit zone (always)
     ];
+    if (!isSpiky)          editZones.push([0.10, 0.00, 0.90, 0.20]); // hair zone (non-spiky only)
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.15]);
     if (semantics.hairpin) editZones.push([0.10, 0.05, 0.55, 0.30]);
     if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.48]);
