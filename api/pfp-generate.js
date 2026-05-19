@@ -428,14 +428,18 @@ async function _handler(req, res) {
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
-    const editPrompt = `Apply the hair color, outfit, and accessories from the reference character image onto the CHOG base character. Keep the CHOG face, spikes, body shape, and flat cartoon art style exactly as-is — only change what is in the unmasked zones.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base character to edit. The second image is the style reference. Apply the hair color, outfit, and accessories from the style reference onto the CHOG base character. Keep the CHOG face, spikes, body shape, and flat cartoon art style exactly as-is — only change what is in the unmasked zones.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
-    // Fetch example.jpg as additional style reference
-    let exampleBuffer = null;
+    // Convert user's reference image to buffer for direct submission
+    let userRefBuffer = null;
     try {
-      const exRes = await fetch('https://monad-terminal.xyz/chog/pfp/example.jpg');
-      if (exRes.ok) exampleBuffer = Buffer.from(await exRes.arrayBuffer());
-    } catch (e) { console.warn('[gpt] example fetch failed:', e.message); }
+      if (image.startsWith('data:')) {
+        userRefBuffer = Buffer.from(image.split(',')[1], 'base64');
+      } else {
+        const r = await fetch(image);
+        if (r.ok) userRefBuffer = Buffer.from(await r.arrayBuffer());
+      }
+    } catch (e) { console.warn('[gpt] user ref fetch failed:', e.message); }
 
     const form = new FormData();
     form.append('model', 'gpt-image-1.5');
@@ -445,7 +449,7 @@ async function _handler(req, res) {
     form.append('quality', 'medium');
     form.append('input_fidelity', 'high');
     form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
-    if (exampleBuffer) form.append('image[]', new Blob([exampleBuffer], { type: 'image/jpeg' }), 'example.jpg');
+    if (userRefBuffer) form.append('image[]', new Blob([userRefBuffer], { type: 'image/jpeg' }), 'reference.jpg');
     form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
