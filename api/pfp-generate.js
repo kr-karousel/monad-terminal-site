@@ -423,13 +423,15 @@ async function _handler(req, res) {
     const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
     const editZones = [];
     if (!isNude)           editZones.push([0.15, 0.87, 0.85, 0.97]); // outfit zone (skip if nude reference)
-    if (isNude && semantics.skin_color) editZones.push([0.20, 0.20, 0.80, 0.65]); // face skin zone (nude ref only)
+    if (isNude && semantics.skin_color) editZones.push([0.22, 0.22, 0.78, 0.60]); // face skin zone (nude ref only)
     if (!isSpiky)          editZones.push([0.10, 0.00, 0.90, 0.15]); // hair color zone (non-spiky only)
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
     if (semantics.hairpin) editZones.push([0.10, 0.05, 0.55, 0.28]);
     if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
     if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.26, 0.90, 0.30]); // ultra-thin eyelid strip
     if (chogStyle !== '2') editZones.push([0.30, 0.69, 0.62, 0.74]); // mouth zone
+    // Fallback: always have at least the outfit zone so mask is never fully opaque
+    if (editZones.length === 0) editZones.push([0.15, 0.87, 0.85, 0.97]);
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
