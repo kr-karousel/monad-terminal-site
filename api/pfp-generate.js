@@ -446,8 +446,33 @@ async function _handler(req, res) {
 
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
-    // Smart crop: detect right-eye X position with GPT-4o-mini, then square-crop just past it
-    let finalImageUrl = imageUrl;
+    // Composite: restore all non-edit-zone pixels from base image (face/eyes/nose/mouth stay 100% base)
+    let compositeUrl = imageUrl;
+    try {
+      const genBuf = imageUrl.startsWith('data:')
+        ? Buffer.from(imageUrl.split(',')[1], 'base64')
+        : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
+      const [genImg, baseImg] = await Promise.all([Jimp.read(genBuf), Jimp.read(baseBuffer)]);
+      const gw = genImg.bitmap.width, gh = genImg.bitmap.height;
+      if (baseImg.bitmap.width !== gw || baseImg.bitmap.height !== gh)
+        baseImg.resize(gw, gh, Jimp.RESIZE_NEAREST_NEIGHBOR);
+      for (let y = 0; y < gh; y++) {
+        const fy = y / gh;
+        for (let x = 0; x < gw; x++) {
+          const fx = x / gw;
+          const inEdit = editZones.some(([rx1, ry1, rx2, ry2]) =>
+            fx >= rx1 && fx < rx2 && fy >= ry1 && fy < ry2
+          );
+          if (!inEdit) genImg.setPixelColor(baseImg.getPixelColor(x, y), x, y);
+        }
+      }
+      const compositedBuf = await genImg.getBufferAsync(Jimp.MIME_PNG);
+      compositeUrl = `data:image/png;base64,${compositedBuf.toString('base64')}`;
+      console.log('[composite] base face restored on generated image');
+    } catch (e) { console.warn('[composite] failed, using raw:', e.message); }
+
+    // Smart crop: detect right-eye X position with GPT-4o-mini, then crop just past it
+    let finalImageUrl = compositeUrl;
     try {
       const eyeContent = imgData.url
         ? { type: 'image_url', image_url: { url: imgData.url, detail: 'low' } }
@@ -473,9 +498,9 @@ async function _handler(req, res) {
 
       const MARGIN = 0.21;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95 && (eyeX + MARGIN) < 0.97) {
-        const rawBuf = imageUrl.startsWith('data:')
-          ? Buffer.from(imageUrl.split(',')[1], 'base64')
-          : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
+        const rawBuf = compositeUrl.startsWith('data:')
+          ? Buffer.from(compositeUrl.split(',')[1], 'base64')
+          : Buffer.from(await (await fetch(compositeUrl)).arrayBuffer());
         const jimg = await Jimp.read(rawBuf);
         const cropW = Math.round((eyeX + MARGIN) * jimg.bitmap.width);
         jimg.crop(0, 0, cropW, jimg.bitmap.height);
@@ -488,26 +513,6 @@ async function _handler(req, res) {
     } catch (e) {
       console.warn('[eye-crop] failed, using original:', e.message);
     }
-
-    // Composite nose+mouth region from base image to preserve exact CHOG facial features
-    try {
-      const genBuf = finalImageUrl.startsWith('data:')
-        ? Buffer.from(finalImageUrl.split(',')[1], 'base64')
-        : Buffer.from(await (await fetch(finalImageUrl)).arrayBuffer());
-      const [genImg, baseImg] = await Promise.all([Jimp.read(genBuf), Jimp.read(baseBuffer)]);
-      const gw = genImg.bitmap.width, gh = genImg.bitmap.height;
-      if (baseImg.bitmap.width !== gw || baseImg.bitmap.height !== gh)
-        baseImg.resize(gw, gh, Jimp.RESIZE_NEAREST_NEIGHBOR);
-      // nose+mouth zone: x 15–52%, y 42–63% (center-left face area)
-      const x1 = Math.round(0.15 * gw), x2 = Math.round(0.52 * gw);
-      const y1 = Math.round(0.42 * gh), y2 = Math.round(0.63 * gh);
-      for (let y = y1; y < y2; y++)
-        for (let x = x1; x < x2; x++)
-          genImg.setPixelColor(baseImg.getPixelColor(x, y), x, y);
-      const compositedBuf = await genImg.getBufferAsync(Jimp.MIME_PNG);
-      finalImageUrl = `data:image/png;base64,${compositedBuf.toString('base64')}`;
-      console.log('[nose-mouth] composited base region onto generated image');
-    } catch (e) { console.warn('[nose-mouth] composite failed:', e.message); }
 
     // Upload to Supabase Storage and persist history per wallet
     // batchToken requests skip history write to avoid race conditions — client handles batch history
