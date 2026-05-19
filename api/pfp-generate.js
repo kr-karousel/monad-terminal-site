@@ -418,12 +418,12 @@ async function _handler(req, res) {
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.15, 0.02, 0.85, 0.22], // hair color zone — narrow to avoid spike silhouette edges
+      [0.15, 0.07, 0.85, 0.22], // hair color zone — starts below hairline to protect forehead/hairline junction
       [0.10, 0.78, 0.90, 0.95], // outfit zone
     ];
     if (chogStyle === '2')  editZones.push([0.20, 0.65, 0.80, 0.75]); // cigarette zone
     if (semantics.hat)      editZones.push([0.10, 0.00, 0.90, 0.18]); // hat zone — top only
-    if (semantics.hairpin)  editZones.push([0.15, 0.02, 0.85, 0.22]); // hairpin zone
+    if (semantics.hairpin)  editZones.push([0.15, 0.07, 0.85, 0.22]); // hairpin zone
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
@@ -504,7 +504,7 @@ async function _handler(req, res) {
 
 
 
-      const MARGIN = semantics.glasses ? 0.24 : 0.21;
+      const MARGIN = semantics.glasses ? 0.25 : 0.22;
       const MIN_CROP = 0.72;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
         const rawBuf = finalImageUrl.startsWith('data:')
