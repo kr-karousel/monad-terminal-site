@@ -480,7 +480,7 @@ async function _handler(req, res) {
         const jimg = await Jimp.read(rawBuf);
         const cropFraction = Math.max(eyeX + MARGIN, MIN_CROP);
         const cropSide = Math.round(Math.min(cropFraction, 1.0) * jimg.bitmap.width);
-        jimg.crop(0, 0, cropSide, cropSide);
+        jimg.crop(0, jimg.bitmap.height - cropSide, cropSide, cropSide);
         const croppedBuf = await jimg.getBufferAsync(Jimp.MIME_PNG);
         finalImageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
         console.log('[eye-crop] eyeX:', eyeX, '→ cropSide:', cropSide);
