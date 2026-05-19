@@ -427,14 +427,15 @@ async function _handler(req, res) {
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
     if (semantics.hairpin) editZones.push([0.10, 0.05, 0.55, 0.28]);
     if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
-    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.28, 0.90, 0.46]);
+    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.27, 0.90, 0.34]); // upper eyelid strip only
+    if (chogStyle !== '2') editZones.push([0.20, 0.58, 0.75, 0.70]); // mouth zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
     const eyelashPart = (semantics.eyelash === true || semantics.eyelash === 'true')
-      ? ' If the reference character is female or has prominent eyelashes, add eyelashes to the eyes.'
+      ? ' Add a few eyelash strokes above the existing eyes only — do NOT redraw or reshape the eyes or pupils in any way.'
       : '';
-    const editPrompt = `The first image is the CHOG base — follow its art style (thick black outlines, flat solid colors, no gradients), composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges), and body pose (including arm position) exactly. The second image is the style reference — apply only its hair color, outfit, and accessories onto the CHOG base. Keep the base hair shape and spikes unchanged — only the color may change. Do not draw hair onto the face or forehead. Do not extract or change the eyes, pupils, or nose — use them exactly as in the base. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base — follow its art style (thick black outlines, flat solid colors, no gradients), composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges), and body pose (including arm position) exactly. The face outline and eye shape are absolutely locked — do not change them. The second image is the style reference — apply only: (1) hair color (keep base spike shape), (2) outfit and accessories, (3) skin color if different, (4) mouth expression. Do not change the eyes, pupils, eye shape, nose, or face outline. Do not draw hair onto the face or forehead. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
