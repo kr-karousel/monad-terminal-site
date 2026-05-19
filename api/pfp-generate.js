@@ -418,10 +418,10 @@ async function _handler(req, res) {
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.05, 0.00, 0.95, 0.32], // hair + top-of-head zone (wider for accessories)
-      [0.10, 0.68, 0.90, 0.95], // outfit zone — starts lower to protect chin/lower face
+      [0.05, 0.00, 0.95, 0.32], // hair + top-of-head zone
+      [0.10, 0.78, 0.90, 0.95], // outfit zone — pushed down to reduce body area
     ];
-    if (chogStyle === '2')  editZones.push([0.20, 0.62, 0.80, 0.72]); // cigarette zone
+    if (chogStyle === '2')  editZones.push([0.20, 0.65, 0.80, 0.75]); // cigarette zone
     if (semantics.hat)      editZones.push([0.05, 0.00, 0.95, 0.20]); // hat zone (very top)
     if (semantics.hairpin)  editZones.push([0.05, 0.00, 0.95, 0.28]); // hairpin zone
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
@@ -431,7 +431,7 @@ async function _handler(req, res) {
       ? '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, cute chibi proportions, spiky head. FACE SHAPE IS LOCKED — preserve the original face shape and outline exactly. NOSE (CRITICAL — must appear): small dark nose mark between the eyes and mouth — always visible, never omit. MOUTH IS REPLACED BY CIGARETTE (CRITICAL — LOCKED): a thick lit cigarette/cigar hangs from the corner of CHOG\'s mouth — ALWAYS present, NEVER omit, NEVER replace with a normal mouth. No normal mouth exists on this version. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.'
       : '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, cute chibi proportions, spiky head. FACE SHAPE IS LOCKED — preserve the original face shape and outline exactly. NOSE (CRITICAL — must appear): small dark nose mark between the eyes and mouth — always visible, never omit. A CHOG without a nose is WRONG. Mouth = one thin slightly curved line, small and minimal, always present. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.';
 
-    const COMPOSITION = 'COMPOSITION: close-up PFP portrait. Face occupies the LEFT 55% of the image horizontally. RIGHT frame edge slices through the face just past the right eye. VERTICAL FRAMING: eyes at approximately 42% from top, chin at approximately 78% from top, upper body/outfit visible in bottom 20%. The top of the head bleeds off the top edge — not fully visible. Do NOT zoom out. Do NOT center. Accessories may bleed off any edge.';
+    const COMPOSITION = 'COMPOSITION: close-up PFP portrait. Face occupies the LEFT 55% of the image horizontally. RIGHT frame edge slices through the face just past the right eye. VERTICAL FRAMING: eyes at approximately 42% from top, chin at approximately 83% from top, only the very top of the outfit/collar visible in the bottom 10-12%. The top of the head bleeds off the top edge — not fully visible. Do NOT zoom out. Do NOT center. Accessories may bleed off any edge.';
 
     const editPrompt = `${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
