@@ -286,6 +286,19 @@ async function _handler(req, res) {
     return res.json({ ok: true, walletCredits: verifyRow.credits });
   }
 
+  if (action === 'refund') {
+    if (!wallet) return res.status(400).json({ error: 'wallet required' });
+    const { batchToken, count } = req.body || {};
+    if (!batchToken || !verifyBatchToken(batchToken, wallet))
+      return res.status(403).json({ error: 'Invalid or expired batch token' });
+    const refundCount = Math.min(Math.max(parseInt(count) || 0, 1), 10);
+    const row = await getWalletRow(wallet);
+    const newCredits = (row?.credits ?? 0) + refundCount;
+    await upsertWallet(wallet, newCredits, row?.used_txhashes || []);
+    console.log('[refund] wallet:', wallet, 'count:', refundCount, 'newCredits:', newCredits);
+    return res.json({ ok: true, walletCredits: newCredits });
+  }
+
   if (action === 'generate') {
     if (!OPENAI_KEY) return res.status(500).json({ error: 'API key not configured' });
     if (!image)      return res.status(400).json({ error: 'image required' });

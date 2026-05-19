@@ -297,6 +297,7 @@ input[type=file]{display:none;}
 </style>
 </head>
 <body>
+<div id="genWarning" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;text-align:center;padding:10px 16px;font-size:12px;font-family:'Space Mono',monospace;letter-spacing:.5px;">⚠ 생성 중입니다 — 뒤로가기 또는 새로고침 하지 마세요!</div>
 <div class="bg-grid"></div>
 <canvas id="bgCanvas" style="position:fixed;inset:0;z-index:0;pointer-events:none;"></canvas>
 <div class="wrap">
@@ -1010,6 +1011,7 @@ async function runAll() {
   btn.style.pointerEvents = 'none';
   btn.innerHTML = '⚠ Don\'t go back or refresh the page';
   document.body.classList.add('generating');
+  document.getElementById('genWarning').style.display = 'block';
   if (window.setBgGenerating) window.setBgGenerating(true);
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('shareBtn').style.display = 'none';
@@ -1070,6 +1072,7 @@ async function runAll() {
     document.getElementById('shareBtn').style.display = 'flex';
     setStatus('✦ Your CHOG PFP is ready! GM fren 🦔', 'ok');
     document.body.classList.remove('generating');
+    document.getElementById('genWarning').style.display = 'none';
     if (window.setBgGenerating) window.setBgGenerating(false);
     btn.innerHTML = '🦔 Generate PFP';
     btn.disabled = false;
@@ -1138,6 +1141,7 @@ async function generateBatch() {
   const batchBtn = document.getElementById('batchBtn');
   genBtn.disabled = true; batchBtn.disabled = true;
   genBtn.innerHTML = '⚠ Batch generating...';
+  document.getElementById('genWarning').style.display = 'block';
   if (window.setBgGenerating) window.setBgGenerating(true, true); // batch mode bg
 
   const optimisticCredits = Math.max(0, totalCredits - BATCH);
@@ -1198,13 +1202,30 @@ async function generateBatch() {
     }
   }));
 
-  // ── All done — build modal grid, then show popup ──
+  // ── All done — refund failed slots, build modal grid ──
   if (window.setBgGenerating) window.setBgGenerating(false, true);
   genBtn.disabled = false; batchBtn.disabled = totalCredits < 10;
   genBtn.innerHTML = '🦔 Generate PFP'; genBtn.onclick = generatePFP;
+  document.getElementById('genWarning').style.display = 'none';
 
   const urls = batchResults.filter(Boolean);
   const successCount = urls.length;
+  const failCount = BATCH - successCount;
+
+  if (failCount > 0 && pfpWallet && batchToken) {
+    try {
+      const rf = await fetch(API_BASE, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'refund', wallet: pfpWallet, batchToken, count: failCount }),
+      });
+      const rd = await rf.json();
+      if (rd.ok) {
+        totalCredits += failCount;
+        updateCreditUI({ walletCredits: rd.walletCredits, total: rd.walletCredits });
+        setStatus(`✓ ${failCount} failed — ${failCount} credit(s) refunded automatically`);
+      }
+    } catch (e) { console.warn('[refund] failed:', e.message); }
+  }
 
   // Update history with all successful URLs at once (server already stored #1)
   urls.forEach(u => addToHistory(u));
