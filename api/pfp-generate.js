@@ -421,20 +421,20 @@ async function _handler(req, res) {
     // Build mask from uploaded PNG files (white = editable zone)
     const isSpiky = /spik|pointy|sharp|zigzag|jagged/i.test(semantics.hair || '');
     const editZones = [
-      [0.10, 0.75, 0.90, 0.97], // outfit zone (always)
+      [0.10, 0.82, 0.90, 0.97], // outfit zone (below arms)
     ];
-    if (!isSpiky)          editZones.push([0.10, 0.00, 0.90, 0.20]); // hair zone (non-spiky only)
-    if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.15]);
-    if (semantics.hairpin) editZones.push([0.10, 0.05, 0.55, 0.30]);
-    if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.48]);
-    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.28, 0.90, 0.48]);
+    if (!isSpiky)          editZones.push([0.15, 0.00, 0.85, 0.10]); // hair color zone (very top only, non-spiky)
+    if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
+    if (semantics.hairpin) editZones.push([0.10, 0.05, 0.55, 0.28]);
+    if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
+    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.28, 0.90, 0.46]);
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
     const eyelashPart = (semantics.eyelash === true || semantics.eyelash === 'true')
       ? ' If the reference character is female or has prominent eyelashes, add eyelashes to the eyes.'
       : '';
-    const editPrompt = `The first image is the CHOG base — follow its art style (thick black outlines, flat solid colors, no gradients), composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges), and pose exactly. The second image is the style reference — apply only its hair color and style, outfit, and accessories onto the CHOG base. If the reference hair is spiky, keep the base spikes and only change the color. Do not extract or change the eyes, pupils, or nose — use them exactly as in the base. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base — follow its art style (thick black outlines, flat solid colors, no gradients), composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges), and body pose (including arm position) exactly. The second image is the style reference — apply only its hair color, outfit, and accessories onto the CHOG base. Keep the base hair shape and spikes unchanged — only the color may change. Do not draw hair onto the face or forehead. Do not extract or change the eyes, pupils, or nose — use them exactly as in the base. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
