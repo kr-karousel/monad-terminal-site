@@ -419,60 +419,21 @@ async function _handler(req, res) {
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
 
     // Build mask from uploaded PNG files (white = editable zone)
-    const maskFiles = ['mask-hair.png', 'mask-outfit.png'];
-    if (chogStyle !== '2') maskFiles.push('mask-mouth.png');
-    if (semantics.eyelash === true || semantics.eyelash === 'true') maskFiles.push('mask-eyelash.png');
-
-    let maskBuffer;
-    try {
-      const fetched = await Promise.all(
-        maskFiles.map(async f => {
-          try {
-            const r = await fetch(`https://monad-terminal.xyz/chog/pfp/${f}`);
-            return r.ok ? Buffer.from(await r.arrayBuffer()) : null;
-          } catch { return null; }
-        })
-      );
-      // Start fully opaque (preserved), punch holes where mask files are white
-      // BUT: protect background pixels from base image (blue ~= 0x4BB4FF area)
-      const baseJimp = await Jimp.read(baseBuffer);
-      baseJimp.resize(IMG_W, IMG_H, Jimp.RESIZE_NEAREST_NEIGHBOR);
-
-      const combined = new Jimp(IMG_W, IMG_H, 0x000000FF);
-      for (const buf of fetched.filter(Boolean)) {
-        const img = await Jimp.read(buf);
-        img.resize(IMG_W, IMG_H, Jimp.RESIZE_NEAREST_NEIGHBOR);
-        img.scan(0, 0, IMG_W, IMG_H, (x, y, idx) => {
-          if (img.bitmap.data[idx] > 200 &&
-              img.bitmap.data[idx + 1] > 200 &&
-              img.bitmap.data[idx + 2] > 200) {
-            // Check base pixel — skip if it's background (blue-ish: R<120, G>150, B>200)
-            const br = baseJimp.bitmap.data[idx];
-            const bg = baseJimp.bitmap.data[idx + 1];
-            const bb = baseJimp.bitmap.data[idx + 2];
-            const isBackground = br < 120 && bg > 150 && bb > 180;
-            if (!isBackground) combined.bitmap.data[idx + 3] = 0; // transparent = editable
-          }
-        });
-      }
-      maskBuffer = await combined.getBufferAsync(Jimp.MIME_PNG);
-      console.log('[mask] built from image files');
-    } catch (e) {
-      console.warn('[mask] fallback to rect zones:', e.message);
-      maskBuffer = makeMaskPng(IMG_W, IMG_H, [
-        [0.00, 0.00, 1.00, 0.37],
-        [0.05, 0.27, 0.38, 0.50],
-        [0.72, 0.33, 1.00, 0.52],
-        [0.10, 0.78, 0.90, 0.95],
-        ...(chogStyle !== '2' ? [[0.12, 0.54, 0.68, 0.72]] : []),
-      ]);
-    }
+    const editZones = [
+      [0.15, 0.07, 0.85, 0.18], // hair color zone
+      [0.10, 0.78, 0.90, 0.95], // outfit zone
+    ];
+    if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.18]);
+    if (semantics.hairpin) editZones.push([0.15, 0.07, 0.85, 0.22]);
+    if (semantics.glasses) editZones.push([0.22, 0.33, 0.78, 0.42]);
+    if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.28, 0.90, 0.48]);
+    const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
     const eyelashPart = (semantics.eyelash === true || semantics.eyelash === 'true')
-      ? ' Apply eyelashes from the reference (prominent/decorative lashes) in the eyelash unmasked zone.'
+      ? ' Add eyelashes in the eye zone to match the reference.'
       : '';
-    const editPrompt = `The first image is the CHOG base. You must follow it exactly for: face size and contour, eye position, nose position, mouth position, hair position, head angle, body angle, body pose, and overall composition/framing — these are all locked to the base and must not shift by even a pixel. Match its art style (thick black outlines, flat solid colors, no gradients) exactly. The second image is the style reference — apply only the following onto the CHOG base within the unmasked zones: (1) hair color and style, (2) mouth expression, (3) outfit and accessories, (4) skin color. Do not change the eyes or pupils. Keep the nose as a tiny pink dot. Do not copy the reference composition, pose, or background.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. The second image is the style reference — extract only its hair color, outfit, and accessories and apply them onto the CHOG base. Do not copy the reference composition or background. Keep the CHOG face, spikes, and body shape unchanged. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
