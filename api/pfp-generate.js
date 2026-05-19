@@ -423,7 +423,7 @@ async function _handler(req, res) {
     const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
     const editZones = [];
     if (!isNude)           editZones.push([0.15, 0.87, 0.85, 0.97]); // outfit zone (skip if nude reference)
-    if (!isSpiky)          editZones.push([0.15, 0.00, 0.85, 0.10]); // hair color zone (non-spiky only)
+    if (!isSpiky)          editZones.push([0.10, 0.00, 0.90, 0.16]); // hair color zone (non-spiky only)
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
     if (semantics.hairpin) editZones.push([0.10, 0.04, 0.90, 0.24]); // hairpin zone (full head width, accessories can be placed anywhere in hair)
     if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
@@ -439,7 +439,7 @@ async function _handler(req, res) {
     const hairInstruction = isSpiky
       ? 'Do not change the hair at all — shape, color, and spike direction stay identical to the base. Everything below the hairline is locked.'
       : 'Apply the reference hair color only — keep the base spike shape exactly.';
-    const editPrompt = `The first image is the CHOG base. ABSOLUTELY LOCKED — reproduce exactly as-is: the entire face jaw outline and silhouette, both eyes (large black circles with white highlight, exact position and size), nose (tiny pink dot, exact position), pink oval cheek blush marks, face scale and framing. Do not redraw, reshape, or reinterpret any of these. Match the art style exactly: thick black outlines, flat solid colors, no gradients. The face must remain the same size — do not zoom out. The second image is the style reference — extract ONLY: (1) ${hairInstruction}, (2) outfit in the bottom zone only, (3) mouth expression in the mouth zone only. Do not apply the reference face, eyes, nose, face shape, composition, pose, or art style. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base. ABSOLUTELY LOCKED — reproduce exactly as-is: the entire face jaw outline and silhouette, both eyes (large black circles with white highlight, exact position and size), nose (tiny pink dot, exact position), pink oval cheek blush marks, face scale and framing, the purple robe body with arms-crossed pose (do not expose bare skin or shoulders in any area outside the edit zones). Match the art style exactly: thick black outlines, flat solid colors, no gradients. The face must remain the same size — do not zoom out. The second image is the style reference — extract ONLY: (1) ${hairInstruction}, (2) outfit color in the very bottom strip only, (3) mouth expression in the mouth zone only. Do not expose bare skin in areas where the base shows the purple robe. Do not apply the reference face, eyes, nose, body structure, composition, pose, or art style. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
