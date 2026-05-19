@@ -456,12 +456,16 @@ async function _handler(req, res) {
       const gw = genImg.bitmap.width, gh = genImg.bitmap.height;
       if (baseImg.bitmap.width !== gw || baseImg.bitmap.height !== gh)
         baseImg.resize(gw, gh, Jimp.RESIZE_NEAREST_NEIGHBOR);
-      // nose region: x 20–46%, y 43–54%
+      // nose region: x 20–46%, y 43–54% — only copy dark pixels (the nose mark itself, not skin)
       const x1 = Math.round(0.20 * gw), x2 = Math.round(0.46 * gw);
       const y1 = Math.round(0.43 * gh), y2 = Math.round(0.54 * gh);
-      for (let y = y1; y < y2; y++)
-        for (let x = x1; x < x2; x++)
-          genImg.setPixelColor(baseImg.getPixelColor(x, y), x, y);
+      for (let y = y1; y < y2; y++) {
+        for (let x = x1; x < x2; x++) {
+          const p = Jimp.intToRGBA(baseImg.getPixelColor(x, y));
+          const lum = p.r * 0.299 + p.g * 0.587 + p.b * 0.114;
+          if (lum < 80) genImg.setPixelColor(baseImg.getPixelColor(x, y), x, y);
+        }
+      }
       const noseBuf = await genImg.getBufferAsync(Jimp.MIME_PNG);
       processedUrl = `data:image/png;base64,${noseBuf.toString('base64')}`;
     } catch (e) { console.warn('[nose] composite failed:', e.message); }
