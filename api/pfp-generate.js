@@ -459,7 +459,7 @@ async function _handler(req, res) {
     }
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
-    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. The second image is the style reference — extract its skin color, eye style, mouth expression, hair color and style, outfit, and accessories and apply them onto the CHOG base. Do not copy the reference composition or background. Keep the CHOG face structure, spikes, and body shape unchanged. Only modify the unmasked zones.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. The second image is the style reference — extract its skin color, eye style, mouth expression, hair color and style, outfit, and accessories and apply them onto the CHOG base. Do not copy the reference composition or background. Keep the CHOG face structure, spikes, and body shape unchanged. Only the unmasked zones may be changed — every pixel outside the mask must stay exactly as in the base image, except skin color which should match the reference.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
