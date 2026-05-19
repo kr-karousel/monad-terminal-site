@@ -297,7 +297,7 @@ input[type=file]{display:none;}
     <div class="howto-title">💡 HOW IT WORKS</div>
     <div class="step"><div class="step-num">1</div><div class="step-text">Connect your X account → get <strong>1 free generation</strong></div></div>
     <div class="step"><div class="step-num">2</div><div class="step-text">Drop any reference image (character, outfit, NFT) → CHOG PFP auto-generates</div></div>
-    <div class="step"><div class="step-num">3</div><div class="step-text">Want more? Connect wallet and pay <strong>0.1 MON → +5 generations</strong></div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Want more? Connect wallet and pay <strong>0.1 MON → +10 generations</strong></div></div>
   </div>
 
   <!-- X LOGIN ROW -->
@@ -327,7 +327,7 @@ input[type=file]{display:none;}
       </div>
       <button onclick="disconnectWallet()" title="Disconnect" style="background:none;border:none;color:#4a3d6b;font-size:16px;cursor:pointer;padding:2px 4px;flex-shrink:0;">✕</button>
     </div>
-    <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 0.1 MON → +5 generations</button>
+    <button id="payBtn" class="pay-btn" onclick="pfpPay()">💎 Pay 0.1 MON → +10 generations</button>
   </div>
 
 
@@ -861,7 +861,7 @@ async function pfpPay() {
         totalCredits = newCredits + (freeStillOk ? 1 : 0);
         updateCreditUI({ walletCredits: newCredits, twitterFree: freeStillOk, total: totalCredits });
         await refreshCredits();
-        setStatus(`✦ Payment confirmed! +5 generations unlocked 🦔 (total: ${newCredits})`, 'ok');
+        setStatus(`✦ Payment confirmed! +10 generations unlocked 🦔 (total: ${newCredits})`, 'ok');
         return;
       }
       lastErr = d.error || 'unknown';
@@ -1034,7 +1034,7 @@ async function runAll() {
 
   if (!canUseXFree && !canUseWallet) {
     if (!xSession) setStatus('⚠ Connect X for 1 free generation, or connect wallet', true);
-    else setStatus('⚠ No credits left — pay 0.1 MON for 5 more', true);
+    else setStatus('⚠ No credits left — pay 0.1 MON for 10 more', true);
     document.getElementById('payBtn').style.display = 'block';
     return;
   }
