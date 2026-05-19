@@ -502,7 +502,7 @@ async function _handler(req, res) {
 
 
 
-      const MARGIN = 0.17;
+      const MARGIN = 0.21;
       const MIN_CROP = 0.72;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
         const rawBuf = finalImageUrl.startsWith('data:')
