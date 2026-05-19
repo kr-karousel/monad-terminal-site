@@ -408,8 +408,8 @@ async function _handler(req, res) {
     const ART_STYLE = '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, tiny dot nose, cute chibi proportions, spiky head. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.';
 
     const COMPOSITION = chogStyle === '2'
-      ? 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Face angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Accessories and headwear may freely bleed off ANY frame edge — do NOT shrink or reposition them to fit inside the frame. Do NOT center. Do NOT zoom out.'
-      : 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Accessories and headwear may freely bleed off ANY frame edge — do NOT shrink or reposition them to fit inside the frame. Do NOT center. Do NOT zoom out.';
+      ? 'COMPOSITION: match the base image framing exactly — face is very close-up and fills the frame. Face occupies the LEFT 55% of the image, angled left. Head and ALL spikes bleed off the top and left edges. The RIGHT frame edge cuts through the face right at the right eye — only the left eye and center face are fully visible, the right eye is at the very edge. Do NOT zoom out. Do NOT show the full head. Do NOT center the face. Accessories may bleed off any edge.'
+      : 'COMPOSITION: match the base image framing exactly — face is very close-up and fills the frame. Face occupies the LEFT 55% of the image. Head and ALL spikes bleed off the top and left edges. The RIGHT frame edge cuts through the face right at the right eye — only the left eye and center face are fully visible, the right eye is at the very edge. Do NOT zoom out. Do NOT show the full head. Do NOT center the face. Accessories may bleed off any edge.';
 
     const editPrompt = `${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
@@ -471,7 +471,7 @@ async function _handler(req, res) {
       const eyeX = match ? parseFloat(match[1]) : null;
       console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
 
-      const MARGIN = 0.13;
+      const MARGIN = 0.07;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95 && (eyeX + MARGIN) < 0.97) {
         const rawBuf = imageUrl.startsWith('data:')
           ? Buffer.from(compositeUrl.split(',')[1], 'base64')
