@@ -433,7 +433,7 @@ async function _handler(req, res) {
       ? `⚠ ART STYLE IS LOCKED — maintain CHOG's exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, cute chibi proportions, spiky head. ${OUTLINE_STYLE} FACE SHAPE IS LOCKED — preserve the original face shape and outline exactly. NOSE (CRITICAL — must appear): small dark nose mark between the eyes and mouth — always visible, never omit. MOUTH IS REPLACED BY CIGARETTE (CRITICAL — LOCKED): a thick lit cigarette/cigar hangs from the corner of CHOG's mouth — ALWAYS present, NEVER omit, NEVER replace with a normal mouth. No normal mouth exists on this version. Do NOT adopt the reference image's art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.`
       : `⚠ ART STYLE IS LOCKED — maintain CHOG's exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, cute chibi proportions, spiky head. ${OUTLINE_STYLE} FACE SHAPE IS LOCKED — preserve the original face shape and outline exactly. NOSE (CRITICAL — must appear): small dark nose mark between the eyes and mouth — always visible, never omit. A CHOG without a nose is WRONG. Mouth = one thin slightly curved line, small and minimal, always present. Do NOT adopt the reference image's art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.`;
 
-    const COMPOSITION = 'COMPOSITION: extreme close-up portrait — the face is VERY LARGE and dominates the frame. Face occupies the LEFT 55% of the image horizontally. RIGHT frame edge slices through the face just past the right eye. VERTICAL FRAMING IS STRICT: eyes at 38% from top, chin at 88% from top, body visible only at the very bottom 8-10% of the image. The top of the head bleeds FAR OFF the top edge. Do NOT zoom out. Do NOT show more body than 10%. Do NOT center. Accessories may bleed off any edge.';
+    const COMPOSITION = 'COMPOSITION: extreme close-up portrait — the face is MASSIVE and fills almost the entire frame. Face occupies the LEFT 55% of the image horizontally. RIGHT frame edge slices through the face just past the right eye. VERTICAL FRAMING IS STRICT: eyes at 35% from top, chin at 90% from top — the face occupies 90% of the image height. Only the bottom 8% of the image shows any body/outfit at all. The top of the head bleeds FAR OFF the top edge — at least the top 30% of the head is not visible. Do NOT zoom out. Do NOT show more than a tiny sliver of body at the very bottom. Do NOT center. Accessories may bleed off any edge.';
 
     const editPrompt = `${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
@@ -490,7 +490,7 @@ async function _handler(req, res) {
           max_tokens: 40,
           messages: [{ role: 'user', content: [
             eyeContent,
-            { type: 'text', text: 'The character faces LEFT. Find the character\'s LEFT eye — the eye on the RIGHT side of the image (viewer\'s perspective). Return ONLY JSON: {"x": 0.XX, "y": 0.XX} where x = rightmost pixel of that eye (0=left edge, 1=right edge), y = vertical center of that eye (0=top, 1=bottom).' }
+            { type: 'text', text: 'The character faces LEFT. Find the character\'s LEFT eye — the eye on the RIGHT side of the image (viewer\'s perspective). If the character is wearing glasses or sunglasses, use the rightmost edge of the RIGHT lens frame. Return ONLY JSON: {"x": 0.XX, "y": 0.XX} where x = rightmost pixel of that eye or lens (0=left edge, 1=right edge), y = vertical center of that eye (0=top, 1=bottom).' }
           ]}]
         })
       });
@@ -504,7 +504,7 @@ async function _handler(req, res) {
 
 
 
-      const MARGIN = 0.19;
+      const MARGIN = semantics.glasses ? 0.22 : 0.19;
       const MIN_CROP = 0.72;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
         const rawBuf = finalImageUrl.startsWith('data:')
