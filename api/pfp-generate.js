@@ -418,22 +418,24 @@ async function _handler(req, res) {
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.05, 0.00, 0.95, 0.32], // hair + top-of-head zone
-      [0.10, 0.78, 0.90, 0.95], // outfit zone — pushed down to reduce body area
+      [0.15, 0.02, 0.85, 0.22], // hair color zone — narrow to avoid spike silhouette edges
+      [0.10, 0.78, 0.90, 0.95], // outfit zone
     ];
     if (chogStyle === '2')  editZones.push([0.20, 0.65, 0.80, 0.75]); // cigarette zone
-    if (semantics.hat)      editZones.push([0.05, 0.00, 0.95, 0.20]); // hat zone (very top)
-    if (semantics.hairpin)  editZones.push([0.05, 0.00, 0.95, 0.28]); // hairpin zone
+    if (semantics.hat)      editZones.push([0.10, 0.00, 0.90, 0.18]); // hat zone — top only
+    if (semantics.hairpin)  editZones.push([0.15, 0.02, 0.85, 0.22]); // hairpin zone
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
+    const IDENTITY_LOCK = 'DO NOT REDRAW the character. The existing character image must remain visually identical — do NOT change: face shape, head shape, spike silhouette, eye placement, face proportions, framing, or crop. The face is partially cut off by the frame edges — preserve this exactly. Do NOT generate a new version of the character. Only ADD accessories/outfit/hair color into the unmasked zones.';
+
     const ART_STYLE = chogStyle === '2'
-      ? '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact hand-drawn style throughout: THICK BOLD BLACK OUTLINES (slightly irregular, marker-pen weight), PURE FLAT SOLID COLORS (zero gradients, zero shading, zero soft blending — hard flood-fill flat areas only, like MS Paint coloring), large circular anime eyes, cute chibi proportions, spiky head. Colors are 100% flat — no airbrush, no cel shading gradients, no smooth rendering, no soft edges. NOSE (CRITICAL — must appear): small dark nose mark between the eyes and mouth — always visible, never omit. MOUTH IS REPLACED BY CIGARETTE (CRITICAL — LOCKED): a thick lit cigarette/cigar hangs from the corner of CHOG\'s mouth — ALWAYS present, NEVER omit, NEVER replace with a normal mouth. No normal mouth exists on this version. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.'
-      : '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact hand-drawn style throughout: THICK BOLD BLACK OUTLINES (slightly irregular, marker-pen weight), PURE FLAT SOLID COLORS (zero gradients, zero shading, zero soft blending — hard flood-fill flat areas only, like MS Paint coloring), large circular anime eyes, cute chibi proportions, spiky head. Colors are 100% flat — no airbrush, no cel shading gradients, no smooth rendering, no soft edges. FACE FEATURES (preserve exactly as base): nose = one tiny dark dot or small horizontal dash, always visible at center of face — do NOT omit. Mouth = one thin slightly curved line, small and minimal — do NOT omit. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.';
+      ? 'ART STYLE: thick bold black outlines, pure flat solid colors (no gradients, no shading), large circular anime eyes, cute chibi proportions. NOSE: small dark mark — always visible. MOUTH IS REPLACED BY CIGARETTE (LOCKED): thick lit cigarette hangs from corner of mouth — never omit, never replace with normal mouth.'
+      : 'ART STYLE: thick bold black outlines, pure flat solid colors (no gradients, no shading), large circular anime eyes, cute chibi proportions. FACE FEATURES: preserve nose (tiny dark dot) and mouth (thin curved line) exactly as base — do not omit.';
 
-    const COMPOSITION = 'COMPOSITION: face occupies the LEFT 55% of the image. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye. The eyes must sit in the MIDDLE vertical zone of the image — do NOT push the face up or down. Do NOT zoom out. Do NOT center. Accessories may bleed off any edge.';
+    const COMPOSITION = 'COMPOSITION: face occupies the LEFT 55% of the image. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye. Eyes sit in the MIDDLE vertical zone. Do NOT zoom out. Do NOT center.';
 
-    const editPrompt = `${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `${IDENTITY_LOCK} ${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
     // Fetch example.jpg as additional style reference
     let exampleBuffer = null;
