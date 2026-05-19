@@ -405,7 +405,7 @@ async function _handler(req, res) {
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const ART_STYLE = '⚠ ART STYLE — this is hand-drawn art, NOT digital vector art. CRITICAL: every single outline stroke must visibly wobble and wiggle — the lines are NOT straight, NOT smooth, NOT clean. Each stroke looks like a person drew it freehand with a thick marker without a ruler: the line trembles slightly, drifts a pixel or two off-center, has tiny bumps and kinks along its length. You can clearly see the hand-drawn imperfection in every edge. This wobbliness is the DEFINING quality — if the lines look digitally straight or smooth, it is WRONG. Outlines are jet-black and very thick. Overall shapes are angular (connected segments, sharp corners) but every individual line segment has visible hand-drawn irregularity — wobbly, slightly uneven, rough-edged. The jaw/chin outline must closely follow the base CHOG shape. Eyes are angular almond-shaped with angular corners, NOT round. Mouth has clear angular lip definition, NOT a vague smudge. Color fills are 100% flat solid — single uniform color per region, no gradients, no shading, no texture. Skin = one flat cream. The reference image supplies ONLY outfit/hair/accessories — render them in this wobbly hand-drawn angular style, not the reference\'s style.';
+    const ART_STYLE = '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, tiny dot nose, cute chibi proportions, spiky head. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.';
 
     const COMPOSITION = chogStyle === '2'
       ? 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Face angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Do NOT center. Do NOT zoom out.'
@@ -471,7 +471,7 @@ async function _handler(req, res) {
       const eyeX = match ? parseFloat(match[1]) : null;
       console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
 
-      const MARGIN = 0.19;
+      const MARGIN = 0.21;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95 && (eyeX + MARGIN) < 0.97) {
         const rawBuf = imageUrl.startsWith('data:')
           ? Buffer.from(imageUrl.split(',')[1], 'base64')
