@@ -433,7 +433,7 @@ async function _handler(req, res) {
       ? 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. NOSE: small dark mark — always visible. MOUTH IS REPLACED BY CIGARETTE (LOCKED): thick lit cigarette hangs from corner of mouth — never omit, never replace with normal mouth.'
       : 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. FACE FEATURES: preserve nose (tiny dark dot) and mouth (thin curved line) exactly as base — do not omit.';
 
-    const COMPOSITION = 'COMPOSITION: face occupies the LEFT 65% of the image — zoom in closer than the base. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye. Eyes sit in the MIDDLE vertical zone. Do NOT zoom out. Do NOT center.';
+    const COMPOSITION = 'COMPOSITION: face occupies the LEFT 75% of the image — large and close-up. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye. Eyes sit in the UPPER-MIDDLE vertical zone. Body/torso is only visible in the bottom 20% of the image. Do NOT zoom out. Do NOT center.';
 
     const editPrompt = `${IDENTITY_LOCK} ${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
 
