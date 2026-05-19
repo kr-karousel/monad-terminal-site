@@ -421,7 +421,7 @@ async function _handler(req, res) {
       [0.15, 0.07, 0.85, 0.22], // hair color zone — starts below hairline to protect forehead/hairline junction
       [0.10, 0.78, 0.90, 0.95], // outfit zone
     ];
-    if (chogStyle === '2')  editZones.push([0.20, 0.65, 0.80, 0.75]); // cigarette zone
+    // style 2: cigarette already drawn in base 2.png — do NOT open mouth zone, preserve as-is
     if (semantics.hat)      editZones.push([0.10, 0.00, 0.90, 0.18]); // hat zone — top only
     if (semantics.hairpin)  editZones.push([0.15, 0.07, 0.85, 0.22]); // hairpin zone
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
@@ -430,7 +430,7 @@ async function _handler(req, res) {
     const IDENTITY_LOCK = 'DO NOT REDRAW the character. The existing character image must remain visually identical — do NOT change: face shape, head shape, spike silhouette, spike count/direction, hair shape, eye placement, face proportions, framing, or crop. The face is partially cut off by the frame edges — preserve this exactly. Do NOT generate a new version of the character. Hair shape and spike pattern must stay identical to the base image — ONLY the hair color may change. Only ADD accessories/outfit into the unmasked zones.';
 
     const ART_STYLE = chogStyle === '2'
-      ? 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. NOSE: small dark mark — always visible. MOUTH IS REPLACED BY CIGARETTE (LOCKED): thick lit cigarette hangs from corner of mouth — never omit, never replace with normal mouth.'
+      ? 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. Mouth and cigarette are already present in the base image — do NOT redraw or replace them.'
       : 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. FACE FEATURES: preserve nose (tiny dark dot) and mouth (thin curved line) exactly as base — do not omit.';
 
     const COMPOSITION = 'COMPOSITION: face occupies the LEFT 75% of the image — large and close-up. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye. Eyes sit in the UPPER-MIDDLE vertical zone. Body/torso is only visible in the bottom 20% of the image. Do NOT zoom out. Do NOT center.';
