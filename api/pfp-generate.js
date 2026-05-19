@@ -405,7 +405,7 @@ async function _handler(req, res) {
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const ART_STYLE = '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, tiny dot nose, cute chibi proportions, spiky head. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.';
+    const ART_STYLE = '⚠ ART STYLE IS LOCKED — copy the EXACT rendering style of the base CHOG image: (1) thick bold black outlines on every edge, (2) pure flat solid color fills — ZERO gradients, ZERO soft shading, ZERO airbrushing, ZERO texture, (3) large circular black eyes with a single sharp white glint, (4) hard cel-shaded edges only. The skin, hair, and outfit must look like flat cartoon fills exactly matching the base image\'s visual quality. Do NOT add any painterly or soft effects. Do NOT adopt the reference image\'s art style — the reference provides ONLY the accessory/outfit/hair details to transplant onto CHOG.';
 
     const COMPOSITION = chogStyle === '2'
       ? 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Face angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Do NOT center. Do NOT zoom out.'
