@@ -751,7 +751,7 @@ function getWalletName(p) {
 
 function openWalletModal() {
   const providers = getAllProviders();
-  if (!providers.length) { alert('No wallet detected. Please install MetaMask or Rabby.'); return; }
+  if (!providers.length) { alert('No wallet detected. Please install Backpack or MetaMask.'); return; }
 
   const list = document.getElementById('walletList');
   list.innerHTML = '';
