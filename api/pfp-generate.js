@@ -405,7 +405,7 @@ async function _handler(req, res) {
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const ART_STYLE = '⚠ ART STYLE — replicate the base CHOG image\'s linework exactly: outlines are jet-black and very thick, composed of connected straight line segments with sharp angular corners — NOT smooth bezier curves. The strokes look like they were drawn ruler-line by ruler-line, creating a slightly geometric, blocky, hand-made quality (like the spiky hair silhouette: each spike is a straight-edged triangle, not a smooth curve). Color fills are 100% flat solid — single uniform color per region, no gradients, no shading, no texture. Skin = one flat cream. This is a bold angular sticker aesthetic — chunky straight-line strokes, hard corners, flat fills. The reference image supplies ONLY outfit/hair/accessories — render them in CHOG\'s angular flat-ink style, not the reference\'s style.';
+    const ART_STYLE = '⚠ ART STYLE — replicate the base CHOG image\'s linework exactly: outlines are jet-black and very thick. Each stroke LOOKS like a straight line segment but is NOT digitally perfect — every line has a subtle natural wobble and slight irregularity as if a confident human hand drew it freehand with a thick marker, tracing roughly straight but with the organic imperfection of real hand-drawing (not drunk/chaotic — just slightly bumpy, like a skilled person drew each edge without a ruler). Corners are angular and sharp, not smooth bezier curves. The jaw/chin outline must follow the base CHOG shape closely — do NOT round or soften the jaw. Eyes are angular — almond-shaped with angular corners, NOT round or circular. Mouth has clear lip definition with angular lines — NOT a vague smudge. Color fills are 100% flat solid — single uniform color per region, no gradients, no shading, no texture. Skin = one flat cream. This is a bold hand-drawn sticker aesthetic — thick angular strokes with organic human line quality, hard corners, flat fills. The reference image supplies ONLY outfit/hair/accessories — render them in CHOG\'s angular flat-ink style, not the reference\'s style.';
 
     const COMPOSITION = chogStyle === '2'
       ? 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Face angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Do NOT center. Do NOT zoom out.'
@@ -471,7 +471,7 @@ async function _handler(req, res) {
       const eyeX = match ? parseFloat(match[1]) : null;
       console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
 
-      const MARGIN = 0.23;
+      const MARGIN = 0.19;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95 && (eyeX + MARGIN) < 0.97) {
         const rawBuf = imageUrl.startsWith('data:')
           ? Buffer.from(imageUrl.split(',')[1], 'base64')
