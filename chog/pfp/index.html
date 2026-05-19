@@ -880,7 +880,7 @@ function updateCreditUI(d) {
     dots.innerHTML = Array.from({length: maxDots}, (_, i) =>
       `<div class="cdot ${i < total ? 'on' : 'off'}"></div>`
     ).join('');
-    document.getElementById('payBtn').style.display = wc < 5 ? 'block' : 'none';
+    document.getElementById('payBtn').style.display = 'block';
   }
   updateGenBtn();
 }
