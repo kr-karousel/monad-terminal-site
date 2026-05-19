@@ -882,10 +882,14 @@ function updateCreditUI(d) {
       disp.innerHTML = `<span style="color:#fca5a5;">0</span>`;
     }
     const dots = document.getElementById('creditDots');
-    const maxDots = Math.max(total, 10);
-    dots.innerHTML = Array.from({length: maxDots}, (_, i) =>
-      `<div class="cdot ${i < total ? 'on' : 'off'}"></div>`
-    ).join('');
+    if (total >= 9999) {
+      dots.innerHTML = '<span style="font-size:11px;color:#86efac;font-family:\'Space Mono\',monospace;letter-spacing:1px;">∞ DEV</span>';
+    } else {
+      const maxDots = Math.max(total, 10);
+      dots.innerHTML = Array.from({length: maxDots}, (_, i) =>
+        `<div class="cdot ${i < total ? 'on' : 'off'}"></div>`
+      ).join('');
+    }
     document.getElementById('payBtn').style.display = 'block';
   }
   updateGenBtn();
@@ -1023,12 +1027,14 @@ async function runAll() {
   document.getElementById('resultBox').innerHTML = '<div class="spinner-wrap"><div class="spinner"></div><div class="spinner-text">analyzing...</div></div>';
   setStatus('🔍 GPT-4o analyzing your reference image...');
 
-  // Optimistic credit deduction — update UI immediately
-  if (canUseXFree) {
-    updateCreditUI({ twitterFree: false, walletCredits: pfpWallet ? totalCredits : 0, total: pfpWallet ? totalCredits : 0 });
-  } else if (canUseWallet) {
-    const newWalletCredits = Math.max(0, totalCredits - (xSession && !xSession.usedFree ? 1 : 0) - 1);
-    updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: newWalletCredits, total: newWalletCredits + (xSession && !xSession.usedFree ? 1 : 0) });
+  // Optimistic credit deduction — update UI immediately (skip for dev wallet)
+  if (totalCredits < 9999) {
+    if (canUseXFree) {
+      updateCreditUI({ twitterFree: false, walletCredits: pfpWallet ? totalCredits : 0, total: pfpWallet ? totalCredits : 0 });
+    } else if (canUseWallet) {
+      const newWalletCredits = Math.max(0, totalCredits - (xSession && !xSession.usedFree ? 1 : 0) - 1);
+      updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: newWalletCredits, total: newWalletCredits + (xSession && !xSession.usedFree ? 1 : 0) });
+    }
   }
 
   // Spinner progress text simulation (visual feedback during long request)
@@ -1149,8 +1155,10 @@ async function generateBatch() {
   document.getElementById('genWarning').style.display = 'block';
   if (window.setBgGenerating) window.setBgGenerating(true, true); // batch mode bg
 
-  const optimisticCredits = Math.max(0, totalCredits - BATCH);
-  updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: optimisticCredits, total: optimisticCredits });
+  if (totalCredits < 9999) {
+    const optimisticCredits = Math.max(0, totalCredits - BATCH);
+    updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: optimisticCredits, total: optimisticCredits });
+  }
 
   document.getElementById('dlBtn').style.display = 'none';
   document.getElementById('cropBtn').style.display = 'none';
