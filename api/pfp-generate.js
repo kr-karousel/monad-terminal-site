@@ -471,17 +471,19 @@ async function _handler(req, res) {
       const eyeX = match ? parseFloat(match[1]) : null;
       console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
 
-      if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
-        const MARGIN = 0.10;
+      const MARGIN = 0.18;
+      if (eyeX && eyeX > 0.25 && eyeX < 0.95 && (eyeX + MARGIN) < 0.97) {
         const rawBuf = imageUrl.startsWith('data:')
           ? Buffer.from(imageUrl.split(',')[1], 'base64')
           : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
         const jimg = await Jimp.read(rawBuf);
-        const cropW = Math.round(Math.min(eyeX + MARGIN, 1.0) * jimg.bitmap.width);
-        jimg.crop(0, 0, cropW, jimg.bitmap.height); // width only — keep full height
+        const cropW = Math.round((eyeX + MARGIN) * jimg.bitmap.width);
+        jimg.crop(0, 0, cropW, jimg.bitmap.height);
         const croppedBuf = await jimg.getBufferAsync(Jimp.MIME_PNG);
         finalImageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
         console.log('[eye-crop] cropped to', cropW, 'x', jimg.bitmap.height);
+      } else {
+        console.log('[eye-crop] skipped — eyeX:', eyeX);
       }
     } catch (e) {
       console.warn('[eye-crop] failed, using original:', e.message);
