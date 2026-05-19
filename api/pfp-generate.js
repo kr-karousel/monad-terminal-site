@@ -447,6 +447,7 @@ async function _handler(req, res) {
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
     // Upload to Supabase Storage and persist history per wallet
+    // batchToken requests skip history write to avoid race conditions — client handles batch history
     let persistentUrl = imageUrl;
     let history = [];
     if (wallet) {
@@ -454,7 +455,7 @@ async function _handler(req, res) {
         const stored = await uploadToStorage(imageUrl, wallet);
         if (stored) {
           persistentUrl = stored;
-          history = await addToWalletHistory(wallet, stored);
+          if (!batchToken) history = await addToWalletHistory(wallet, stored);
         }
       } catch (e) { console.warn('[history] failed:', e.message); }
     }

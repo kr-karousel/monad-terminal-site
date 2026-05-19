@@ -221,15 +221,31 @@ h1{font-size:44px;font-weight:900;letter-spacing:-1.8px;line-height:1;margin-bot
 .batch-cell.err{display:flex;align-items:center;justify-content:center;font-size:18px;}
 .batch-dl-all{background:linear-gradient(135deg,#7c3aed,#5b21b6);border:none;border-radius:10px;color:#fff;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;padding:12px;cursor:pointer;width:100%;}
 .batch-dl-all:hover{background:linear-gradient(135deg,#8b5cf6,#6d28d9);}
-body.generating .gen-btn{
+/* Batch progress overlay on result box */
+.batch-progress-wrap{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
+.batch-progress-ring{position:relative;width:90px;height:90px;}
+.batch-progress-ring svg{transform:rotate(-90deg);}
+.batch-progress-ring .ring-bg{fill:none;stroke:rgba(138,92,246,.12);stroke-width:6;}
+.batch-progress-ring .ring-fill{fill:none;stroke:url(#batchRingGrad);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .4s ease;}
+.batch-progress-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.batch-progress-num{font-size:22px;font-weight:900;color:#ede8ff;font-family:'Outfit',sans-serif;line-height:1;}
+.batch-progress-of{font-size:10px;font-family:'Space Mono',monospace;color:#7c6fa0;letter-spacing:1px;}
+.batch-progress-text{font-size:12px;color:#a78bfa;font-family:'Space Mono',monospace;letter-spacing:.8px;animation:batch-pulse 1.2s ease-in-out infinite;}
+@keyframes batch-pulse{0%,100%{opacity:.6;}50%{opacity:1;}}
+body.batch-generating .gen-btn,
+body.batch-generating .batch-btn{
   opacity:1 !important;
   pointer-events:none !important;
   cursor:not-allowed !important;
-  background:linear-gradient(135deg,#7c2d12,#b45309) !important;
-  box-shadow:0 0 24px rgba(180,83,9,.6) !important;
-  animation:gen-warn 1.4s ease-in-out infinite;
+  background:linear-gradient(135deg,#1e3a5f,#1e4d2b) !important;
+  box-shadow:0 0 28px rgba(34,197,94,.45) !important;
+  animation:batch-warn 1.6s ease-in-out infinite;
   font-size:13px;
   letter-spacing:.5px;
+}
+@keyframes batch-warn{
+  0%,100%{box-shadow:0 0 14px rgba(34,197,94,.3),0 0 0 0 rgba(34,197,94,.3);}
+  50%{box-shadow:0 0 40px rgba(34,197,94,.7),0 0 0 8px rgba(34,197,94,.0);}
 }
 @keyframes gen-warn{
   0%,100%{box-shadow:0 0 14px rgba(180,83,9,.5),0 0 0 0 rgba(180,83,9,.4);}
@@ -1131,6 +1147,35 @@ function generatePFP() { runAll(); }
 /* ── Batch generate (×10) ─────────────────────────────────────── */
 let batchResults = [];
 
+function setBatchProgress(done, total) {
+  const rb = document.getElementById('resultBox');
+  const circ = 2 * Math.PI * 36; // circumference for r=36
+  const offset = circ * (1 - done / total);
+  rb.innerHTML = `
+    <div class="batch-progress-wrap">
+      <div class="batch-progress-ring">
+        <svg width="90" height="90" viewBox="0 0 90 90">
+          <defs>
+            <linearGradient id="batchRingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#22c55e"/>
+              <stop offset="100%" stop-color="#8b5cf6"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="45" cy="45" r="36"/>
+          <circle class="ring-fill" cx="45" cy="45" r="36"
+            stroke-dasharray="${circ.toFixed(1)}"
+            stroke-dashoffset="${offset.toFixed(1)}"/>
+        </svg>
+        <div class="batch-progress-label">
+          <div class="batch-progress-num">${done}</div>
+          <div class="batch-progress-of">/ ${total}</div>
+        </div>
+      </div>
+      <div class="batch-progress-text">GENERATING...</div>
+    </div>`;
+  rb.classList.add('done');
+}
+
 async function generateBatch() {
   if (!b64) { setStatus('⚠ Drop a reference image first', true); return; }
   if (!pfpWallet || totalCredits < 10) {
@@ -1138,37 +1183,29 @@ async function generateBatch() {
   }
 
   const BATCH = 10;
-  batchResults = [];
-
-  // Open modal and pre-fill pending cells
-  const modal    = document.getElementById('batchModal');
-  const grid     = document.getElementById('batchGrid');
-  const title    = document.getElementById('batchModalTitle');
-  const closeBtn = document.getElementById('batchCloseBtn');
-  const dlAllBtn = document.getElementById('batchDlAll');
-  title.textContent = '🦔 GENERATING 10 PFPs...';
-  closeBtn.style.display = 'none';
-  dlAllBtn.style.display = 'none';
-  grid.innerHTML = Array.from({length: BATCH}, (_, i) =>
-    `<div class="batch-cell pending" id="bcell${i}"><div class="mini-spin"></div></div>`
-  ).join('');
-  modal.classList.add('open');
+  batchResults = new Array(BATCH).fill(null);
 
   const genBtn   = document.getElementById('genBtn');
   const batchBtn = document.getElementById('batchBtn');
   genBtn.disabled = true; batchBtn.disabled = true;
-  document.body.classList.add('generating');
+  genBtn.innerHTML = '⚠ Batch generating...';
+  if (window.setBgGenerating) window.setBgGenerating(true, true); // batch mode bg
 
-  // Deduct 10 credits upfront (optimistic UI update)
   const optimisticCredits = Math.max(0, totalCredits - BATCH);
   updateCreditUI({ twitterFree: xSession ? !xSession.usedFree : false, walletCredits: optimisticCredits, total: optimisticCredits });
+
+  document.getElementById('dlBtn').style.display = 'none';
+  document.getElementById('cropBtn').style.display = 'none';
+  document.getElementById('shareBtn').style.display = 'none';
+  setBatchProgress(0, BATCH);
+  setStatus('🟢 Batch running — 1 image processing, 9 queued in parallel...');
 
   const customPrompt = document.getElementById('promptSection').classList.contains('open')
     ? document.getElementById('customPrompt').value.trim() : '';
 
-  let doneCount = 0, lastHistory = null;
+  let doneCount = 0;
 
-  // ── Step 1: first request with batchMode:true — deducts 10 credits, returns batchToken ──
+  // ── Step 1: first request — deducts 10 credits atomically, returns batchToken ──
   let batchToken = null;
   try {
     const r0 = await fetch(API_BASE, {
@@ -1178,27 +1215,23 @@ async function generateBatch() {
     const d0 = await r0.json();
     if (!r0.ok) throw new Error(d0.error);
     batchToken = d0.batchToken;
-    if (d0.history) lastHistory = d0.history;
     if (d0.walletCredits !== undefined) updateCreditUI(d0);
-    batchResults.push(d0.url);
-    const cell0 = document.getElementById('bcell0');
-    cell0.className = 'batch-cell';
-    cell0.innerHTML = `<span class="batch-num">1</span><img src="${d0.url}" onclick="window.open('${d0.url}','_blank')"><button class="batch-crop" onclick="openCropModalUrl('${d0.url}')" title="Crop">✂</button><button class="batch-dl" onclick="downloadImage('${d0.url}','chog-pfp-batch-1.png')" title="Download">↓</button>`;
+    batchResults[0] = d0.url;
     doneCount++;
-    title.textContent = '🦔 1 / 10 — 9 running in parallel...';
+    setBatchProgress(doneCount, BATCH);
+    setStatus(`🟢 ${doneCount} / ${BATCH} done — running in parallel...`);
   } catch (err) {
-    document.getElementById('bcell0').className = 'batch-cell err';
-    document.getElementById('bcell0').innerHTML = '✗';
-    title.textContent = `✗ Failed: ${err.message}`;
-    closeBtn.style.display = '';
-    document.body.classList.remove('generating');
-    genBtn.disabled = false; batchBtn.disabled = totalCredits < 10; genBtn.onclick = generatePFP;
+    if (window.setBgGenerating) window.setBgGenerating(false, true);
+    genBtn.disabled = false; batchBtn.disabled = totalCredits < 10;
+    genBtn.innerHTML = '🦔 Generate PFP'; genBtn.onclick = generatePFP;
+    setStatus('✗ Batch failed: ' + err.message, true);
+    document.getElementById('resultBox').innerHTML = '<div class="ph"><div class="ph-icon">✦</div><div class="ph-text">awaiting generation</div></div>';
+    document.getElementById('resultBox').classList.remove('done');
     return;
   }
 
-  // ── Step 2: remaining 9 in parallel using batchToken (no credit deduction) ──
-  const remaining = Array.from({length: 9}, (_, i) => i + 1); // indices 1..9
-  await Promise.all(remaining.map(async (i) => {
+  // ── Step 2: remaining 9 in parallel using batchToken ──
+  await Promise.all(Array.from({length: 9}, (_, k) => k + 1).map(async (i) => {
     try {
       const res = await fetch(API_BASE, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1207,25 +1240,55 @@ async function generateBatch() {
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
       batchResults[i] = d.url;
-      if (d.history) lastHistory = d.history;
-      const cell = document.getElementById('bcell' + i);
-      cell.className = 'batch-cell';
-      cell.innerHTML = `<span class="batch-num">${i+1}</span><img src="${d.url}" onclick="window.open('${d.url}','_blank')"><button class="batch-crop" onclick="openCropModalUrl('${d.url}')" title="Crop">✂</button><button class="batch-dl" onclick="downloadImage('${d.url}','chog-pfp-batch-${i+1}.png')" title="Download">↓</button>`;
       doneCount++;
-      title.textContent = `🦔 ${doneCount} / ${BATCH} done...`;
+      setBatchProgress(doneCount, BATCH);
+      setStatus(`🟢 ${doneCount} / ${BATCH} done...`);
     } catch (err) {
-      const cell = document.getElementById('bcell' + i);
-      cell.className = 'batch-cell err'; cell.innerHTML = '✗'; cell.title = err.message;
+      doneCount++;
+      setBatchProgress(doneCount, BATCH);
     }
   }));
 
-  // Done
-  title.textContent = `✦ ${doneCount} / ${BATCH} PFPs GENERATED`;
-  closeBtn.style.display = ''; if (doneCount > 0) dlAllBtn.style.display = '';
-  document.body.classList.remove('generating');
-  genBtn.disabled = false; batchBtn.disabled = totalCredits < 10; genBtn.onclick = generatePFP;
-  if (lastHistory) { genHistory = lastHistory; renderHistory(); }
-  else { batchResults.filter(Boolean).forEach(u => addToHistory(u)); }
+  // ── All done — build modal grid, then show popup ──
+  if (window.setBgGenerating) window.setBgGenerating(false, true);
+  genBtn.disabled = false; batchBtn.disabled = totalCredits < 10;
+  genBtn.innerHTML = '🦔 Generate PFP'; genBtn.onclick = generatePFP;
+
+  const urls = batchResults.filter(Boolean);
+  const successCount = urls.length;
+
+  // Update history with all successful URLs at once (server already stored #1)
+  urls.forEach(u => addToHistory(u));
+
+  // Build modal grid
+  const grid = document.getElementById('batchGrid');
+  grid.innerHTML = Array.from({length: BATCH}, (_, i) => {
+    const url = batchResults[i];
+    if (!url) return `<div class="batch-cell err" title="Failed">✗</div>`;
+    return `<div class="batch-cell">
+      <span class="batch-num">${i+1}</span>
+      <img src="${url}" onclick="window.open('${url}','_blank')">
+      <button class="batch-crop" onclick="openCropModalUrl('${url}')" title="Crop">✂</button>
+      <button class="batch-dl" onclick="downloadImage('${url}','chog-pfp-${i+1}.png')" title="Download">↓</button>
+    </div>`;
+  }).join('');
+
+  document.getElementById('batchModalTitle').textContent = `✦ ${successCount} / ${BATCH} PFPs GENERATED`;
+  document.getElementById('batchCloseBtn').style.display = '';
+  document.getElementById('batchDlAll').style.display = successCount > 0 ? '' : 'none';
+  document.getElementById('batchModal').classList.add('open');
+
+  setStatus(`✦ Batch complete! ${successCount} PFPs generated 🦔`);
+
+  // Show first success in result box
+  if (urls[0]) {
+    const rb = document.getElementById('resultBox');
+    rb.innerHTML = `<img src="${urls[0]}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    rb.classList.add('done');
+    resultUrl = urls[0];
+    document.getElementById('dlBtn').style.display = 'flex';
+    document.getElementById('cropBtn').style.display = 'flex';
+  }
 }
 
 function closeBatchModal() {
@@ -1299,15 +1362,17 @@ function openCropModalUrl(url) {
     }
 
     /* wave rings */
-    if (generating && Math.random() < 0.025) {
-      rings.push({ x: W / 2, y: H / 2, r: 0, maxR: Math.hypot(W, H) * 0.7, spd: rand(2.5, 4) });
+    const isBatch = document.body.classList.contains('batch-generating');
+    if (generating && Math.random() < (isBatch ? 0.08 : 0.025)) {
+      const rx = isBatch ? rand(W * 0.1, W * 0.9) : W / 2;
+      const ry = isBatch ? rand(H * 0.1, H * 0.9) : H / 2;
+      rings.push({ x: rx, y: ry, r: 0, maxR: Math.hypot(W, H) * (isBatch ? 0.55 : 0.7), spd: rand(isBatch ? 4 : 2.5, isBatch ? 7 : 4), batch: isBatch });
     }
     for (let i = rings.length - 1; i >= 0; i--) {
       const ring = rings[i];
       ring.r += ring.spd;
       const life = 1 - ring.r / ring.maxR;
       if (life <= 0) { rings.splice(i, 1); continue; }
-      // boost nearby nodes
       for (const n of nodes) {
         if (Math.abs(Math.hypot(n.x - ring.x, n.y - ring.y) - ring.r) < 28)
           n.glow = Math.min(1, n.glow + 0.55);
@@ -1315,10 +1380,15 @@ function openCropModalUrl(url) {
       ctx.save();
       ctx.beginPath();
       ctx.arc(ring.x, ring.y, ring.r, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(138,92,246,${(life * 0.38).toFixed(3)})`;
-      ctx.lineWidth = 1.5;
-      ctx.shadowColor = 'rgba(138,92,246,.7)';
-      ctx.shadowBlur = 14;
+      if (ring.batch) {
+        ctx.strokeStyle = `rgba(34,197,94,${(life * 0.55).toFixed(3)})`;
+        ctx.shadowColor = 'rgba(34,197,94,.8)';
+      } else {
+        ctx.strokeStyle = `rgba(138,92,246,${(life * 0.38).toFixed(3)})`;
+        ctx.shadowColor = 'rgba(138,92,246,.7)';
+      }
+      ctx.lineWidth = ring.batch ? 2 : 1.5;
+      ctx.shadowBlur = ring.batch ? 20 : 14;
       ctx.stroke();
       ctx.restore();
     }
@@ -1391,10 +1461,36 @@ function openCropModalUrl(url) {
     requestAnimationFrame(draw);
   }
 
-  window.setBgGenerating = v => {
+  window.setBgGenerating = (v, batch) => {
     generating = v;
-    document.body.classList.toggle('generating', v);
-    if (!v) { rings = []; packets = []; }
+    if (batch) {
+      document.body.classList.toggle('batch-generating', v);
+      document.body.classList.remove('generating');
+      // Batch mode: faster, greener, more intense
+      if (v) {
+        // Turbocharge all nodes
+        for (const n of nodes) {
+          n.vx *= 2.8; n.vy *= 2.8;
+          n.rgb = Math.random() < 0.5
+            ? [34, 197, 94]   // emerald green
+            : [138, 92, 246]; // purple
+        }
+        // Flood with rings immediately
+        for (let k = 0; k < 5; k++)
+          rings.push({ x: rand(W*0.2, W*0.8), y: rand(H*0.2, H*0.8), r: 0, maxR: Math.hypot(W, H) * 0.8, spd: rand(3.5, 6) });
+      } else {
+        // Restore node colors and speeds
+        for (const n of nodes) {
+          n.rgb = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+          n.vx = rand(-.25, .25); n.vy = rand(-.25, .25);
+        }
+        rings = []; packets = [];
+      }
+    } else {
+      document.body.classList.toggle('generating', v);
+      document.body.classList.remove('batch-generating');
+      if (!v) { rings = []; packets = []; }
+    }
   };
   window.addEventListener('resize', init);
   init(); draw();
