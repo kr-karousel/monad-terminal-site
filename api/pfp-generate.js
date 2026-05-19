@@ -428,7 +428,7 @@ async function _handler(req, res) {
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
-    const editPrompt = `The first image is the CHOG base character to edit. The second image is the style reference. Apply the hair color, outfit, and accessories from the style reference onto the CHOG base character. Keep the CHOG face, spikes, body shape, and flat cartoon art style exactly as-is — only change what is in the unmasked zones.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. The second image is the style reference — extract only its hair color, outfit, and accessories and apply them onto the CHOG base. Do not copy the reference composition or background. Keep the CHOG face, spikes, and body shape unchanged. Only modify the unmasked zones.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
