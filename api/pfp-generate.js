@@ -405,7 +405,7 @@ async function _handler(req, res) {
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const ART_STYLE = '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, cute chibi proportions, spiky head. FACE FEATURES (preserve exactly as base): nose = one tiny dark dot or small horizontal dash, always visible at center of face — do NOT omit. Mouth = one thin slightly curved line, small and minimal — do NOT make it large or expressive, do NOT omit. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.';
+    const ART_STYLE = '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, cute chibi proportions, spiky head. NOSE (CRITICAL — must appear): the base CHOG image has a small dark nose mark between the eyes and mouth — reproduce this EXACTLY, always visible, never omit. A CHOG without a nose is WRONG. Mouth = one thin slightly curved line, small and minimal, always present. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.';
 
     const COMPOSITION = chogStyle === '2'
       ? 'COMPOSITION: face occupies the LEFT 55% of the image, angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye. The eyes must sit in the MIDDLE vertical zone of the image — do NOT push the face up or down. Do NOT zoom out. Do NOT center. Accessories may bleed off any edge.'
@@ -473,38 +473,7 @@ async function _handler(req, res) {
       const eyeY = matchY ? parseFloat(matchY[1]) : null;
       console.log('[eye-detect] eyeX:', eyeX, 'eyeY:', eyeY, '| raw:', raw);
 
-      // Nose composite: paste base nose mark at detected eye-relative position
-      if (eyeX && eyeY) {
-        try {
-          const genBuf = imageUrl.startsWith('data:')
-            ? Buffer.from(imageUrl.split(',')[1], 'base64')
-            : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
-          const [genImg, baseImg] = await Promise.all([Jimp.read(genBuf), Jimp.read(baseBuffer)]);
-          const gw = genImg.bitmap.width, gh = genImg.bitmap.height;
-          if (baseImg.bitmap.width !== gw || baseImg.bitmap.height !== gh)
-            baseImg.resize(gw, gh, Jimp.RESIZE_NEAREST_NEIGHBOR);
-          // In base image, nose is ~10% below eye center Y, centered left of face
-          // Scan base nose region and paste only dark pixels at equivalent position in generated image
-          const baseEyeY = 0.37; // approximate eye Y in base image
-          const baseNoseY1 = 0.44, baseNoseY2 = 0.52;
-          const baseNoseX1 = 0.20, baseNoseX2 = 0.42;
-          const offsetY = eyeY - baseEyeY;
-          const ny1 = Math.round((baseNoseY1 + offsetY) * gh);
-          const ny2 = Math.round((baseNoseY2 + offsetY) * gh);
-          const nx1 = Math.round(baseNoseX1 * gw);
-          const nx2 = Math.round(baseNoseX2 * gw);
-          for (let y = Math.max(0, ny1); y < Math.min(gh, ny2); y++) {
-            for (let x = Math.max(0, nx1); x < Math.min(gw, nx2); x++) {
-              const baseY = Math.round((y / gh - offsetY) * gh);
-              const p = Jimp.intToRGBA(baseImg.getPixelColor(x, Math.max(0, Math.min(gh - 1, baseY))));
-              if (p.r * 0.299 + p.g * 0.587 + p.b * 0.114 < 80)
-                genImg.setPixelColor(Jimp.rgbaToInt(p.r, p.g, p.b, p.a), x, y);
-            }
-          }
-          const noseBuf = await genImg.getBufferAsync(Jimp.MIME_PNG);
-          finalImageUrl = `data:image/png;base64,${noseBuf.toString('base64')}`;
-        } catch (e) { console.warn('[nose] composite failed:', e.message); }
-      }
+
 
       const MARGIN = 0.17;
       const MIN_CROP = 0.72;
