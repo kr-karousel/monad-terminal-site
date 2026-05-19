@@ -473,53 +473,7 @@ async function _handler(req, res) {
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
     // Detect eye position (X + Y) with GPT-4o-mini, then nose-composite + crop
-    let finalImageUrl = imageUrl;
-    try {
-      const eyeContent = imgData.url
-        ? { type: 'image_url', image_url: { url: imgData.url, detail: 'low' } }
-        : { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } };
-
-      const eyeRes = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          max_tokens: 40,
-          messages: [{ role: 'user', content: [
-            eyeContent,
-            { type: 'text', text: 'The character faces LEFT. Find the character\'s LEFT eye — the eye on the RIGHT side of the image (viewer\'s perspective). If the character is wearing glasses or sunglasses, use the rightmost edge of the RIGHT lens frame. Return ONLY JSON: {"x": 0.XX, "y": 0.XX} where x = rightmost pixel of that eye or lens (0=left edge, 1=right edge), y = vertical center of that eye (0=top, 1=bottom).' }
-          ]}]
-        })
-      });
-      const eyeData = await eyeRes.json();
-      const raw = eyeData.choices?.[0]?.message?.content?.trim() || '';
-      const matchX = raw.match(/"x"\s*:\s*([\d.]+)/);
-      const matchY = raw.match(/"y"\s*:\s*([\d.]+)/);
-      const eyeX = matchX ? parseFloat(matchX[1]) : null;
-      const eyeY = matchY ? parseFloat(matchY[1]) : null;
-      console.log('[eye-detect] eyeX:', eyeX, 'eyeY:', eyeY, '| raw:', raw);
-
-
-
-      const MARGIN = semantics.glasses ? 0.25 : 0.22;
-      const MIN_CROP = 0.72;
-      if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
-        const rawBuf = finalImageUrl.startsWith('data:')
-          ? Buffer.from(finalImageUrl.split(',')[1], 'base64')
-          : Buffer.from(await (await fetch(finalImageUrl)).arrayBuffer());
-        const jimg = await Jimp.read(rawBuf);
-        const cropFraction = Math.max(eyeX + MARGIN, MIN_CROP);
-        const cropSide = Math.round(Math.min(cropFraction, 1.0) * jimg.bitmap.width);
-        jimg.crop(0, jimg.bitmap.height - cropSide, cropSide, cropSide); // bottom-left
-        const croppedBuf = await jimg.getBufferAsync(Jimp.MIME_PNG);
-        finalImageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
-        console.log('[eye-crop] eyeX:', eyeX, '→ cropSide:', cropSide);
-      } else {
-        console.log('[eye-crop] skipped — eyeX:', eyeX);
-      }
-    } catch (e) {
-      console.warn('[eye-crop] failed, using original:', e.message);
-    }
+    const finalImageUrl = imageUrl;
 
     // Upload to Supabase Storage and persist history per wallet
     // batchToken requests skip history write to avoid race conditions — client handles batch history
