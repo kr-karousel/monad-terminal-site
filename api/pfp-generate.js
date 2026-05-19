@@ -427,7 +427,7 @@ async function _handler(req, res) {
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const IDENTITY_LOCK = 'DO NOT REDRAW the character. The existing character image must remain visually identical — do NOT change: face shape, head shape, spike silhouette, eye placement, face proportions, framing, or crop. The face is partially cut off by the frame edges — preserve this exactly. Do NOT generate a new version of the character. Only ADD accessories/outfit/hair color into the unmasked zones.';
+    const IDENTITY_LOCK = 'DO NOT REDRAW the character. The existing character image must remain visually identical — do NOT change: face shape, head shape, spike silhouette, spike count/direction, hair shape, eye placement, face proportions, framing, or crop. The face is partially cut off by the frame edges — preserve this exactly. Do NOT generate a new version of the character. Hair shape and spike pattern must stay identical to the base image — ONLY the hair color may change. Only ADD accessories/outfit into the unmasked zones.';
 
     const ART_STYLE = chogStyle === '2'
       ? 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. NOSE: small dark mark — always visible. MOUTH IS REPLACED BY CIGARETTE (LOCKED): thick lit cigarette hangs from corner of mouth — never omit, never replace with normal mouth.'
@@ -504,7 +504,7 @@ async function _handler(req, res) {
 
 
 
-      const MARGIN = semantics.glasses ? 0.22 : 0.19;
+      const MARGIN = semantics.glasses ? 0.25 : 0.22;
       const MIN_CROP = 0.72;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
         const rawBuf = finalImageUrl.startsWith('data:')
