@@ -405,7 +405,7 @@ async function _handler(req, res) {
     if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const ART_STYLE = '⚠ ART STYLE — replicate the base CHOG image\'s linework: outlines are jet-black, very thick, drawn with a slightly rough digital brush — lines have a natural hand-drawn wobble and imperfection, not perfectly smooth computer paths (think thick brush pen or bold marker with slight irregularity). Color fills are 100% flat solid: single uniform color per region, no gradients, no soft shading, no inner glow, no texture. Skin = one flat cream tone. This is a bold hand-drawn sticker aesthetic — chunky, slightly rough, full of character — not clean vector, not painterly, not anime-soft. The reference image supplies ONLY the outfit/hair/accessories — render them in CHOG\'s flat rough-ink style.';
+    const ART_STYLE = '⚠ ART STYLE — replicate the base CHOG image\'s linework exactly: outlines are jet-black and very thick, composed of connected straight line segments with sharp angular corners — NOT smooth bezier curves. The strokes look like they were drawn ruler-line by ruler-line, creating a slightly geometric, blocky, hand-made quality (like the spiky hair silhouette: each spike is a straight-edged triangle, not a smooth curve). Color fills are 100% flat solid — single uniform color per region, no gradients, no shading, no texture. Skin = one flat cream. This is a bold angular sticker aesthetic — chunky straight-line strokes, hard corners, flat fills. The reference image supplies ONLY outfit/hair/accessories — render them in CHOG\'s angular flat-ink style, not the reference\'s style.';
 
     const COMPOSITION = chogStyle === '2'
       ? 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Face angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Do NOT center. Do NOT zoom out.'
@@ -471,7 +471,7 @@ async function _handler(req, res) {
       const eyeX = match ? parseFloat(match[1]) : null;
       console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
 
-      const MARGIN = 0.18;
+      const MARGIN = 0.23;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95 && (eyeX + MARGIN) < 0.97) {
         const rawBuf = imageUrl.startsWith('data:')
           ? Buffer.from(imageUrl.split(',')[1], 'base64')
