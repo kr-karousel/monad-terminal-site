@@ -425,7 +425,7 @@ async function _handler(req, res) {
     if (!isNude)           editZones.push([0.15, 0.87, 0.85, 0.97]); // outfit zone (skip if nude reference)
     if (!isSpiky)          editZones.push([0.15, 0.00, 0.85, 0.10]); // hair color zone (non-spiky only)
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
-    if (semantics.hairpin) editZones.push([0.22, 0.07, 0.55, 0.16]); // hairpin zone (crown area only)
+    if (semantics.hairpin) editZones.push([0.10, 0.04, 0.90, 0.24]); // hairpin zone (full head width, accessories can be placed anywhere in hair)
     if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
     const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
     if (isFemale)           editZones.push([0.10, 0.270, 0.90, 0.284]); // eyelash strip: top edge of eyes only (~14px)
