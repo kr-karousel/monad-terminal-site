@@ -471,8 +471,8 @@ async function _handler(req, res) {
       const eyeX = match ? parseFloat(match[1]) : null;
       console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
 
-      const MARGIN = 0.18;
-      const MIN_CROP = 0.72; // safety floor — never crop narrower than this regardless of eye detection
+      const MARGIN = 0.10;
+      const MIN_CROP = 0.65; // safety floor — never crop narrower than this regardless of eye detection
       if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
         const rawBuf = imageUrl.startsWith('data:')
           ? Buffer.from(imageUrl.split(',')[1], 'base64')
