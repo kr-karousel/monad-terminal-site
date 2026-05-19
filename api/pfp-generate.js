@@ -357,7 +357,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image, detail: 'high' } },
-              { type: 'text', text: 'Analyze this character image meticulously. Return ONLY this JSON (no markdown): {"hair": "exact color name, shape (e.g. twin tails, short bob, long wavy), volume, and texture", "hairpin": "LOOK CAREFULLY at every part of the hair — any bow, ribbon, clip, scrunchie, flower, pin, or decoration. Describe: exact color, size relative to head (small/medium/large/huge), shape, and exact location (e.g. left side, top-center, behind ear). If truly none, null", "hat": "any hat or hard headwear sitting ON TOP of the head — describe type, color, shape, or null", "face": "glasses type and color only — do NOT describe mouth, teeth, expression, or skin. If no glasses, null", "mouth": "describe the mouth/expression only — e.g. wide grin with yellow fangs, small smirk, open smile with tongue, neutral line. null if plain closed mouth", "eyelash": "true if the character has prominent/decorative eyelashes (long, curled, dramatic, or clearly drawn) OR if the character is clearly female — otherwise false", "skin_color": "the character face/skin color as a simple color name (e.g. pale pink, warm beige, light tan, dark brown). If nude/bare, describe the body skin color", "outfit": "every garment from top to bottom — exact colors for each piece, patterns (stripes/dots/plaid etc), collar shape, trim, ruffles, buttons, any text/logo with exact wording and placement. If nude or no clothing visible, write null", "accessories": "everything else: scarves, belts, jewelry, wings, tail, hand props — describe exactly, or null", "special_effects": "any glow, aura, energy outline, sparkles, particle effects, or light effects around or behind the character — describe color and style exactly, or null", "background": "background color or scene"}' }
+              { type: 'text', text: 'Analyze this character image meticulously. Return ONLY this JSON (no markdown): {"hair": "exact color name, shape (e.g. twin tails, short bob, long wavy), volume, and texture", "hairpin": "LOOK CAREFULLY at every part of the hair — any bow, ribbon, clip, scrunchie, flower, pin, or decoration. Describe: exact color, size relative to head (small/medium/large/huge), shape, and exact location (e.g. left side, top-center, behind ear). If truly none, null", "hat": "any hat or hard headwear sitting ON TOP of the head — describe type, color, shape, or null", "face": "glasses type and color only — do NOT describe mouth, teeth, expression, or skin. If no glasses, null", "mouth": "describe the mouth/expression only — e.g. wide grin with yellow fangs, small smirk, open smile with tongue, neutral line. null if plain closed mouth", "eyelash": "true if the character has prominent/decorative eyelashes (long, curled, dramatic, or clearly drawn) OR if the character is clearly female — otherwise false", "outfit": "every garment from top to bottom — exact colors for each piece, patterns (stripes/dots/plaid etc), collar shape, trim, ruffles, buttons, any text/logo with exact wording and placement", "accessories": "everything else: scarves, belts, jewelry, wings, tail, hand props — describe exactly, or null", "special_effects": "any glow, aura, energy outline, sparkles, particle effects, or light effects around or behind the character — describe color and style exactly, or null", "background": "background color or scene"}' }
             ]
           }]
         }),
@@ -389,6 +389,31 @@ async function _handler(req, res) {
       baseBuffer = rawBaseBuffer;
     }
 
+    const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
+
+    const sanitize = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
+
+    const styleDesc = [
+      semantics.hair           ? `hair: ${sanitize(semantics.hair)}`                                                                       : null,
+      semantics.hairpin        ? `hair accessory: ${sanitize(semantics.hairpin)}`                                                          : null,
+      semantics.hat            ? `headwear: ${sanitize(semantics.hat)}`                                                                    : null,
+      semantics.face           ? `face detail: ${sanitize(semantics.face)}`                                                               : null,
+      chogStyle === '2'        ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                    : null,
+      `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
+      semantics.accessories    ? `accessories: ${sanitize(semantics.accessories)}`                                                         : null,
+    ].filter(Boolean).join('; ');
+
+    // Build mandatory items reminder — things that must visibly appear in output
+    const mandatoryItems = [
+      semantics.hat         ? sanitize(semantics.hat)         : null,
+      semantics.hairpin     ? sanitize(semantics.hairpin)     : null,
+      semantics.accessories ? sanitize(semantics.accessories) : null,
+      chogStyle === '2'     ? 'cigarette in mouth'            : null,
+    ].filter(Boolean);
+    const mandatoryReminder = mandatoryItems.length
+      ? ` MUST visibly appear in final image (do not omit any): ${mandatoryItems.join(', ')}.`
+      : '';
+
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
@@ -398,22 +423,22 @@ async function _handler(req, res) {
     const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
     const editZones = [];
     if (!isNude)           editZones.push([0.15, 0.87, 0.85, 0.97]); // outfit zone (skip if nude reference)
-
-    if (!isSpiky)          editZones.push([0.10, 0.00, 0.90, 0.15]); // hair color zone (non-spiky only)
+    if (!isSpiky)          editZones.push([0.15, 0.00, 0.85, 0.10]); // hair color zone (non-spiky only)
     if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
     if (semantics.hairpin) editZones.push([0.10, 0.05, 0.55, 0.28]);
     if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
     if (semantics.eyelash === true || semantics.eyelash === 'true') editZones.push([0.10, 0.26, 0.90, 0.30]); // ultra-thin eyelid strip
     if (chogStyle !== '2') editZones.push([0.30, 0.69, 0.62, 0.74]); // mouth zone
-    // Fallback: always have at least the outfit zone so mask is never fully opaque
-    if (editZones.length === 0) editZones.push([0.15, 0.87, 0.85, 0.97]);
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
     const eyelashPart = (semantics.eyelash === true || semantics.eyelash === 'true')
       ? ' EYELASHES ONLY: draw 3-5 thin short stroke lines extending from the upper eyelid of the existing eyes. Do NOT change the eye shape, eye size, pupil, iris, or any other part of the eyes. The existing CHOG eyes must remain 100% unchanged beneath the lash strokes.'
       : '';
-    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. LOCKED — do not change under any circumstances: the CHOG face outline (jaw, cheeks, chin contour — everything below the forehead), eyes (black circle shape, white highlight, neutral round expression), nose (tiny pink dot position), cheek blush dots, head shape, body pose, shoulder angle, and arm position. The second image is the style reference — extract only its outfit, accessories${isNude ? ', skin color' : ''}${chogStyle !== '2' ? ', and mouth expression (apply inside the mouth zone only — do not make eyes or eyebrows reflect the reference expression)' : ''} and apply them onto the CHOG base. Do not copy the reference eye expression, face angle, body pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart}`;
+    const hairInstruction = isSpiky
+      ? 'Do not change the hair at all — shape, color, and spike direction stay identical to the base. Everything below the hairline is locked.'
+      : 'Apply the reference hair color only — keep the base spike shape exactly.';
+    const editPrompt = `The first image is the CHOG base — its composition, framing, body pose, and arm position (arms crossed) are absolutely locked. Do not zoom out, do not change the crop, do not alter the pose. The face outline, eye shape, nose (tiny pink dot), and all facial proportions are locked. The second image is the style reference — apply only: (1) ${hairInstruction}, (2) outfit color/accessories in the very bottom zone only, (3) skin color if different, (4) mouth expression in the tight mouth zone only — do not let the mouth expand beyond the zone. Do not change the eyes, pupils, or nose. Do not copy the reference composition, pose, or background. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
