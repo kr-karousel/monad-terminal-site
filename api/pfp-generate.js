@@ -427,15 +427,8 @@ async function _handler(req, res) {
     if (semantics.glasses)        editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const IDENTITY_LOCK = 'DO NOT REDRAW the character. The existing character image must remain visually identical — do NOT change: face shape, head shape, spike silhouette, spike count/direction, hair shape, eye placement, or face proportions. The face silhouette must exactly match the base image — the lower jaw and cheeks must be large, round and prominent. The face is partially cut off by the frame edges — preserve this exactly. Do NOT generate a new version of the character. Hair shape and spike pattern must stay identical to the base image — ONLY the hair color may change. The face (eyes, nose, mouth, cheeks, expression, all facial features) must be taken EXACTLY from the base image — do NOT apply any facial feature from the reference image. Only ADD accessories/outfit/effects into the unmasked zones.';
-
-    const ART_STYLE = chogStyle === '2'
-      ? 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. ALL face features (eyes, nose, mouth, cigarette, cheeks) are locked from the base image — use them exactly as-is, apply zero facial features from the reference image.'
-      : 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. FACE FEATURES: preserve nose (tiny dark dot) and mouth (thin curved line) exactly as base — do not omit.';
-
-    const COMPOSITION = 'COMPOSITION: face occupies the LEFT 75% of the image — large and close-up. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye. Eyes sit in the UPPER-MIDDLE vertical zone. Body/torso is only visible in the bottom 20% of the image. Do NOT zoom out. Do NOT center.';
-
-    const editPrompt = `${IDENTITY_LOCK} ${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
+    const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
+    const editPrompt = `Apply the hair color, outfit, and accessories from the reference character image onto the CHOG base character. Keep the CHOG face, spikes, body shape, and flat cartoon art style exactly as-is — only change what is in the unmasked zones.${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Fetch example.jpg as additional style reference
     let exampleBuffer = null;
