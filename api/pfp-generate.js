@@ -418,8 +418,8 @@ async function _handler(req, res) {
 
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
     const editZones = [
-      [0.15, 0.07, 0.85, 0.18], // hair color zone — bottom raised to give more buffer above face
-      [0.10, 0.83, 0.90, 0.95], // outfit zone — top pushed down to protect lower jaw/cheek
+      [0.15, 0.07, 0.85, 0.22], // hair color zone
+      [0.10, 0.78, 0.90, 0.95], // outfit zone
     ];
     // style 2: cigarette already drawn in base 2.png — do NOT open mouth zone, preserve as-is
     if (semantics.hat)      editZones.push([0.10, 0.00, 0.90, 0.18]); // hat zone — top only
