@@ -425,7 +425,7 @@ async function _handler(req, res) {
     form.append('prompt', editPrompt);
     form.append('n', '1');
     form.append('size', '1024x1024');
-    form.append('quality', 'medium');
+    form.append('quality', 'high');
     form.append('input_fidelity', 'high');
     form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
     if (exampleBuffer) form.append('image[]', new Blob([exampleBuffer], { type: 'image/jpeg' }), 'example.jpg');
@@ -446,7 +446,7 @@ async function _handler(req, res) {
 
     if (!imageUrl) return res.status(500).json({ error: 'No image returned' });
 
-    // Smart crop: detect right-eye X position with GPT-4o-mini, then crop just past it
+    // Detect eye position (X + Y) with GPT-4o-mini, then nose-composite + crop
     let finalImageUrl = imageUrl;
     try {
       const eyeContent = imgData.url
@@ -458,30 +458,64 @@ async function _handler(req, res) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
-          max_tokens: 20,
+          max_tokens: 40,
           messages: [{ role: 'user', content: [
             eyeContent,
-            { type: 'text', text: 'The character faces LEFT. Find the character\'s LEFT eye — this is the eye on the RIGHT side of the image (from the viewer\'s perspective). Return the X position of the rightmost pixel of that eye. Return ONLY JSON: {"x": 0.XX} where x is a fraction from 0.0 (left edge) to 1.0 (right edge) of the image.' }
+            { type: 'text', text: 'The character faces LEFT. Find the character\'s LEFT eye — the eye on the RIGHT side of the image (viewer\'s perspective). Return ONLY JSON: {"x": 0.XX, "y": 0.XX} where x = rightmost pixel of that eye (0=left edge, 1=right edge), y = vertical center of that eye (0=top, 1=bottom).' }
           ]}]
         })
       });
       const eyeData = await eyeRes.json();
       const raw = eyeData.choices?.[0]?.message?.content?.trim() || '';
-      const match = raw.match(/\{[^}]*"x"\s*:\s*([\d.]+)[^}]*\}/);
-      const eyeX = match ? parseFloat(match[1]) : null;
-      console.log('[eye-crop] detected right eye X:', eyeX, '| raw:', raw);
+      const matchX = raw.match(/"x"\s*:\s*([\d.]+)/);
+      const matchY = raw.match(/"y"\s*:\s*([\d.]+)/);
+      const eyeX = matchX ? parseFloat(matchX[1]) : null;
+      const eyeY = matchY ? parseFloat(matchY[1]) : null;
+      console.log('[eye-detect] eyeX:', eyeX, 'eyeY:', eyeY, '| raw:', raw);
+
+      // Nose composite: paste base nose mark at detected eye-relative position
+      if (eyeX && eyeY) {
+        try {
+          const genBuf = imageUrl.startsWith('data:')
+            ? Buffer.from(imageUrl.split(',')[1], 'base64')
+            : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
+          const [genImg, baseImg] = await Promise.all([Jimp.read(genBuf), Jimp.read(baseBuffer)]);
+          const gw = genImg.bitmap.width, gh = genImg.bitmap.height;
+          if (baseImg.bitmap.width !== gw || baseImg.bitmap.height !== gh)
+            baseImg.resize(gw, gh, Jimp.RESIZE_NEAREST_NEIGHBOR);
+          // In base image, nose is ~10% below eye center Y, centered left of face
+          // Scan base nose region and paste only dark pixels at equivalent position in generated image
+          const baseEyeY = 0.37; // approximate eye Y in base image
+          const baseNoseY1 = 0.44, baseNoseY2 = 0.52;
+          const baseNoseX1 = 0.20, baseNoseX2 = 0.42;
+          const offsetY = eyeY - baseEyeY;
+          const ny1 = Math.round((baseNoseY1 + offsetY) * gh);
+          const ny2 = Math.round((baseNoseY2 + offsetY) * gh);
+          const nx1 = Math.round(baseNoseX1 * gw);
+          const nx2 = Math.round(baseNoseX2 * gw);
+          for (let y = Math.max(0, ny1); y < Math.min(gh, ny2); y++) {
+            for (let x = Math.max(0, nx1); x < Math.min(gw, nx2); x++) {
+              const baseY = Math.round((y / gh - offsetY) * gh);
+              const p = Jimp.intToRGBA(baseImg.getPixelColor(x, Math.max(0, Math.min(gh - 1, baseY))));
+              if (p.r * 0.299 + p.g * 0.587 + p.b * 0.114 < 80)
+                genImg.setPixelColor(Jimp.rgbaToInt(p.r, p.g, p.b, p.a), x, y);
+            }
+          }
+          const noseBuf = await genImg.getBufferAsync(Jimp.MIME_PNG);
+          finalImageUrl = `data:image/png;base64,${noseBuf.toString('base64')}`;
+        } catch (e) { console.warn('[nose] composite failed:', e.message); }
+      }
 
       const MARGIN = 0.17;
       const MIN_CROP = 0.72;
       if (eyeX && eyeX > 0.25 && eyeX < 0.95) {
-        const rawBuf = imageUrl.startsWith('data:')
-          ? Buffer.from(imageUrl.split(',')[1], 'base64')
-          : Buffer.from(await (await fetch(imageUrl)).arrayBuffer());
+        const rawBuf = finalImageUrl.startsWith('data:')
+          ? Buffer.from(finalImageUrl.split(',')[1], 'base64')
+          : Buffer.from(await (await fetch(finalImageUrl)).arrayBuffer());
         const jimg = await Jimp.read(rawBuf);
         const cropFraction = Math.max(eyeX + MARGIN, MIN_CROP);
         const cropSide = Math.round(Math.min(cropFraction, 1.0) * jimg.bitmap.width);
-        const cropY = Math.floor((jimg.bitmap.height - cropSide) / 2);
-        jimg.crop(0, cropY, cropSide, cropSide);
+        jimg.crop(0, jimg.bitmap.height - cropSide, cropSide, cropSide); // bottom-left
         const croppedBuf = await jimg.getBufferAsync(Jimp.MIME_PNG);
         finalImageUrl = `data:image/png;base64,${croppedBuf.toString('base64')}`;
         console.log('[eye-crop] eyeX:', eyeX, '→ cropSide:', cropSide);
