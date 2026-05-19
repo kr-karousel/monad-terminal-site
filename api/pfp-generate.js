@@ -357,7 +357,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image, detail: 'high' } },
-              { type: 'text', text: 'Analyze this character image meticulously. Return ONLY this JSON (no markdown): {"hair": "exact color name, shape (e.g. twin tails, short bob, long wavy), volume, and texture", "hairpin": "LOOK CAREFULLY at every part of the hair — any bow, ribbon, clip, scrunchie, flower, pin, or decoration. Describe: exact color, size relative to head (small/medium/large/huge), shape, and exact location (e.g. left side, top-center, behind ear). If truly none, null", "hat": "any hat or hard headwear sitting ON TOP of the head — describe type, color, shape, or null", "face": "list every face detail: glasses type and color, eyelashes (long/short/none), blush marks, any cigar/cigarette/pipe in mouth, mask, eye makeup — describe each exactly, or null", "expression": "exact facial expression e.g. smug smirk, angry scowl, cheerful smile, winking, serious deadpan", "outfit": "every garment from top to bottom — exact colors for each piece, patterns (stripes/dots/plaid etc), collar shape, trim, ruffles, buttons, any text/logo with exact wording and placement", "accessories": "everything else: scarves, belts, jewelry, wings, tail, hand props — describe exactly, or null", "background": "background color or scene"}' }
+              { type: 'text', text: 'Analyze this character image meticulously. Return ONLY this JSON (no markdown): {"hair": "exact color name, shape (e.g. twin tails, short bob, long wavy), volume, and texture", "hairpin": "LOOK CAREFULLY at every part of the hair — any bow, ribbon, clip, scrunchie, flower, pin, or decoration. Describe: exact color, size relative to head (small/medium/large/huge), shape, and exact location (e.g. left side, top-center, behind ear). If truly none, null", "hat": "any hat or hard headwear sitting ON TOP of the head — describe type, color, shape, or null", "face": "glasses type and color only — do NOT describe mouth, teeth, expression, or skin. If no glasses, null", "mouth": "describe the mouth/expression only — e.g. wide grin with yellow fangs, small smirk, open smile with tongue, neutral line. null if plain closed mouth", "outfit": "every garment from top to bottom — exact colors for each piece, patterns (stripes/dots/plaid etc), collar shape, trim, ruffles, buttons, any text/logo with exact wording and placement", "accessories": "everything else: scarves, belts, jewelry, wings, tail, hand props — describe exactly, or null", "special_effects": "any glow, aura, energy outline, sparkles, particle effects, or light effects around or behind the character — describe color and style exactly, or null", "background": "background color or scene"}' }
             ]
           }]
         }),
@@ -394,13 +394,15 @@ async function _handler(req, res) {
     const sanitize = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
 
     const styleDesc = [
-      semantics.hair        ? `hair: ${sanitize(semantics.hair)}`                                                                          : null,
-      semantics.hairpin     ? `hair accessory: ${sanitize(semantics.hairpin)}`                                                             : null,
-      semantics.hat         ? `headwear: ${sanitize(semantics.hat)}`                                                                        : null,
-      // face detail excluded — CHOG's face comes entirely from base image, reference face features must not be applied
-      chogStyle === '2'     ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                        : null,
+      semantics.hair           ? `hair: ${sanitize(semantics.hair)}`                                                                       : null,
+      semantics.hairpin        ? `hair accessory: ${sanitize(semantics.hairpin)}`                                                          : null,
+      semantics.hat            ? `headwear: ${sanitize(semantics.hat)}`                                                                    : null,
+      semantics.face           ? `face detail: ${sanitize(semantics.face)}`                                                               : null,
+      semantics.mouth && chogStyle !== '2' ? `mouth expression: ${sanitize(semantics.mouth)}`                                             : null,
+      chogStyle === '2'        ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                    : null,
       `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
-      semantics.accessories ? `accessories: ${sanitize(semantics.accessories)}`                                                             : null,
+      semantics.accessories    ? `accessories: ${sanitize(semantics.accessories)}`                                                         : null,
+      semantics.special_effects ? `special effects: ${sanitize(semantics.special_effects)}`                                               : null,
     ].filter(Boolean).join('; ');
 
     // Build mandatory items reminder — things that must visibly appear in output
@@ -422,12 +424,17 @@ async function _handler(req, res) {
       [0.10, 0.78, 0.90, 0.95], // outfit zone
     ];
     // style 2: cigarette already drawn in base 2.png — do NOT open mouth zone, preserve as-is
-    if (semantics.hat)      editZones.push([0.10, 0.00, 0.90, 0.18]); // hat zone — top only
-    if (semantics.hairpin)  editZones.push([0.15, 0.07, 0.85, 0.22]); // hairpin zone
-    if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
+    if (semantics.hat)            editZones.push([0.10, 0.00, 0.90, 0.18]); // hat zone — top only
+    if (semantics.hairpin)        editZones.push([0.15, 0.07, 0.85, 0.22]); // hairpin zone
+    if (semantics.glasses)        editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
+    if (semantics.special_effects) {
+      // Open background strips for aura/glow — NOT the face/body area
+      editZones.push([0.00, 0.00, 0.14, 0.90]); // left background
+      editZones.push([0.00, 0.00, 1.00, 0.07]); // top background strip
+    }
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const IDENTITY_LOCK = 'DO NOT REDRAW the character. The existing character image must remain visually identical — do NOT change: face shape, head shape, spike silhouette, spike count/direction, hair shape, eye placement, face proportions, framing, crop, or background color. The face silhouette must exactly match the base image — the lower jaw and cheeks must be large, round and prominent. The face is partially cut off by the frame edges — preserve this exactly. Do NOT generate a new version of the character. Hair shape and spike pattern must stay identical to the base image — ONLY the hair color may change. The face (eyes, nose, mouth, cheeks, expression, all facial features) must be taken EXACTLY from the base image — do NOT apply any facial feature from the reference image. Only ADD accessories/outfit into the unmasked zones.';
+    const IDENTITY_LOCK = 'DO NOT REDRAW the character. The existing character image must remain visually identical — do NOT change: face shape, head shape, spike silhouette, spike count/direction, hair shape, eye placement, or face proportions. The face silhouette must exactly match the base image — the lower jaw and cheeks must be large, round and prominent. The face is partially cut off by the frame edges — preserve this exactly. Do NOT generate a new version of the character. Hair shape and spike pattern must stay identical to the base image — ONLY the hair color may change. The face (eyes, nose, mouth, cheeks, expression, all facial features) must be taken EXACTLY from the base image — do NOT apply any facial feature from the reference image. Only ADD accessories/outfit/effects into the unmasked zones.';
 
     const ART_STYLE = chogStyle === '2'
       ? 'ART STYLE: thick bold black outlines, PURE FLAT SOLID COLORS (zero gradients, zero shading, zero blending — hard flat fills only), large circular anime eyes, cute chibi proportions. ALL face features (eyes, nose, mouth, cigarette, cheeks) are locked from the base image — use them exactly as-is, apply zero facial features from the reference image.'
