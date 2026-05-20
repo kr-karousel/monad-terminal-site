@@ -357,7 +357,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image, detail: 'high' } },
-              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word", "hair_silhouette": "rough silhouette category ONLY: short / medium / long / spiky / twin-tails / ponytail / bob — pick one, no details", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
+              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word", "hair_silhouette": "rough silhouette category ONLY: short / medium / long / spiky / twin-tails / ponytail / bob / bald — pick one, no details", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "beard": "facial hair type if clearly present: stubble / short-beard / long-beard / mustache / goatee — single word, or null", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
             ]
           }]
         }),
@@ -405,17 +405,20 @@ async function _handler(req, res) {
     const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
     const san = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
     const hairAbstract = [semantics.hair_color, semantics.hair_silhouette].filter(Boolean).join(' ');
+    const hasBeard = !!semantics.beard;
     const traitParts = [
-      hairAbstract         ? `hair: ${san(hairAbstract)} (color + silhouette only)`     : null,
-      semantics.hat         ? `hat: ${san(semantics.hat)}`                                : null,
-      semantics.hairpin     ? `hair accessory: ${san(semantics.hairpin)}`                  : null,
-      semantics.glasses     ? `glasses: ${san(semantics.glasses)}`                         : null,
-      semantics.mouth_type  ? `mouth: ${san(semantics.mouth_type)}`                        : null,
+      hairAbstract          ? `hair: ${san(hairAbstract)} (color + silhouette only)`                  : null,
+      semantics.hat         ? `hat: ${san(semantics.hat)}`                                             : null,
+      semantics.hairpin     ? `hair accessory: ${san(semantics.hairpin)}`                              : null,
+      semantics.glasses     ? `glasses: ${san(semantics.glasses)}`                                     : null,
+      hasBeard              ? `beard: ${san(semantics.beard)} (draw as simple flat CHOG-style shape near mouth/chin)` : null,
+      semantics.mouth_type  ? `mouth: ${san(semantics.mouth_type)}`                                    : null,
       semantics.outfit || semantics.clothing ? `outfit: ${san(semantics.outfit || semantics.clothing)} (colors + categories only)` : null,
-      semantics.accessories ? `accessories: ${san(semantics.accessories)}`                 : null,
+      semantics.accessories ? `accessories: ${san(semantics.accessories)}`                             : null,
     ].filter(Boolean).join('; ');
 
     const cigarettePart = chogStyle === '2' ? '\n- CIGARETTE: the cigarette hanging from the mouth corner is part of IMAGE 1 — keep it exactly.' : '';
+    const beardPart = hasBeard ? `\nBEARD: the reference has facial hair (${san(semantics.beard)}). Draw a simple flat chunky beard/mustache shape near the CHOG mouth/chin area — thick black outline, flat color, primitive shape. Do NOT move the nose. Do NOT redesign the face.` : '';
     const eyelashPart = isFemale ? '\nFEMALE REFERENCE: the reference character is female. Keep IMAGE 1\'s eyes exactly, but add 3 thin short eyelash lines at the upper eyelid edge only. Do NOT alter eye shape or size.' : '';
 
     const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG skeleton — you are NOT recreating, redrawing, or adapting the reference character.
@@ -425,7 +428,7 @@ IMAGES 2–${1 + exampleBuffers.length} = Official CHOG collection NFTs. Study t
 LAST IMAGE = Trait donor only. You only borrow abstract traits from it — color, accessory category, expression category, garment category. You do NOT borrow its appearance, identity, anatomy, eyes, face, hair detail, or art style.
 
 ⚠ PRIORITY #1 — ANGLE & COMPOSITION (overrides everything else):
-The head angle, face tilt, body angle, framing, zoom level, and overall composition of IMAGE 1 are LOCKED. The output must look like the same camera shot as IMAGE 1 — same crop, same head rotation, same face direction, same proportions. Do NOT center, do NOT zoom out, do NOT re-frame, do NOT change the head tilt. If the reference image has a different angle or composition, IGNORE it completely — only IMAGE 1's angle and composition matter.
+The angle, framing, zoom, crop, and composition of IMAGE 1 are LOCKED. Do NOT adapt to the reference's body size, body angle, zoom level, or framing — even if the reference shows a full body, a different pose, or a different crop. The reference's composition is completely irrelevant. Output must match IMAGE 1's exact crop: extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background, same head tilt and face direction.
 
 ⚠ PRIORITY #2 — BASE ART STYLE (overrides reference style):
 The art style of IMAGE 1 is the ONLY allowed art style. Thick uneven hand-drawn black outlines, flat solid colors only, zero gradients, zero shading, zero texture, limited color palette, primitive NFT line quality. The reference image's art style (whether anime, realistic, painterly, 3D, cel-shaded, etc.) must be COMPLETELY IGNORED. Re-render every transferred trait in IMAGE 1's exact art style — do NOT preserve any rendering quality from the reference.
@@ -463,7 +466,7 @@ Extracted traits: ${traitParts || 'minimal changes only'}
 • OUTFIT: transplant garment categories and colors only. Re-render in CHOG flat style — no fabric detail, no folds, no shading.
 • MOUTH: borrow expression category only (smile/grin/fang/etc), re-rendered with CHOG primitive line.
 • Everything transferred MUST be re-rendered in IMAGE 1's primitive CHOG art style — thick uneven outlines, flat colors, no shading.
-${eyelashPart}
+${beardPart}${eyelashPart}
 The final result must be indistinguishable from an official CHOG collection NFT — primitive, flat, hand-drawn, chunky, slightly goofy, mascot-like. If it looks like polished anime, has a human chibi body, or looks like a recreated character, you failed.${extraPart ? '\nExtra instruction: ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
