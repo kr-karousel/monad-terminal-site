@@ -367,58 +367,28 @@ async function _handler(req, res) {
       baseBuffer = rawBaseBuffer;
     }
 
-    const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
-
-    const sanitize = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
-
-    const styleDesc = [
-      semantics.hair        ? `hair: ${sanitize(semantics.hair)}`                                                                          : null,
-      semantics.hairpin     ? `hair accessory: ${sanitize(semantics.hairpin)}`                                                             : null,
-      semantics.hat         ? `headwear: ${sanitize(semantics.hat)}`                                                                        : null,
-      semantics.face        ? `face detail: ${sanitize(semantics.face)}`                                                                    : null,
-      chogStyle === '2'     ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                        : null,
-      `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
-      semantics.accessories ? `accessories: ${sanitize(semantics.accessories)}`                                                             : null,
-    ].filter(Boolean).join('; ');
-
-    // Build mandatory items reminder — things that must visibly appear in output
-    const mandatoryItems = [
-      semantics.hat         ? sanitize(semantics.hat)         : null,
-      semantics.hairpin     ? sanitize(semantics.hairpin)     : null,
-      semantics.accessories ? sanitize(semantics.accessories) : null,
-      chogStyle === '2'     ? 'cigarette in mouth'            : null,
-    ].filter(Boolean);
-    const mandatoryReminder = mandatoryItems.length
-      ? ` MUST visibly appear in final image (do not omit any): ${mandatoryItems.join(', ')}.`
-      : '';
-
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
+    const isSpiky = /spik|pointy|sharp|zigzag|jagged/i.test(semantics.hair || '');
+    const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
+    const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
+
+    // Standard zone mask: opaque by default (preserve), only open zones are editable
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
-    const editZones = [
-      [0.05, 0.00, 0.95, 0.32], // hair + top-of-head zone (wider for accessories)
-      [0.10, 0.58, 0.90, 0.95], // outfit zone
-    ];
-    if (chogStyle === '2')  editZones.push([0.20, 0.55, 0.80, 0.70]); // cigarette zone
-    if (semantics.hat)      editZones.push([0.05, 0.00, 0.95, 0.20]); // hat zone (very top)
-    if (semantics.hairpin)  editZones.push([0.05, 0.00, 0.95, 0.28]); // hairpin zone
-    if (semantics.glasses)  editZones.push([0.22, 0.33, 0.78, 0.42]); // glasses zone
+    const editZones = [];
+    if (!isNude)           editZones.push([0.10, 0.82, 0.90, 0.97]); // outfit
+    if (!isSpiky)          editZones.push([0.05, 0.00, 0.95, 0.15]); // hair recolor (non-spiky ref)
+    if (semantics.hat)     editZones.push([0.05, 0.00, 0.95, 0.15]); // hat
+    if (semantics.hairpin) editZones.push([0.05, 0.03, 0.90, 0.25]); // accessories
+    if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.48]); // glasses
+    if (isFemale)          editZones.push([0.10, 0.268, 0.90, 0.278]); // eyelash strip
+    if (chogStyle !== '2') editZones.push([0.25, 0.67, 0.65, 0.76]); // mouth
+    if (editZones.length === 0) editZones.push([0.10, 0.82, 0.90, 0.97]);
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const ART_STYLE = '⚠ ART STYLE IS LOCKED — maintain CHOG\'s exact style throughout: thick bold black outlines, flat solid colors, large circular anime eyes, tiny dot nose, cute chibi proportions, spiky head. Do NOT adopt the reference image\'s art style, proportions, or shading. The reference provides ONLY accessories/outfit/hair to transplant onto CHOG — nothing else changes.';
-
-    const COMPOSITION = chogStyle === '2'
-      ? 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Face angled left. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Accessories and headwear may freely bleed off ANY frame edge — do NOT shrink or reposition them to fit inside the frame. Do NOT center. Do NOT zoom out.'
-      : 'COMPOSITION: face occupies the LEFT 55% of the image. The right 45% is background only — no face, no cheek, no ear, no hair on the right side. Head and spikes bleed off the top and left edges. RIGHT frame edge slices through the face just past the right eye — nothing beyond the eye is visible. Accessories and headwear may freely bleed off ANY frame edge — do NOT shrink or reposition them to fit inside the frame. Do NOT center. Do NOT zoom out.';
-
-    const editPrompt = `${ART_STYLE} ${COMPOSITION} Apply ONLY to the unmasked edit zones — ${styleDesc}.${mandatoryReminder}${extraPart ? ' ' + extraPart : ''}`;
-
-    // Fetch example.jpg as additional style reference
-    let exampleBuffer = null;
-    try {
-      const exRes = await fetch('https://monad-terminal.xyz/chog/pfp/example.jpg');
-      if (exRes.ok) exampleBuffer = Buffer.from(await exRes.arrayBuffer());
-    } catch (e) { console.warn('[gpt] example fetch failed:', e.message); }
+    const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base.' : '';
+    const eyelashPart = isFemale ? ' Female reference: add only 2-3 tiny thin eyelash strokes at upper eyelid edge. Do not alter eye shape, size, or position.' : '';
+    const editPrompt = `The first image is the CHOG base — reproduce its art style exactly (thick black outlines, flat solid colors, no gradients, no shading) and its composition exactly (extreme close-up face, left-heavy framing, head and spikes bleeding off edges, blue background). The base image defines everything: framing, scale, eye shape, nose, face outline, cheek blush, spike shape, body pose. The second image is the style reference — from it, extract ONLY the visual style elements (hair color, hat, accessories, outfit, mouth expression) and apply them onto the CHOG base character. Do not copy the reference art style, face, composition, background, or proportions. Render all changes in the CHOG flat-color cartoon style.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1');
@@ -428,8 +398,8 @@ async function _handler(req, res) {
     form.append('quality', 'medium');
     form.append('input_fidelity', 'high');
     form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
-    if (exampleBuffer) form.append('image[]', new Blob([exampleBuffer], { type: 'image/jpeg' }), 'example.jpg');
-    form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
+    if (userRefBuffer) form.append('image[]', new Blob([userRefBuffer], { type: 'image/jpeg' }), 'reference.jpg');
+    form.append('mask', new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
