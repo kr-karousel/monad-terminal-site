@@ -357,7 +357,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image, detail: 'high' } },
-              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word", "hair_silhouette": "rough silhouette category ONLY: short / medium / long / spiky / twin-tails / ponytail / bob / bald — pick one, no details", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "beard": "facial hair type if clearly present: stubble / short-beard / long-beard / mustache / goatee — single word, or null", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
+              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word", "hair_silhouette": "rough silhouette category ONLY: short / medium / long / spiky / twin-tails / ponytail / bob / bald — pick one, no details", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "beard": "facial hair type ONLY if the reference is a realistic human or animal with clearly drawn facial hair — single word: stubble / short-beard / long-beard / mustache / goatee. If the reference is a cartoon, flat-color illustration, or NFT-style character, return null regardless of any lines near the mouth.", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
             ]
           }]
         }),
@@ -415,12 +415,12 @@ async function _handler(req, res) {
     const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG skeleton — you are NOT recreating, redrawing, or adapting the reference character.
 
 IMAGE 1 = CHOG base skeleton. This IS the character. The output IS this character with a few traits swapped. Reproduce it exactly.
-IMAGE 2 = Trait donor only. You only borrow abstract traits from it — color, accessory category, expression category, garment category. You do NOT borrow its appearance, identity, anatomy, eyes, face, hair detail, or art style.
+IMAGE 2 = Trait donor only. Treat IMAGE 2 as a text list of traits — NOT as a visual style reference. You only borrow abstract traits from it — color, accessory category, expression category, garment category. You do NOT borrow its appearance, identity, anatomy, eyes, face, hair detail, or art style.
 
 ⚠ PRIORITY #1 — ANGLE & COMPOSITION (overrides everything else):
 The angle, framing, zoom, crop, and composition of IMAGE 1 are LOCKED. Do NOT adapt to the reference's body size, body angle, zoom level, or framing — even if the reference shows a full body, a different pose, or a different crop. The reference's composition is completely irrelevant. Output must match IMAGE 1's exact crop: extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background, same head tilt and face direction.
 
-⚠ PRIORITY #2 — BASE ART STYLE (overrides reference style):
+⚠ PRIORITY #2 — BASE ART STYLE (IGNORE reference art style entirely — it is irrelevant):
 The art style of IMAGE 1 is the ONLY allowed art style. Thick uneven hand-drawn black outlines, flat solid colors only, zero gradients, zero shading, zero texture, limited color palette, primitive NFT line quality. The reference image's art style (whether anime, realistic, painterly, 3D, cel-shaded, etc.) must be COMPLETELY IGNORED. Re-render every transferred trait in IMAGE 1's exact art style — do NOT preserve any rendering quality from the reference.
 
 ⚠ PRIORITY #3 — PRIMITIVE & GOOFY (avoid prettification):
