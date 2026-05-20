@@ -78,42 +78,6 @@ function makeMaskPng(w, h, zones) {
   ]);
 }
 
-// All transparent (fully editable) except lockZones which are opaque (hard-preserved)
-function makeProtectMaskPng(w, h, lockZones) {
-  const stride = 1 + w * 4;
-  const raw = Buffer.alloc(h * stride, 0);
-  for (let y = 0; y < h; y++) {
-    raw[y * stride] = 0;
-    for (let x = 0; x < w; x++) raw[y * stride + 1 + x * 4 + 3] = 0;
-  }
-  for (const [rx1, ry1, rx2, ry2] of lockZones) {
-    const px1 = Math.max(0, Math.floor(rx1 * w));
-    const py1 = Math.max(0, Math.floor(ry1 * h));
-    const px2 = Math.min(w, Math.ceil(rx2 * w));
-    const py2 = Math.min(h, Math.ceil(ry2 * h));
-    for (let y = py1; y < py2; y++)
-      for (let x = px1; x < px2; x++)
-        raw[y * stride + 1 + x * 4 + 3] = 255;
-  }
-  const compressed = zlib.deflateSync(raw);
-  function mkChunk(type, data) {
-    const lenBuf = Buffer.alloc(4); lenBuf.writeUInt32BE(data.length);
-    const typeBuf = Buffer.from(type, 'ascii');
-    const crcBuf = Buffer.alloc(4);
-    crcBuf.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])));
-    return Buffer.concat([lenBuf, typeBuf, data, crcBuf]);
-  }
-  const ihdr = Buffer.alloc(13);
-  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4);
-  ihdr[8] = 8; ihdr[9] = 6;
-  return Buffer.concat([
-    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-    mkChunk('IHDR', ihdr),
-    mkChunk('IDAT', compressed),
-    mkChunk('IEND', Buffer.alloc(0)),
-  ]);
-}
-
 /* ── image dimension parser (JPEG + PNG, no deps) ── */
 function getImageDimensions(buf) {
   if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
@@ -425,28 +389,40 @@ async function _handler(req, res) {
       baseBuffer = rawBaseBuffer;
     }
 
+    const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
+
+    const sanitize = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
+
+    const styleDesc = [
+      semantics.hair           ? `hair: ${sanitize(semantics.hair)}`                                                                       : null,
+      semantics.hairpin        ? `hair accessory: ${sanitize(semantics.hairpin)}`                                                          : null,
+      semantics.hat            ? `headwear: ${sanitize(semantics.hat)}`                                                                    : null,
+      semantics.face           ? `face detail: ${sanitize(semantics.face)}`                                                               : null,
+      chogStyle === '2'        ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                    : null,
+      `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
+      semantics.accessories    ? `accessories: ${sanitize(semantics.accessories)}`                                                         : null,
+    ].filter(Boolean).join('; ');
+
+    // Build mandatory items reminder — things that must visibly appear in output
+    const mandatoryItems = [
+      semantics.hat         ? sanitize(semantics.hat)         : null,
+      semantics.hairpin     ? sanitize(semantics.hairpin)     : null,
+      semantics.accessories ? sanitize(semantics.accessories) : null,
+      chogStyle === '2'     ? 'cigarette in mouth'            : null,
+    ].filter(Boolean);
+    const mandatoryReminder = mandatoryItems.length
+      ? ` MUST visibly appear in final image (do not omit any): ${mandatoryItems.join(', ')}.`
+      : '';
+
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
     const isSpiky = /spik|pointy|sharp|zigzag|jagged/i.test(semantics.hair || '');
     const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
     const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
 
-    // Standard zone mask: opaque by default (preserve), only open zones are editable
-    const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
-    const editZones = [];
-    if (!isNude)           editZones.push([0.10, 0.82, 0.90, 0.97]); // outfit
-    if (!isSpiky)          editZones.push([0.05, 0.00, 0.95, 0.15]); // hair recolor (non-spiky ref)
-    if (semantics.hat)     editZones.push([0.05, 0.00, 0.95, 0.15]); // hat
-    if (semantics.hairpin) editZones.push([0.05, 0.03, 0.90, 0.25]); // accessories
-    if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.48]); // glasses
-    if (isFemale)          editZones.push([0.10, 0.268, 0.90, 0.278]); // eyelash strip
-    if (chogStyle !== '2') editZones.push([0.25, 0.67, 0.65, 0.76]); // mouth
-    if (editZones.length === 0) editZones.push([0.10, 0.82, 0.90, 0.97]);
-    const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
-
-    const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base.' : '';
-    const eyelashPart = isFemale ? ' Female reference: add only 2-3 tiny thin eyelash strokes at upper eyelid edge. Do not alter eye shape, size, or position.' : '';
-    const editPrompt = `The first image is the CHOG base — reproduce its art style exactly (thick black outlines, flat solid colors, no gradients, no shading) and its composition exactly (extreme close-up face, left-heavy framing, head and spikes bleeding off edges, blue background). The base image defines everything: framing, scale, eye shape, nose, face outline, cheek blush, spike shape, body pose. The second image is the style reference — from it, extract ONLY the visual style elements (hair color, hat, accessories, outfit, mouth expression) and apply them onto the CHOG base character. Do not copy the reference art style, face, composition, background, or proportions. Render all changes in the CHOG flat-color cartoon style.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in mouth exactly as in the base.' : '';
+    const eyelashPart = isFemale ? ' Female reference: add only 2-3 tiny thin eyelash strokes at upper eyelid edge of the CHOG eyes. Do NOT alter eye shape, size, or position in any way.' : '';
+    const editPrompt = `IMAGE 1 is the CHOG base — it defines the art style and structure that must be preserved exactly. IMAGE 2 is the style reference — extract only specific elements from it to apply onto CHOG. ABSOLUTE RULES (never break these): [1] EYES: copy the exact eye pixels from IMAGE 1 — same large black circle pupils, same white highlight dot, same eye shape, same eye position, same size. Do NOT redraw the eyes. Do NOT use the reference's eye style. [2] NOSE: copy the exact nose from IMAGE 1 — same tiny pink dot, same position. Do NOT change it. [3] FACE STRUCTURE: the face outline, jaw, cheek blush, forehead, and face proportions must match IMAGE 1 exactly. [4] COMPOSITION: extreme close-up, left-heavy framing, head and spikes bleeding off edges, blue background — all locked to IMAGE 1. [5] ART STYLE: thick black outlines, flat solid colors, no gradients, no shading, no texture — always CHOG style, never reference style. WHAT TO APPLY FROM IMAGE 2: hair color and style, hat or headwear, hair accessories, outfit and clothing, mouth expression only. Do NOT copy the reference face, eyes, nose, body proportions, art style, or background.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
@@ -468,7 +444,7 @@ async function _handler(req, res) {
     form.append('input_fidelity', 'high');
     form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
     if (userRefBuffer) form.append('image[]', new Blob([userRefBuffer], { type: 'image/jpeg' }), 'reference.jpg');
-    form.append('mask', new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
+    // No mask — model decides what to modify based on prompt alone
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
