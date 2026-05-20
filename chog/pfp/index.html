@@ -1274,8 +1274,18 @@ async function generateBatch() {
     setStatus(`✗ ${failCount} generation(s) cancelled — content policy violation (no refund)`);
   }
 
-  // Update history with all successful URLs at once (server already stored #1)
+  // Save all batch URLs to Supabase and update in-memory history
   urls.forEach(u => addToHistory(u));
+  if (pfpWallet && urls.length) {
+    try {
+      const sh = await fetch(API_BASE, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'saveHistory', wallet: pfpWallet, urls }),
+      });
+      const sd = await sh.json();
+      if (sd.history) { genHistory = sd.history; renderHistory(); }
+    } catch (e) { console.warn('[saveHistory] failed:', e.message); }
+  }
 
   // Build modal grid
   const grid = document.getElementById('batchGrid');

@@ -302,6 +302,21 @@ async function _handler(req, res) {
     return res.json({ ok: true, walletCredits: newCredits });
   }
 
+  if (action === 'saveHistory') {
+    if (!wallet) return res.status(400).json({ error: 'wallet required' });
+    const { urls } = req.body || {};
+    if (!Array.isArray(urls) || !urls.length) return res.status(400).json({ error: 'urls required' });
+    const row = await getWalletRow(wallet);
+    const prev = Array.isArray(row?.recent_history) ? row.recent_history : [];
+    const deduped = [...new Set([...urls, ...prev])].slice(0, 10);
+    await fetch(`${SB_URL}/rest/v1/pfp_credits`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ wallet: wallet.toLowerCase(), recent_history: deduped }),
+    });
+    return res.json({ ok: true, history: deduped });
+  }
+
   if (action === 'generate') {
     if (!OPENAI_KEY) return res.status(500).json({ error: 'API key not configured' });
     if (!image)      return res.status(400).json({ error: 'image required' });
