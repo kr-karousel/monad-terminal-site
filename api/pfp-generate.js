@@ -412,7 +412,7 @@ async function _handler(req, res) {
     const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG skeleton — you are NOT recreating, redrawing, or adapting the reference character.
 
 IMAGE 1 = CHOG base skeleton. This IS the character. The output IS this character with a few traits swapped. Reproduce it exactly.
-IMAGE 2 = Trait donor only. You only borrow abstract traits from it — color, accessory category, expression category, garment category. You do NOT borrow its appearance, identity, anatomy, eyes, face, hair detail, or art style.
+IMAGE 2 = Trait donor only. You only borrow abstract traits from it — color, accessory category, expression category, garment category. You do NOT borrow its appearance, identity, anatomy, eyes, face, hair detail, art style, pose, angle, composition, or framing. IMAGE 2's pose and composition are completely irrelevant — ignore them entirely.
 
 ⚠ PRIORITY #1 — ANGLE & COMPOSITION (overrides everything else):
 The angle, framing, zoom, crop, and composition of IMAGE 1 are LOCKED. Do NOT adapt to the reference's body size, body angle, zoom level, or framing — even if the reference shows a full body, a different pose, or a different crop. The reference's composition is completely irrelevant. Output must match IMAGE 1's exact crop: extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background, same head tilt and face direction.
@@ -429,7 +429,8 @@ The result MUST stay primitive, chunky, slightly goofy, mascot-like — like a d
 • EYES — PIXEL-FOR-PIXEL match with IMAGE 1. Same eye shape, same eye size, same eye position, same large black pupils, same white highlight dot placement, same eye angle. Do NOT enlarge eyes. Do NOT add eyelashes by default (only if FEMALE flag is set, and then only 2-3 thin strokes on top — the eye underneath stays identical). Do NOT redraw the eyes in any way.
 • NOSE — PIXEL-FOR-PIXEL match with IMAGE 1. Same tiny pink dot, same exact size, same exact position. Do NOT enlarge it. Do NOT change its color. Do NOT redraw it.
 • HAIR SILHOUETTE — IMAGE 1's hair/spike shape is the BASE silhouette. Only alter hair when the reference has a clearly different silhouette category (e.g. reference has long hair, base has spikes). Do NOT add bangs, side hair, or strands that are not present in IMAGE 1 unless the reference clearly shows them as a major feature. When in doubt, keep IMAGE 1's exact hair shape.
-• FACE — reproduce IMAGE 1's face outline, jaw, cheek blush dots, forehead width, face proportions exactly. Do NOT redesign.${cigarettePart}
+• FACE — reproduce IMAGE 1's face outline, jaw, cheek blush dots, forehead width, face proportions exactly. Do NOT redesign.
+• CROSSED ARMS POSE — IMAGE 1 shows the character with arms crossed at the bottom of the frame. Reproduce this exact pose and crop. Do NOT change to any other arm position.${cigarettePart}
 
 ━━━ DO NOT (these are absolute) ━━━
 • Do NOT recreate the reference character.
@@ -439,7 +440,8 @@ The result MUST stay primitive, chunky, slightly goofy, mascot-like — like a d
 • Do NOT preserve the reference's eyes — IMAGE 1's eyes are the only eyes allowed.
 • Do NOT preserve detailed hair strands, anime bangs, layered side hair, or fine hair lines from the reference.
 • Do NOT adapt the reference's art style (anime, realistic, painterly, 3D, cel-shaded — all forbidden).
-• Do NOT change the head angle, face direction, framing, or composition.
+• Do NOT change the head angle, face direction, framing, composition, or pose.
+• Do NOT adopt the reference's pose, body angle, or arm position — IMAGE 1's crossed-arms pose is fixed.
 • Do NOT modernize, smooth, or refine IMAGE 1's primitive linework.
 • Do NOT add anime shading, cel shading, glossy highlights, photorealistic detail, or texture.
 
