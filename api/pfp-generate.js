@@ -357,7 +357,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image, detail: 'high' } },
-              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word", "hair_silhouette": "rough silhouette category ONLY: short / medium / long / spiky / twin-tails / ponytail / bob / bald — pick one, no details", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "beard": "facial hair type if clearly present: stubble / short-beard / long-beard / mustache / goatee — single word, or null", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
+              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word", "hair_silhouette": "rough silhouette category ONLY: short / medium / long / spiky / twin-tails / ponytail / bob / bald — pick one, no details", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
             ]
           }]
         }),
@@ -396,20 +396,17 @@ async function _handler(req, res) {
     const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
     const san = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
     const hairAbstract = [semantics.hair_color, semantics.hair_silhouette].filter(Boolean).join(' ');
-    const hasBeard = !!semantics.beard;
     const traitParts = [
       hairAbstract          ? `hair: ${san(hairAbstract)} (color + silhouette only)`                  : null,
       semantics.hat         ? `hat: ${san(semantics.hat)}`                                             : null,
       semantics.hairpin     ? `hair accessory: ${san(semantics.hairpin)}`                              : null,
       semantics.glasses     ? `glasses: ${san(semantics.glasses)}`                                     : null,
-      hasBeard              ? `beard: ${san(semantics.beard)} (draw as simple flat CHOG-style shape near mouth/chin)` : null,
       semantics.mouth_type  ? `mouth: ${san(semantics.mouth_type)}`                                    : null,
       semantics.outfit || semantics.clothing ? `outfit: ${san(semantics.outfit || semantics.clothing)} (colors + categories only)` : null,
       semantics.accessories ? `accessories: ${san(semantics.accessories)}`                             : null,
     ].filter(Boolean).join('; ');
 
     const cigarettePart = chogStyle === '2' ? '\n- CIGARETTE: the cigarette hanging from the mouth corner is part of IMAGE 1 — keep it exactly.' : '';
-    const beardPart = hasBeard ? `\nBEARD: the reference has facial hair (${san(semantics.beard)}). Draw a simple flat chunky beard/mustache shape near the CHOG mouth/chin area — thick black outline, flat color, primitive shape. Do NOT move the nose. Do NOT redesign the face.` : '';
     const eyelashPart = isFemale ? '\nFEMALE REFERENCE: the reference character is female. The CHOG eyes from IMAGE 1 must remain identical (same shape, same size, same position, same pupils). On TOP of the unchanged eyes, draw 2-3 thin short line strokes at the upper eyelid edge only — these are tiny decorative additions, not a redrawing of the eye. The eye underneath must look exactly like IMAGE 1\'s eye.' : '';
 
     const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG skeleton — you are NOT recreating, redrawing, or adapting the reference character.
@@ -459,7 +456,7 @@ Extracted traits: ${traitParts || 'minimal changes only'}
 • OUTFIT: transplant garment categories and colors only. Re-render in CHOG flat style — no fabric detail, no folds, no shading.
 • MOUTH: borrow expression category only (smile/grin/fang/etc), re-rendered with CHOG primitive line.
 • Everything transferred MUST be re-rendered in IMAGE 1's primitive CHOG art style — thick uneven outlines, flat colors, no shading.
-${beardPart}${eyelashPart}
+${eyelashPart}
 The final result must be indistinguishable from an official CHOG collection NFT — primitive, flat, hand-drawn, chunky, slightly goofy, mascot-like. If it looks like polished anime, has a human chibi body, or looks like a recreated character, you failed.${extraPart ? '\nExtra instruction: ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
