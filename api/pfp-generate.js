@@ -409,7 +409,7 @@ async function _handler(req, res) {
     const cigarettePart = chogStyle === '2' ? '\n- CIGARETTE: the cigarette hanging from the mouth corner is part of IMAGE 1 — keep it exactly.' : '';
     const eyelashPart = isFemale ? '\nFEMALE REFERENCE: the reference character is female or has prominent eyelashes. Keep IMAGE 1\'s eyes completely unchanged. On TOP of the unchanged eyes only, draw 3 thin short line strokes at the upper eyelid edge — decorative only, do NOT redraw the eye itself.' : '';
 
-    const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG base model — you are NOT recreating, redrawing, or adapting the reference character.
+    const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG base model. You do NOT recreate, redraw, or adapt the reference character. You do NOT borrow the reference's art style, body, pose, or composition.
 
 IMAGE 1 = CHOG base model. This IS the character. Its art style, composition, angle, face, and body framing MUST be reproduced exactly — this is the absolute foundation.
 IMAGE 2 = Reference only. Borrow ONLY abstract traits: color, accessory category, expression category, garment category. Do NOT reference anything below the chest. Do NOT borrow its art style, rendering, anatomy, pose, or composition in any way.
@@ -431,7 +431,7 @@ The output is face-centered. There is no neck, chest, or anything below. Do NOT 
 • ART STYLE — thick uneven black outlines, flat solid colors, zero gradients, zero shading, zero texture. Primitive hand-drawn NFT line quality. Match IMAGE 1's art style only.
 • EYES — PIXEL-FOR-PIXEL match with IMAGE 1. Same eye shape, same eye size, same eye position, same large black pupils, same white highlight dot placement, same eye angle. Do NOT enlarge eyes. Do NOT redraw the eyes in any way. If the reference is female or has eyelashes, keep IMAGE 1's eyes completely unchanged and add only 3 thin short line strokes at the upper eyelid edge — decorative only.
 • NOSE — PIXEL-FOR-PIXEL match with IMAGE 1. Same tiny pink dot, same exact size, same exact position. Do NOT enlarge it. Do NOT change its color. Do NOT redraw it.
-• HAIR SILHOUETTE — spike shape of IMAGE 1 is the base and must be maintained. If the reference has a clearly distinct major feature (e.g. long hair, twin-tails), reflect only that large-scale silhouette change strictly above IMAGE 1's hairline — do NOT add bangs, side strands, or fine detail.
+• HAIR SILHOUETTE — spike shape of IMAGE 1 is the base and must be maintained. Hair exists ONLY above IMAGE 1's hairline — do NOT generate any hair below the hairline into the face area. If the reference has a clearly distinct major feature (e.g. long hair, twin-tails), reflect only that large-scale silhouette change strictly above the hairline — do NOT add bangs, side strands, or fine detail below the hairline.
 • FACE — reproduce IMAGE 1's face line, cheeks, forehead, and proportions exactly. Do NOT redesign.
 • MASCOT HANDS — IMAGE 1's small round pink mascot hands. The crossed-arms pose of IMAGE 1 must not be changed.${cigarettePart}
 
