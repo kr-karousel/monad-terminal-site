@@ -357,7 +357,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image, detail: 'high' } },
-              { type: 'text', text: 'Analyze this character image. Return ONLY this JSON (no markdown): {"hair": "color + rough shape only (e.g. black short spiky, blonde long twin tails, brown bob)", "hat": "hat/headwear type and color sitting on top of head, or null", "hairpin": "any bow, ribbon, clip, flower, pin in hair — exact color, size, location — or null", "glasses": "glasses type and color, or null", "mouth": "expression type only (e.g. wide grin, smirk, open smile with tongue, neutral) — or null if plain closed", "outfit": "clothing description — colors, garment types, patterns", "accessories": "scarves, jewelry, props, belts etc — or null", "eyelash": "true if character has prominent/decorative eyelashes OR is clearly female, otherwise false"}' }
+              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word", "hair_silhouette": "rough silhouette category ONLY: short / medium / long / spiky / twin-tails / ponytail / bob — pick one, no details", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
             ]
           }]
         }),
@@ -404,24 +404,25 @@ async function _handler(req, res) {
     // Build trait description for "only transfer" section
     const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
     const san = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
+    const hairAbstract = [semantics.hair_color, semantics.hair_silhouette].filter(Boolean).join(' ');
     const traitParts = [
-      semantics.hair        ? `hair: ${san(semantics.hair)}`             : null,
-      semantics.hat         ? `hat/headwear: ${san(semantics.hat)}`      : null,
-      semantics.hairpin     ? `hair accessory: ${san(semantics.hairpin)}`  : null,
-      semantics.glasses     ? `glasses: ${san(semantics.glasses)}`       : null,
-      semantics.mouth       ? `mouth: ${san(semantics.mouth)}`           : null,
-      semantics.outfit || semantics.clothing ? `outfit: ${san(semantics.outfit || semantics.clothing)}` : null,
-      semantics.accessories ? `accessories: ${san(semantics.accessories)}` : null,
+      hairAbstract         ? `hair: ${san(hairAbstract)} (color + silhouette only)`     : null,
+      semantics.hat         ? `hat: ${san(semantics.hat)}`                                : null,
+      semantics.hairpin     ? `hair accessory: ${san(semantics.hairpin)}`                  : null,
+      semantics.glasses     ? `glasses: ${san(semantics.glasses)}`                         : null,
+      semantics.mouth_type  ? `mouth: ${san(semantics.mouth_type)}`                        : null,
+      semantics.outfit || semantics.clothing ? `outfit: ${san(semantics.outfit || semantics.clothing)} (colors + categories only)` : null,
+      semantics.accessories ? `accessories: ${san(semantics.accessories)}`                 : null,
     ].filter(Boolean).join('; ');
 
     const cigarettePart = chogStyle === '2' ? '\n- CIGARETTE: the cigarette hanging from the mouth corner is part of IMAGE 1 — keep it exactly.' : '';
     const eyelashPart = isFemale ? '\nFEMALE REFERENCE: the reference character is female. Keep IMAGE 1\'s eyes exactly, but add 3 thin short eyelash lines at the upper eyelid edge only. Do NOT alter eye shape or size.' : '';
 
-    const editPrompt = `You are performing a CHOG NFT trait transplant — NOT creating a new character.
+    const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG skeleton — you are NOT recreating, redrawing, or adapting the reference character.
 
-IMAGE 1 = CHOG base skeleton. This defines the character structure, ANGLE, and COMPOSITION. Reproduce it exactly.
-IMAGES 2–${1 + exampleBuffers.length} = Official CHOG collection NFTs. Study these to learn the consistent line rules, eye rules, face proportions, and hair silhouette style.
-LAST IMAGE = Style reference. Extract ONLY the listed traits from it.
+IMAGE 1 = CHOG base skeleton. This IS the character. The output IS this character with a few traits swapped. Reproduce it exactly.
+IMAGES 2–${1 + exampleBuffers.length} = Official CHOG collection NFTs. Study them to lock in the line rules, eye rules, face proportions, and hair silhouette style.
+LAST IMAGE = Trait donor only. You only borrow abstract traits from it — color, accessory category, expression category, garment category. You do NOT borrow its appearance, identity, anatomy, eyes, face, hair detail, or art style.
 
 ⚠ PRIORITY #1 — ANGLE & COMPOSITION (overrides everything else):
 The head angle, face tilt, body angle, framing, zoom level, and overall composition of IMAGE 1 are LOCKED. The output must look like the same camera shot as IMAGE 1 — same crop, same head rotation, same face direction, same proportions. Do NOT center, do NOT zoom out, do NOT re-frame, do NOT change the head tilt. If the reference image has a different angle or composition, IGNORE it completely — only IMAGE 1's angle and composition matter.
@@ -436,24 +437,26 @@ The art style of IMAGE 1 is the ONLY allowed art style. Thick uneven hand-drawn 
 • NOSE — reproduce IMAGE 1's tiny pink dot nose exactly, same position. Do NOT change it.
 • FACE — reproduce IMAGE 1's face outline, jaw, cheek blush dots, forehead width, face proportions exactly. Do NOT redesign.${cigarettePart}
 
-━━━ DO NOT ━━━
-• Do NOT change the head angle, face direction, or composition.
-• Do NOT redesign the character.
-• Do NOT modernize, smooth, or refine the linework.
-• Do NOT change anatomy, face structure, or body proportions.
-• Do NOT copy the reference image's eyes, nose, face, angle, composition, or art style.
-• Do NOT add anime shading, cel shading, or photorealistic detail.
+━━━ DO NOT (these are absolute) ━━━
+• Do NOT recreate the reference character.
+• Do NOT preserve the reference's anatomy, body proportions, or face structure.
+• Do NOT preserve the reference's eyes — IMAGE 1's eyes are the only eyes allowed.
+• Do NOT preserve detailed hair strands, anime bangs, layered hair, or fine hair lines from the reference.
+• Do NOT adapt the reference's art style (anime, realistic, painterly, 3D, cel-shaded — all forbidden).
+• Do NOT change the head angle, face direction, framing, or composition.
+• Do NOT modernize, smooth, or refine IMAGE 1's primitive linework.
+• Do NOT add anime shading, cel shading, photorealistic detail, or texture.
 
-━━━ ONLY TRANSFER from the LAST image ━━━
-Traits extracted: ${traitParts || 'apply minimal changes only'}
-• Hair: adapt color and rough silhouette only. Keep chunky simplified CHOG rendering — no detailed strands, no realistic hair.
-• Hat/headwear: transplant if present.
-• Hair accessories: transplant if present.
-• Outfit/clothing: transplant colors and design.
-• Mouth expression: adapt style only.
-• Do NOT copy reference face, eyes, nose, body proportions, background, or art style.
+━━━ ONLY TRANSFER (abstract traits only) from the LAST image ━━━
+Extracted traits: ${traitParts || 'minimal changes only'}
+• HAIR: borrow ONLY color identity and rough silhouette category. Convert all hair into chunky simplified CHOG hair shapes — flat color blocks with thick black outlines. NO detailed strands. NO anime bangs. NO layered rendering. NO fine lines.
+• HAT / HEADWEAR: transplant the item shape and color, re-rendered in CHOG flat style.
+• HAIR ACCESSORIES (bows, ribbons, clips): transplant shape and color, re-rendered in CHOG flat style.
+• OUTFIT: transplant garment categories and colors only. Re-render in CHOG flat style — no fabric detail, no folds, no shading.
+• MOUTH: borrow expression category only (smile/grin/fang/etc), re-rendered with CHOG primitive line.
+• Everything transferred MUST be re-rendered in IMAGE 1's primitive CHOG art style — thick uneven outlines, flat colors, no shading.
 ${eyelashPart}
-The final result must be indistinguishable from an official CHOG collection NFT.${extraPart ? '\nExtra instruction: ' + extraPart : ''}`;
+The final result must be indistinguishable from an official CHOG collection NFT — primitive, flat, hand-drawn, chunky. If it looks like anime or a recreated character, you failed.${extraPart ? '\nExtra instruction: ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
