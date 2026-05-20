@@ -352,12 +352,12 @@ async function _handler(req, res) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${OPENAI_KEY}` },
         body: JSON.stringify({
-          model: 'gpt-4o', max_tokens: 800,
+          model: 'gpt-4o', max_tokens: 600,
           messages: [{
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image, detail: 'high' } },
-              { type: 'text', text: 'Analyze this character image meticulously. Return ONLY this JSON (no markdown): {"hair": "exact color name, shape (e.g. twin tails, short bob, long wavy), volume, and texture", "hairpin": "LOOK CAREFULLY at every part of the hair — any bow, ribbon, clip, scrunchie, flower, pin, or decoration. Describe: exact color, size relative to head (small/medium/large/huge), shape, and exact location (e.g. left side, top-center, behind ear). If truly none, null", "hat": "any hat or hard headwear sitting ON TOP of the head — describe type, color, shape, or null", "face": "glasses type and color only — do NOT describe mouth, teeth, expression, or skin. If no glasses, null", "mouth": "describe the mouth/expression only — e.g. wide grin with yellow fangs, small smirk, open smile with tongue, neutral line. null if plain closed mouth", "eyelash": "true if the character has prominent/decorative eyelashes (long, curled, dramatic, or clearly drawn) OR if the character is clearly female — otherwise false", "outfit": "every garment from top to bottom — exact colors for each piece, patterns (stripes/dots/plaid etc), collar shape, trim, ruffles, buttons, any text/logo with exact wording and placement", "accessories": "everything else: scarves, belts, jewelry, wings, tail, hand props — describe exactly, or null", "special_effects": "any glow, aura, energy outline, sparkles, particle effects, or light effects around or behind the character — describe color and style exactly, or null", "background": "background color or scene"}' }
+              { type: 'text', text: 'Analyze this character image. Return ONLY this JSON (no markdown): {"hair": "color + rough shape only (e.g. black short spiky, blonde long twin tails, brown bob)", "hat": "hat/headwear type and color sitting on top of head, or null", "hairpin": "any bow, ribbon, clip, flower, pin in hair — exact color, size, location — or null", "glasses": "glasses type and color, or null", "mouth": "expression type only (e.g. wide grin, smirk, open smile with tongue, neutral) — or null if plain closed", "outfit": "clothing description — colors, garment types, patterns", "accessories": "scarves, jewelry, props, belts etc — or null", "eyelash": "true if character has prominent/decorative eyelashes OR is clearly female, otherwise false"}' }
             ]
           }]
         }),
@@ -389,40 +389,64 @@ async function _handler(req, res) {
       baseBuffer = rawBaseBuffer;
     }
 
-    const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
+    // Fetch individual CHOG example images for style consistency
+    const EXAMPLE_FILES = ['1-1.jpg','1-2.jpg','1-3.jfif','1-4.jpg','1-5.jfif','1-6.jfif','1-8.jpg','1-9.jpg'];
+    const exampleBuffers = (await Promise.all(
+      EXAMPLE_FILES.map(f => fetch(`https://monad-terminal.xyz/chog/pfp/examples/${f}`)
+        .then(r => r.ok ? r.arrayBuffer().then(b => ({ buf: Buffer.from(b), name: f })) : null)
+        .catch(() => null))
+    )).filter(Boolean);
+    console.log('[generate] loaded examples:', exampleBuffers.length);
 
-    const sanitize = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
-
-    const styleDesc = [
-      semantics.hair           ? `hair: ${sanitize(semantics.hair)}`                                                                       : null,
-      semantics.hairpin        ? `hair accessory: ${sanitize(semantics.hairpin)}`                                                          : null,
-      semantics.hat            ? `headwear: ${sanitize(semantics.hat)}`                                                                    : null,
-      semantics.face           ? `face detail: ${sanitize(semantics.face)}`                                                               : null,
-      chogStyle === '2'        ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                    : null,
-      `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
-      semantics.accessories    ? `accessories: ${sanitize(semantics.accessories)}`                                                         : null,
-    ].filter(Boolean).join('; ');
-
-    // Build mandatory items reminder — things that must visibly appear in output
-    const mandatoryItems = [
-      semantics.hat         ? sanitize(semantics.hat)         : null,
-      semantics.hairpin     ? sanitize(semantics.hairpin)     : null,
-      semantics.accessories ? sanitize(semantics.accessories) : null,
-      chogStyle === '2'     ? 'cigarette in mouth'            : null,
-    ].filter(Boolean);
-    const mandatoryReminder = mandatoryItems.length
-      ? ` MUST visibly appear in final image (do not omit any): ${mandatoryItems.join(', ')}.`
-      : '';
-
+    const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
-    const isSpiky = /spik|pointy|sharp|zigzag|jagged/i.test(semantics.hair || '');
-    const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
-    const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
+    // Build trait description for "only transfer" section
+    const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
+    const san = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
+    const traitParts = [
+      semantics.hair        ? `hair: ${san(semantics.hair)}`             : null,
+      semantics.hat         ? `hat/headwear: ${san(semantics.hat)}`      : null,
+      semantics.hairpin     ? `hair accessory: ${san(semantics.hairpin)}`  : null,
+      semantics.glasses     ? `glasses: ${san(semantics.glasses)}`       : null,
+      semantics.mouth       ? `mouth: ${san(semantics.mouth)}`           : null,
+      semantics.outfit || semantics.clothing ? `outfit: ${san(semantics.outfit || semantics.clothing)}` : null,
+      semantics.accessories ? `accessories: ${san(semantics.accessories)}` : null,
+    ].filter(Boolean).join('; ');
 
-    const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in mouth exactly as in the base.' : '';
-    const eyelashPart = isFemale ? ' Female reference: add only 2-3 tiny thin eyelash strokes at upper eyelid edge of the CHOG eyes. Do NOT alter eye shape, size, or position in any way.' : '';
-    const editPrompt = `IMAGE 1 is the CHOG base — it defines the art style and structure that must be preserved exactly. IMAGE 2 is the style reference — extract only specific elements from it to apply onto CHOG. ABSOLUTE RULES (never break these): [1] EYES: copy the exact eye pixels from IMAGE 1 — same large black circle pupils, same white highlight dot, same eye shape, same eye position, same size. Do NOT redraw the eyes. Do NOT use the reference's eye style. [2] NOSE: copy the exact nose from IMAGE 1 — same tiny pink dot, same position. Do NOT change it. [3] FACE STRUCTURE: the face outline, jaw, cheek blush, forehead, and face proportions must match IMAGE 1 exactly. [4] COMPOSITION: extreme close-up, left-heavy framing, head and spikes bleeding off edges, blue background — all locked to IMAGE 1. [5] ART STYLE: thick black outlines, flat solid colors, no gradients, no shading, no texture — always CHOG style, never reference style. WHAT TO APPLY FROM IMAGE 2: hair color and style, hat or headwear, hair accessories, outfit and clothing, mouth expression only. Do NOT copy the reference face, eyes, nose, body proportions, art style, or background.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const cigarettePart = chogStyle === '2' ? '\n- CIGARETTE: the cigarette hanging from the mouth corner is part of IMAGE 1 — keep it exactly.' : '';
+    const eyelashPart = isFemale ? '\nFEMALE REFERENCE: the reference character is female. Keep IMAGE 1\'s eyes exactly, but add 3 thin short eyelash lines at the upper eyelid edge only. Do NOT alter eye shape or size.' : '';
+
+    const editPrompt = `You are performing a CHOG NFT trait transplant — NOT creating a new character.
+
+IMAGE 1 = CHOG base skeleton. This defines the character structure. Reproduce it exactly.
+IMAGES 2–${1 + exampleBuffers.length} = Official CHOG collection NFTs. Study these to learn the consistent line rules, eye rules, face proportions, and hair silhouette style.
+LAST IMAGE = Style reference. Extract ONLY the listed traits from it.
+
+━━━ PRESERVE EXACTLY (never change these) ━━━
+• EYES — reproduce IMAGE 1's eyes pixel-perfect: large black circle pupils, white highlight dot, same shape/size/position. Do NOT redesign eyes.
+• NOSE — reproduce IMAGE 1's tiny pink dot nose exactly, same position. Do NOT change it.
+• FACE — reproduce IMAGE 1's face outline, jaw, cheek blush dots, forehead width, face proportions exactly. Do NOT redesign.
+• COMPOSITION — extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background. Identical to IMAGE 1.
+• ART STYLE — thick uneven black outlines, flat solid colors, zero gradients, zero shading, zero texture. Primitive hand-drawn NFT line quality.${cigarettePart}
+
+━━━ DO NOT ━━━
+• Do NOT redesign the character.
+• Do NOT modernize, smooth, or refine the linework.
+• Do NOT change anatomy, face structure, or body proportions.
+• Do NOT copy the reference image's eyes, nose, face, or art style.
+• Do NOT add anime shading, cel shading, or photorealistic detail.
+
+━━━ ONLY TRANSFER from the LAST image ━━━
+Traits extracted: ${traitParts || 'apply minimal changes only'}
+• Hair: adapt color and rough silhouette only. Keep chunky simplified CHOG rendering — no detailed strands, no realistic hair.
+• Hat/headwear: transplant if present.
+• Hair accessories: transplant if present.
+• Outfit/clothing: transplant colors and design.
+• Mouth expression: adapt style only.
+• Do NOT copy reference face, eyes, nose, body proportions, background, or art style.
+${eyelashPart}
+The final result must be indistinguishable from an official CHOG collection NFT.${extraPart ? '\nExtra instruction: ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
@@ -442,9 +466,13 @@ async function _handler(req, res) {
     form.append('size', '1024x1024');
     form.append('quality', 'medium');
     form.append('input_fidelity', 'high');
+    // Image order: base (1st) → CHOG examples → user reference (last)
     form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
+    for (const { buf, name } of exampleBuffers) {
+      form.append('image[]', new Blob([buf], { type: 'image/jpeg' }), name);
+    }
     if (userRefBuffer) form.append('image[]', new Blob([userRefBuffer], { type: 'image/jpeg' }), 'reference.jpg');
-    // No mask — model decides what to modify based on prompt alone
+    // No mask — restriction system prompt controls what changes
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
