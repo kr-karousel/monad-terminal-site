@@ -409,10 +409,10 @@ async function _handler(req, res) {
     const cigarettePart = chogStyle === '2' ? '\n- CIGARETTE: the cigarette hanging from the mouth corner is part of IMAGE 1 — keep it exactly.' : '';
     const eyelashPart = isFemale ? '\nFEMALE REFERENCE: the reference character is female or has prominent eyelashes. Keep IMAGE 1\'s eyes completely unchanged. On TOP of the unchanged eyes only, draw 3 thin short line strokes at the upper eyelid edge — decorative only, do NOT redraw the eye itself.' : '';
 
-    const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG base model. You do NOT recreate, redraw, or adapt the reference character. You do NOT borrow the reference's art style, body, pose, or composition.
+    const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG base model. You do NOT recreate, redraw, or adapt the reference character. You do NOT borrow the reference's art style, body, pose, or composition. The character in IMAGE 2 does NOT appear in the output in any form — only IMAGE 1's character exists in the output.
 
-IMAGE 1 = CHOG base model. This IS the character. Its art style, composition, angle, face, and body framing MUST be reproduced exactly — this is the absolute foundation.
-IMAGE 2 = Reference only. Borrow ONLY abstract traits: color, accessory category, expression category, garment category. Do NOT reference anything below the chest. Do NOT borrow its art style, rendering, anatomy, pose, or composition in any way.
+IMAGE 1 = CHOG base model. This IS the only character. Its art style, composition, angle, face, and body framing MUST be reproduced exactly — this is the absolute foundation. If the output does not look like IMAGE 1's character, you have failed.
+IMAGE 2 = Trait donor only. Treat it as a TEXT LIST of abstract trait names — not a character to draw. Borrow ONLY: color name, accessory category, expression category, garment category. Do NOT reference anything below the chest. Do NOT borrow its art style, rendering, anatomy, pose, or composition in any way.
 
 ⚠ PRIORITY #1 — ANGLE & COMPOSITION (overrides everything else):
 The angle, framing, zoom, crop, and composition of IMAGE 1 are LOCKED. Do NOT adapt to the reference's body size, body angle, zoom level, or framing — even if the reference shows a full body, a different pose, or a different crop. The reference's composition is completely irrelevant. Output must match IMAGE 1's exact crop: extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background, same head tilt and face direction.
@@ -437,11 +437,11 @@ The output is face-centered. There is no neck, chest, or anything below. Do NOT 
 
 ━━━ DO NOT (these are absolute) ━━━
 • Do NOT use the reference's art style, rendering, line quality, shading, or color treatment in any way — IMAGE 1's art is the only standard.
-• Do NOT recreate the reference character.
+• Do NOT recreate the reference character. Do NOT draw IMAGE 2's character. If the output resembles IMAGE 2's character in face, eyes, or art style, you have failed.
 • Do NOT generate a human-like body, realistic neck, shoulders, chest, arms, torso, or collarbone.
 • Do NOT make the character pretty, attractive, polished, or feminine-looking.
 • Do NOT preserve the reference's anatomy, body proportions, or face structure.
-• Do NOT preserve the reference's eyes — IMAGE 1's eyes are the only eyes allowed.
+• Do NOT preserve the reference's eyes, face shape, or facial features in any way — IMAGE 1's eyes, nose, and face are the ONLY ones allowed. Anime eyes, realistic eyes, or any eye other than IMAGE 1's are forbidden.
 • Do NOT preserve detailed hair strands, anime bangs, layered side hair, or fine hair lines from the reference.
 • Do NOT change the head angle, face direction, framing, or composition.
 • Do NOT modernize, smooth, or refine IMAGE 1's primitive linework.
