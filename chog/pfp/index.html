@@ -1086,7 +1086,12 @@ async function runAll() {
     resultUrl = d.url;
     updateCreditUI(d);
     if (Array.isArray(d.history) && d.history.length) {
-      genHistory = d.history;
+      // Merge: keep in-memory items (e.g. batch results) not yet in server history
+      const merged = [...d.history];
+      genHistory.forEach(u => { if (!merged.includes(u)) merged.unshift(u); });
+      genHistory = merged.slice(0, 10);
+      if (!genHistory.includes(resultUrl)) genHistory.unshift(resultUrl);
+      genHistory = genHistory.slice(0, 10);
       renderHistory();
     } else {
       addToHistory(resultUrl);
