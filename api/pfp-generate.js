@@ -416,26 +416,13 @@ async function _handler(req, res) {
 
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
-    const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
-
-    // Build mask from uploaded PNG files (white = editable zone)
     const isSpiky = /spik|pointy|sharp|zigzag|jagged/i.test(semantics.hair || '');
     const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
     const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
-    const editZones = [];
-    if (!isNude)           editZones.push([0.10, 0.85, 0.90, 0.97]); // outfit zone
-    if (!isSpiky)          editZones.push([0.05, 0.00, 0.95, 0.14]); // hair zone (non-spiky only)
-    if (semantics.hat)     editZones.push([0.05, 0.00, 0.95, 0.14]); // hat zone
-    if (semantics.hairpin) editZones.push([0.05, 0.02, 0.95, 0.26]); // accessory zone
-    if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.48]); // glasses zone
-    if (isFemale)          editZones.push([0.10, 0.268, 0.90, 0.278]); // eyelash strip only (~10px)
-    if (chogStyle !== '2') editZones.push([0.28, 0.68, 0.65, 0.76]); // mouth zone
-    if (editZones.length === 0) editZones.push([0.10, 0.85, 0.90, 0.97]);
-    const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base.' : '';
-    const eyelashPart = isFemale ? ' For female reference only: add 2-3 tiny thin eyelash strokes at the upper eyelid edge. Do not alter eye shape, size, or position.' : '';
-    const editPrompt = `The first image is the CHOG base — match its art style (thick black outlines, flat solid colors, no gradients) and composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) exactly. The CHOG eyes (large black circles with white highlight) and nose (tiny pink dot) are absolutely locked — do not change their shape, size, or position under any circumstances. The second image is the style reference — extract only its hair color, outfit, accessories, and mouth expression, then apply them onto the CHOG base in the unmasked zones. Do not copy the reference composition, face, eyes, nose, art style, or background. Keep the CHOG face structure, spikes, and body shape unchanged. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const eyelashPart = isFemale ? ' Female reference detected: add only 2-3 tiny thin eyelash strokes at the upper eyelid edge of the existing CHOG eyes. Do not alter eye shape, size, or position.' : '';
+    const editPrompt = `The first image is the CHOG base. Its visual style MUST be followed without exception: thick black outlines, flat solid colors, no gradients, no shading, no texture — this art style overrides everything, including the reference image style. The composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) is also locked. NEVER change: the CHOG eyes (large black circle shape with white highlight), nose (tiny pink dot), face outline, cheek blush, head/spike shape, body angle, and framing. The second image is the style reference — extract and apply only its hair color/style, hat, accessories, outfit, and mouth expression onto the CHOG base, rendered in the CHOG art style. Do not adopt the reference art style, face, eyes, nose, composition, or proportions.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
@@ -457,7 +444,7 @@ async function _handler(req, res) {
     form.append('input_fidelity', 'high');
     form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
     if (userRefBuffer) form.append('image[]', new Blob([userRefBuffer], { type: 'image/jpeg' }), 'reference.jpg');
-    form.append('mask',  new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
+    // No mask — model decides what to modify based on prompt alone
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
