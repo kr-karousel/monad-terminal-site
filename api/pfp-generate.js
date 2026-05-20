@@ -421,25 +421,21 @@ async function _handler(req, res) {
     // Build mask from uploaded PNG files (white = editable zone)
     const isSpiky = /spik|pointy|sharp|zigzag|jagged/i.test(semantics.hair || '');
     const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
-    const editZones = [];
-    if (!isNude)           editZones.push([0.10, 0.78, 0.90, 0.97]); // outfit zone
-    if (!isSpiky)          editZones.push([0.10, 0.00, 0.90, 0.11]); // hair color zone (spike tips, no overlap with hairpin)
-    if (semantics.hat)     editZones.push([0.10, 0.00, 0.90, 0.12]);
-    if (semantics.hairpin) editZones.push([0.10, 0.03, 0.90, 0.26]); // hairpin zone (full head width for accessories)
-    if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.46]);
     const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
-    if (isFemale)           editZones.push([0.10, 0.270, 0.90, 0.284]); // eyelash strip: top edge of eyes only (~14px)
-    if (chogStyle !== '2') editZones.push([0.30, 0.69, 0.62, 0.74]); // mouth zone
+    const editZones = [];
+    if (!isNude)           editZones.push([0.10, 0.75, 0.90, 0.97]); // outfit zone
+    if (!isSpiky)          editZones.push([0.05, 0.00, 0.95, 0.18]); // hair zone (recolor spikes when reference is non-spiky)
+    if (semantics.hat)     editZones.push([0.05, 0.00, 0.95, 0.15]); // hat zone
+    if (semantics.hairpin) editZones.push([0.05, 0.02, 0.95, 0.28]); // accessory zone
+    if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.50]); // glasses zone
+    if (isFemale)          editZones.push([0.10, 0.268, 0.90, 0.278]); // eyelash strip only
+    if (chogStyle !== '2') editZones.push([0.28, 0.68, 0.65, 0.76]); // mouth zone
+    if (editZones.length === 0) editZones.push([0.10, 0.75, 0.90, 0.97]);
     const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
-    const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base image.' : '';
-    const eyelashPart = isFemale
-      ? ' EYELASH ONLY: add 2-3 tiny simple lash strokes at the top edge of each eye. Do not change eye shape, eye size, eye position, pupil, or iris in any way.'
-      : '';
-    const hairInstruction = isSpiky
-      ? 'Do not change the hair at all — shape, color, and spike direction stay identical to the base. Everything below the hairline is locked.'
-      : 'Apply the reference hair color only — keep the base spike shape exactly.';
-    const editPrompt = `Image 1 is the CHOG base. LOCKED (do not change): face jaw outline, both eyes (large black circles + white highlight), nose (pink dot), cheek blush, face scale, arms-crossed pose, purple robe. Art style: thick black outlines, flat solid colors, no gradients, no zoom out. Image 2 is the style reference. Apply ONLY the following in the open mask zones: [HAIR ZONE] ${hairInstruction} — hair color on spike tips only, do NOT apply hair color to the outfit or robe. [ACCESSORY ZONE] Draw the reference hair accessories (${semantics.hairpin || 'hair decorations'}) visibly anywhere in the hair — place them naturally on the hair, prominent enough to see. [OUTFIT ZONE] Fill the entire bottom outfit zone with the reference outfit — replace the existing outfit in that zone with the reference outfit color and main design element. [MOUTH ZONE] Reference mouth expression only. Do not apply reference face, eyes, body shape, pose, or art style.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base.' : '';
+    const eyelashPart = isFemale ? ' Add 2-3 tiny eyelash strokes at the upper eyelid only — do not change eye shape or size.' : '';
+    const editPrompt = `Image 1 is the CHOG base — this is the fixed skeleton: art style (thick black outlines, flat solid colors, no gradients), composition (extreme close-up, left-heavy framing, head and spikes bleeding off edges), CHOG face (eyes, nose, cheeks), and body scale are all locked. Image 2 is the style reference — extract ALL its visual features (hair color, outfit, accessories, mouth expression${isNude ? ', skin tone' : ''}) and apply them onto the CHOG skeleton inside the unmasked zones. The result should look like CHOG wearing the reference character complete style. Do not copy the reference composition, face structure, or body proportions. Only modify the unmasked zones.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
