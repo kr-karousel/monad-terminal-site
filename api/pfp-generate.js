@@ -430,6 +430,12 @@ The head angle, face tilt, body angle, framing, zoom level, and overall composit
 ⚠ PRIORITY #2 — BASE ART STYLE (overrides reference style):
 The art style of IMAGE 1 is the ONLY allowed art style. Thick uneven hand-drawn black outlines, flat solid colors only, zero gradients, zero shading, zero texture, limited color palette, primitive NFT line quality. The reference image's art style (whether anime, realistic, painterly, 3D, cel-shaded, etc.) must be COMPLETELY IGNORED. Re-render every transferred trait in IMAGE 1's exact art style — do NOT preserve any rendering quality from the reference.
 
+⚠ PRIORITY #3 — PRIMITIVE & GOOFY (avoid prettification):
+The result MUST stay primitive, chunky, slightly goofy, mascot-like — like a dumb-looking sticker. Do NOT make the character pretty, attractive, polished, or refined. Do NOT auto-feminize. Do NOT apply soft shading, blush rendering, glossy eyes, or anime aesthetics. CHOG charm is in being primitive and slightly ugly — embrace that.
+
+⚠ PRIORITY #4 — NO HUMAN BODY:
+IMAGE 1 shows a primitive mascot framing — almost head-only, with minimal body hint. Do NOT generate human-like anatomy: no shoulders, no arms, no chest, no torso, no collarbone, no chibi anime body. Keep the exact same body framing as IMAGE 1 — face and head dominate, body is barely visible or absent.
+
 ━━━ PRESERVE EXACTLY (never change these) ━━━
 • ANGLE & COMPOSITION — head angle, face tilt, body angle, framing, zoom, and crop must be identical to IMAGE 1. Extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background.
 • ART STYLE — thick uneven black outlines, flat solid colors, zero gradients, zero shading, zero texture. Primitive hand-drawn NFT line quality. Match IMAGE 1's art style only.
@@ -439,24 +445,26 @@ The art style of IMAGE 1 is the ONLY allowed art style. Thick uneven hand-drawn 
 
 ━━━ DO NOT (these are absolute) ━━━
 • Do NOT recreate the reference character.
+• Do NOT generate a human-like body, anime chibi torso, shoulders, arms, chest, or collarbone.
+• Do NOT make the character pretty, attractive, polished, or feminine-looking.
 • Do NOT preserve the reference's anatomy, body proportions, or face structure.
 • Do NOT preserve the reference's eyes — IMAGE 1's eyes are the only eyes allowed.
-• Do NOT preserve detailed hair strands, anime bangs, layered hair, or fine hair lines from the reference.
+• Do NOT preserve detailed hair strands, anime bangs, layered side hair, or fine hair lines from the reference.
 • Do NOT adapt the reference's art style (anime, realistic, painterly, 3D, cel-shaded — all forbidden).
 • Do NOT change the head angle, face direction, framing, or composition.
 • Do NOT modernize, smooth, or refine IMAGE 1's primitive linework.
-• Do NOT add anime shading, cel shading, photorealistic detail, or texture.
+• Do NOT add anime shading, cel shading, glossy highlights, photorealistic detail, or texture.
 
 ━━━ ONLY TRANSFER (abstract traits only) from the LAST image ━━━
 Extracted traits: ${traitParts || 'minimal changes only'}
-• HAIR: borrow ONLY color identity and rough silhouette category. Convert all hair into chunky simplified CHOG hair shapes — flat color blocks with thick black outlines. NO detailed strands. NO anime bangs. NO layered rendering. NO fine lines.
+• HAIR: borrow ONLY color identity and rough silhouette category. Reduce all hair into simple chunky geometric blocks — flat color shapes with thick black outlines. NO thin anime strands. NO layered anime bangs. NO side hair flow. NO realistic hair detail. NO fine lines. Think 3-5 large blob shapes max, like a primitive mascot.
 • HAT / HEADWEAR: transplant the item shape and color, re-rendered in CHOG flat style.
 • HAIR ACCESSORIES (bows, ribbons, clips): transplant shape and color, re-rendered in CHOG flat style.
 • OUTFIT: transplant garment categories and colors only. Re-render in CHOG flat style — no fabric detail, no folds, no shading.
 • MOUTH: borrow expression category only (smile/grin/fang/etc), re-rendered with CHOG primitive line.
 • Everything transferred MUST be re-rendered in IMAGE 1's primitive CHOG art style — thick uneven outlines, flat colors, no shading.
 ${eyelashPart}
-The final result must be indistinguishable from an official CHOG collection NFT — primitive, flat, hand-drawn, chunky. If it looks like anime or a recreated character, you failed.${extraPart ? '\nExtra instruction: ' + extraPart : ''}`;
+The final result must be indistinguishable from an official CHOG collection NFT — primitive, flat, hand-drawn, chunky, slightly goofy, mascot-like. If it looks like polished anime, has a human chibi body, or looks like a recreated character, you failed.${extraPart ? '\nExtra instruction: ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
