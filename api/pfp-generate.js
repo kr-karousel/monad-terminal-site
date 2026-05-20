@@ -423,22 +423,17 @@ The art style of IMAGE 1 is the ONLY allowed art style. Thick uneven hand-drawn 
 ⚠ PRIORITY #3 — PRIMITIVE & GOOFY (avoid prettification):
 The result MUST stay primitive, chunky, slightly goofy, mascot-like — like a dumb-looking sticker. Do NOT make the character pretty, attractive, polished, or refined. Do NOT auto-feminize. Do NOT apply soft shading, blush rendering, glossy eyes, or anime aesthetics. CHOG charm is in being primitive and slightly ugly — embrace that.
 
-⚠ PRIORITY #4 — KEEP BASE BODY:
-Keep IMAGE 1's mascot paws/hands visible exactly as in the base. No human anatomy (shoulders/arms/chest). Hands stay primitive cartoon-paw style.
-
 ━━━ PRESERVE EXACTLY (never change these) ━━━
 • ANGLE & COMPOSITION — head angle, face tilt, body angle, framing, zoom, and crop must be identical to IMAGE 1. Extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background.
 • ART STYLE — thick uneven black outlines, flat solid colors, zero gradients, zero shading, zero texture. Primitive hand-drawn NFT line quality. Match IMAGE 1's art style only.
 • EYES — PIXEL-FOR-PIXEL match with IMAGE 1. Same eye shape, same eye size, same eye position, same large black pupils, same white highlight dot placement, same eye angle. Do NOT enlarge eyes. Do NOT add eyelashes by default (only if FEMALE flag is set, and then only 2-3 thin strokes on top — the eye underneath stays identical). Do NOT redraw the eyes in any way.
 • NOSE — PIXEL-FOR-PIXEL match with IMAGE 1. Same tiny pink dot, same exact size, same exact position. Do NOT enlarge it. Do NOT change its color. Do NOT redraw it.
 • HAIR SILHOUETTE — IMAGE 1's hair/spike shape is the BASE silhouette. Only alter hair when the reference has a clearly different silhouette category (e.g. reference has long hair, base has spikes). Do NOT add bangs, side hair, or strands that are not present in IMAGE 1 unless the reference clearly shows them as a major feature. When in doubt, keep IMAGE 1's exact hair shape.
-• FACE — reproduce IMAGE 1's face outline, jaw, cheek blush dots, forehead width, face proportions exactly. Do NOT redesign.
-• MASCOT PAWS/HANDS — reproduce IMAGE 1's small chunky pink mascot paws/hands at the bottom of the frame exactly. They must be visible in the output.${cigarettePart}
+• FACE — reproduce IMAGE 1's face outline, jaw, cheek blush dots, forehead width, face proportions exactly. Do NOT redesign.${cigarettePart}
 
 ━━━ DO NOT (these are absolute) ━━━
 • Do NOT recreate the reference character.
-• Do NOT omit the CHOG mascot paws/hands from IMAGE 1 — they must stay visible.
-• Do NOT generate a human-like body, anime chibi torso, realistic shoulders, realistic arms, chest, or collarbone. Mascot paws are fine; human anatomy is not.
+• Do NOT generate a human-like body, realistic shoulders, realistic arms, chest, or collarbone.
 • Do NOT make the character pretty, attractive, polished, or feminine-looking.
 • Do NOT preserve the reference's anatomy, body proportions, or face structure.
 • Do NOT preserve the reference's eyes — IMAGE 1's eyes are the only eyes allowed.
