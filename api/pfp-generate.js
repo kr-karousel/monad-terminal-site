@@ -78,6 +78,42 @@ function makeMaskPng(w, h, zones) {
   ]);
 }
 
+// All transparent (fully editable) except lockZones which are opaque (hard-preserved)
+function makeProtectMaskPng(w, h, lockZones) {
+  const stride = 1 + w * 4;
+  const raw = Buffer.alloc(h * stride, 0);
+  for (let y = 0; y < h; y++) {
+    raw[y * stride] = 0;
+    for (let x = 0; x < w; x++) raw[y * stride + 1 + x * 4 + 3] = 0;
+  }
+  for (const [rx1, ry1, rx2, ry2] of lockZones) {
+    const px1 = Math.max(0, Math.floor(rx1 * w));
+    const py1 = Math.max(0, Math.floor(ry1 * h));
+    const px2 = Math.min(w, Math.ceil(rx2 * w));
+    const py2 = Math.min(h, Math.ceil(ry2 * h));
+    for (let y = py1; y < py2; y++)
+      for (let x = px1; x < px2; x++)
+        raw[y * stride + 1 + x * 4 + 3] = 255;
+  }
+  const compressed = zlib.deflateSync(raw);
+  function mkChunk(type, data) {
+    const lenBuf = Buffer.alloc(4); lenBuf.writeUInt32BE(data.length);
+    const typeBuf = Buffer.from(type, 'ascii');
+    const crcBuf = Buffer.alloc(4);
+    crcBuf.writeUInt32BE(crc32(Buffer.concat([typeBuf, data])));
+    return Buffer.concat([lenBuf, typeBuf, data, crcBuf]);
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8; ihdr[9] = 6;
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    mkChunk('IHDR', ihdr),
+    mkChunk('IDAT', compressed),
+    mkChunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
 /* ── image dimension parser (JPEG + PNG, no deps) ── */
 function getImageDimensions(buf) {
   if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) {
@@ -420,9 +456,17 @@ async function _handler(req, res) {
     const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
     const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
 
+    // Protect mask: fully editable EXCEPT eyes + nose (hard-locked to base)
+    const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
+    const protectMask = makeProtectMaskPng(IMG_W, IMG_H, [
+      [0.14, 0.27, 0.43, 0.44], // left eye
+      [0.55, 0.30, 0.86, 0.47], // right eye
+      [0.33, 0.50, 0.48, 0.60], // nose
+    ]);
+
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base.' : '';
     const eyelashPart = isFemale ? ' Female reference detected: add only 2-3 tiny thin eyelash strokes at the upper eyelid edge of the existing CHOG eyes. Do not alter eye shape, size, or position.' : '';
-    const editPrompt = `The first image is the CHOG base. Its visual style MUST be followed without exception: thick black outlines, flat solid colors, no gradients, no shading, no texture — this art style overrides everything, including the reference image style. The composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) is also locked. NEVER change: the CHOG eyes (large black circle shape with white highlight), nose (tiny pink dot), face outline, cheek blush, head/spike shape, body angle, and framing. The second image is the style reference — extract and apply only its hair color/style, hat, accessories, outfit, and mouth expression onto the CHOG base, rendered in the CHOG art style. Do not adopt the reference art style, face, eyes, nose, composition, or proportions.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
+    const editPrompt = `The first image is the CHOG base. Its visual style MUST be followed without exception: thick black outlines, flat solid colors, no gradients, no shading, no texture — this art style overrides everything, including the reference image style. The composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) is also locked. NEVER change: the CHOG face outline, cheek blush, head/spike shape, body angle, and framing. The second image is the style reference — extract and apply only its hair color/style, hat, accessories, outfit, and mouth expression onto the CHOG base, rendered in the CHOG art style. Do not adopt the reference art style, face, eyes, nose, composition, or proportions.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
     let userRefBuffer = null;
@@ -444,7 +488,7 @@ async function _handler(req, res) {
     form.append('input_fidelity', 'high');
     form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
     if (userRefBuffer) form.append('image[]', new Blob([userRefBuffer], { type: 'image/jpeg' }), 'reference.jpg');
-    // No mask — model decides what to modify based on prompt alone
+    form.append('mask', new Blob([protectMask], { type: 'image/png' }), 'mask.png'); // eyes+nose locked, rest fully editable
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
