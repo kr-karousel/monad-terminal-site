@@ -450,7 +450,7 @@ The output is face-centered. There is no neck, chest, or anything below. Do NOT 
 ━━━ ONLY TRANSFER (abstract traits only) from the LAST image ━━━
 Extracted traits: ${traitParts || 'minimal changes only'}
 • HAIR: borrow ONLY color identity and rough silhouette category. Reduce all hair into simple chunky geometric blocks — flat color shapes with thick black outlines. NO thin anime strands. NO layered anime bangs. NO side hair flow. NO realistic hair detail. NO fine lines. Think 3-5 large blob shapes max, like a primitive mascot.
-• HAT / HEADWEAR: transplant the item shape and color, re-rendered in CHOG flat style. Place it near the hairline area — it does NOT need to fit fully inside the frame. The frame crop is ABSOLUTE — do NOT zoom out under any circumstances to fit the headwear. Partial or full cropping of the headwear is acceptable.
+• HAT / HEADWEAR: transplant the item shape and color, re-rendered in CHOG flat style. Place it at the topmost visible area of the hair. The frame crop is ABSOLUTE and overrides headwear placement — do NOT zoom out under any circumstances. The headwear MUST appear in the output even if partially cropped; however, if the frame crop leaves no room, it may be cut off — the crop always wins.
 • HAIR ACCESSORIES (bows, ribbons, clips): transplant shape and color, re-rendered in CHOG flat style.
 • OUTFIT: transplant garment categories and colors only. Re-render in CHOG flat style — no fabric detail, no folds, no shading.
 • MOUTH: borrow expression category only (smile/grin/fang/etc), re-rendered with CHOG primitive line.
