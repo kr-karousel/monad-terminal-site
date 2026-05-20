@@ -357,7 +357,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image, detail: 'high' } },
-              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word", "hair_silhouette": "rough silhouette category ONLY: short / medium / long / spiky / twin-tails / ponytail / bob / bald — pick one, no details", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
+              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word", "hair_silhouette": "rough silhouette category ONLY: short / medium / long / spiky / twin-tails / ponytail / bob / bald — pick one, no details", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "beard": "facial hair type if clearly present: stubble / short-beard / long-beard / mustache / goatee — single word, or null", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
             ]
           }]
         }),
@@ -396,23 +396,26 @@ async function _handler(req, res) {
     const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
     const san = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
     const hairAbstract = [semantics.hair_color, semantics.hair_silhouette].filter(Boolean).join(' ');
+    const hasBeard = !!semantics.beard;
     const traitParts = [
       hairAbstract          ? `hair: ${san(hairAbstract)} (color + silhouette only)`                  : null,
       semantics.hat         ? `hat: ${san(semantics.hat)}`                                             : null,
       semantics.hairpin     ? `hair accessory: ${san(semantics.hairpin)}`                              : null,
       semantics.glasses     ? `glasses: ${san(semantics.glasses)}`                                     : null,
+      hasBeard              ? `beard: ${san(semantics.beard)} (draw as simple flat CHOG-style shape near mouth/chin)` : null,
       semantics.mouth_type  ? `mouth: ${san(semantics.mouth_type)}`                                    : null,
       semantics.outfit || semantics.clothing ? `outfit: ${san(semantics.outfit || semantics.clothing)} (colors + categories only)` : null,
       semantics.accessories ? `accessories: ${san(semantics.accessories)}`                             : null,
     ].filter(Boolean).join('; ');
 
     const cigarettePart = chogStyle === '2' ? '\n- CIGARETTE: the cigarette hanging from the mouth corner is part of IMAGE 1 — keep it exactly.' : '';
+    const beardPart = hasBeard ? `\nBEARD: the reference has facial hair (${san(semantics.beard)}). Draw a simple flat chunky beard/mustache shape near the CHOG mouth/chin area — thick black outline, flat color, primitive shape. Do NOT move the nose. Do NOT redesign the face.` : '';
     const eyelashPart = isFemale ? '\nFEMALE REFERENCE: the reference character is female. The CHOG eyes from IMAGE 1 must remain identical (same shape, same size, same position, same pupils). On TOP of the unchanged eyes, draw 2-3 thin short line strokes at the upper eyelid edge only — these are tiny decorative additions, not a redrawing of the eye. The eye underneath must look exactly like IMAGE 1\'s eye.' : '';
 
     const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG skeleton — you are NOT recreating, redrawing, or adapting the reference character.
 
 IMAGE 1 = CHOG base skeleton. This IS the character. The output IS this character with a few traits swapped. Reproduce it exactly.
-IMAGE 2 = Trait donor only. You only borrow abstract traits from it — color, accessory category, expression category, garment category. You do NOT borrow its appearance, identity, anatomy, eyes, face, hair detail, art style, pose, angle, composition, or framing. IMAGE 2's pose and composition are completely irrelevant — ignore them entirely.
+IMAGE 2 = Trait donor only. You only borrow abstract traits from it — color, accessory category, expression category, garment category. You do NOT borrow its appearance, identity, anatomy, eyes, face, hair detail, or art style.
 
 ⚠ PRIORITY #1 — ANGLE & COMPOSITION (overrides everything else):
 The angle, framing, zoom, crop, and composition of IMAGE 1 are LOCKED. Do NOT adapt to the reference's body size, body angle, zoom level, or framing — even if the reference shows a full body, a different pose, or a different crop. The reference's composition is completely irrelevant. Output must match IMAGE 1's exact crop: extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background, same head tilt and face direction.
@@ -423,6 +426,9 @@ The art style of IMAGE 1 is the ONLY allowed art style. Thick uneven hand-drawn 
 ⚠ PRIORITY #3 — PRIMITIVE & GOOFY (avoid prettification):
 The result MUST stay primitive, chunky, slightly goofy, mascot-like — like a dumb-looking sticker. Do NOT make the character pretty, attractive, polished, or refined. Do NOT auto-feminize. Do NOT apply soft shading, blush rendering, glossy eyes, or anime aesthetics. CHOG charm is in being primitive and slightly ugly — embrace that.
 
+⚠ PRIORITY #4 — KEEP BASE BODY:
+Keep IMAGE 1's mascot paws/hands visible exactly as in the base. No human anatomy (shoulders/arms/chest). Hands stay primitive cartoon-paw style.
+
 ━━━ PRESERVE EXACTLY (never change these) ━━━
 • ANGLE & COMPOSITION — head angle, face tilt, body angle, framing, zoom, and crop must be identical to IMAGE 1. Extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background.
 • ART STYLE — thick uneven black outlines, flat solid colors, zero gradients, zero shading, zero texture. Primitive hand-drawn NFT line quality. Match IMAGE 1's art style only.
@@ -430,18 +436,18 @@ The result MUST stay primitive, chunky, slightly goofy, mascot-like — like a d
 • NOSE — PIXEL-FOR-PIXEL match with IMAGE 1. Same tiny pink dot, same exact size, same exact position. Do NOT enlarge it. Do NOT change its color. Do NOT redraw it.
 • HAIR SILHOUETTE — IMAGE 1's hair/spike shape is the BASE silhouette. Only alter hair when the reference has a clearly different silhouette category (e.g. reference has long hair, base has spikes). Do NOT add bangs, side hair, or strands that are not present in IMAGE 1 unless the reference clearly shows them as a major feature. When in doubt, keep IMAGE 1's exact hair shape.
 • FACE — reproduce IMAGE 1's face outline, jaw, cheek blush dots, forehead width, face proportions exactly. Do NOT redesign.
-• CROSSED ARMS POSE — IMAGE 1 shows the character with arms crossed at the bottom of the frame. Reproduce this exact pose and crop. Do NOT change to any other arm position.${cigarettePart}
+• MASCOT PAWS/HANDS — reproduce IMAGE 1's small chunky pink mascot paws/hands at the bottom of the frame exactly. They must be visible in the output.${cigarettePart}
 
 ━━━ DO NOT (these are absolute) ━━━
 • Do NOT recreate the reference character.
-• Do NOT generate a human-like body, realistic shoulders, realistic arms, chest, or collarbone.
+• Do NOT omit the CHOG mascot paws/hands from IMAGE 1 — they must stay visible.
+• Do NOT generate a human-like body, anime chibi torso, realistic shoulders, realistic arms, chest, or collarbone. Mascot paws are fine; human anatomy is not.
 • Do NOT make the character pretty, attractive, polished, or feminine-looking.
 • Do NOT preserve the reference's anatomy, body proportions, or face structure.
 • Do NOT preserve the reference's eyes — IMAGE 1's eyes are the only eyes allowed.
 • Do NOT preserve detailed hair strands, anime bangs, layered side hair, or fine hair lines from the reference.
 • Do NOT adapt the reference's art style (anime, realistic, painterly, 3D, cel-shaded — all forbidden).
-• Do NOT change the head angle, face direction, framing, composition, or pose.
-• Do NOT adopt the reference's pose, body angle, or arm position — IMAGE 1's crossed-arms pose is fixed.
+• Do NOT change the head angle, face direction, framing, or composition.
 • Do NOT modernize, smooth, or refine IMAGE 1's primitive linework.
 • Do NOT add anime shading, cel shading, glossy highlights, photorealistic detail, or texture.
 
@@ -453,7 +459,7 @@ Extracted traits: ${traitParts || 'minimal changes only'}
 • OUTFIT: transplant garment categories and colors only. Re-render in CHOG flat style — no fabric detail, no folds, no shading.
 • MOUTH: borrow expression category only (smile/grin/fang/etc), re-rendered with CHOG primitive line.
 • Everything transferred MUST be re-rendered in IMAGE 1's primitive CHOG art style — thick uneven outlines, flat colors, no shading.
-${eyelashPart}
+${beardPart}${eyelashPart}
 The final result must be indistinguishable from an official CHOG collection NFT — primitive, flat, hand-drawn, chunky, slightly goofy, mascot-like. If it looks like polished anime, has a human chibi body, or looks like a recreated character, you failed.${extraPart ? '\nExtra instruction: ' + extraPart : ''}`;
 
     // Convert user's reference image to buffer for direct submission
