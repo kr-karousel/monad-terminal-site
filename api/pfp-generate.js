@@ -426,8 +426,8 @@ The art style of IMAGE 1 is the ONLY allowed art style. Thick uneven hand-drawn 
 ⚠ PRIORITY #3 — PRIMITIVE & GOOFY (avoid prettification):
 The result MUST stay primitive, chunky, slightly goofy, mascot-like — like a dumb-looking sticker. Do NOT make the character pretty, attractive, polished, or refined. Do NOT auto-feminize. Do NOT apply soft shading, blush rendering, glossy eyes, or anime aesthetics. CHOG charm is in being primitive and slightly ugly — embrace that.
 
-⚠ PRIORITY #4 — KEEP BASE BODY:
-Keep IMAGE 1's mascot paws/hands visible exactly as in the base. No human anatomy (shoulders/arms/chest). Hands stay primitive cartoon-paw style.
+⚠ PRIORITY #4 — NO HUMAN BODY:
+IMAGE 1 shows a primitive mascot framing — almost head-only, with minimal body hint. Do NOT generate human-like anatomy: no shoulders, no arms, no chest, no torso, no collarbone, no chibi anime body. Keep the exact same body framing as IMAGE 1 — face and head dominate, body is barely visible or absent.
 
 ━━━ PRESERVE EXACTLY (never change these) ━━━
 • ANGLE & COMPOSITION — head angle, face tilt, body angle, framing, zoom, and crop must be identical to IMAGE 1. Extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background.
