@@ -425,59 +425,28 @@ async function _handler(req, res) {
       baseBuffer = rawBaseBuffer;
     }
 
-    const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
-
-    const sanitize = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
-
-    const styleDesc = [
-      semantics.hair           ? `hair: ${sanitize(semantics.hair)}`                                                                       : null,
-      semantics.hairpin        ? `hair accessory: ${sanitize(semantics.hairpin)}`                                                          : null,
-      semantics.hat            ? `headwear: ${sanitize(semantics.hat)}`                                                                    : null,
-      semantics.face           ? `face detail: ${sanitize(semantics.face)}`                                                               : null,
-      chogStyle === '2'        ? `mouth: cigarette hanging from corner of mouth — REQUIRED, always present, never omit`                    : null,
-      `outfit: ${sanitize(semantics.outfit || semantics.clothing || 'casual outfit')}`,
-      semantics.accessories    ? `accessories: ${sanitize(semantics.accessories)}`                                                         : null,
-    ].filter(Boolean).join('; ');
-
-    // Build mandatory items reminder — things that must visibly appear in output
-    const mandatoryItems = [
-      semantics.hat         ? sanitize(semantics.hat)         : null,
-      semantics.hairpin     ? sanitize(semantics.hairpin)     : null,
-      semantics.accessories ? sanitize(semantics.accessories) : null,
-      chogStyle === '2'     ? 'cigarette in mouth'            : null,
-    ].filter(Boolean);
-    const mandatoryReminder = mandatoryItems.length
-      ? ` MUST visibly appear in final image (do not omit any): ${mandatoryItems.join(', ')}.`
-      : '';
-
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
     const isSpiky = /spik|pointy|sharp|zigzag|jagged/i.test(semantics.hair || '');
     const isNude = /\b(nude|naked|bare|no clothing|no outfit|no shirt|topless|no clothes)\b/i.test(semantics.outfit || '');
     const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
 
-    // Protect mask: fully editable EXCEPT eyes + nose (hard-locked to base)
+    // Standard zone mask: opaque by default (preserve), only open zones are editable
     const { w: IMG_W, h: IMG_H } = getImageDimensions(baseBuffer);
-    const protectMask = makeProtectMaskPng(IMG_W, IMG_H, [
-      [0.14, 0.27, 0.43, 0.44], // left eye
-      [0.55, 0.30, 0.86, 0.47], // right eye
-      [0.33, 0.50, 0.48, 0.60], // nose
-    ]);
+    const editZones = [];
+    if (!isNude)           editZones.push([0.10, 0.82, 0.90, 0.97]); // outfit
+    if (!isSpiky)          editZones.push([0.05, 0.00, 0.95, 0.15]); // hair recolor (non-spiky ref)
+    if (semantics.hat)     editZones.push([0.05, 0.00, 0.95, 0.15]); // hat
+    if (semantics.hairpin) editZones.push([0.05, 0.03, 0.90, 0.25]); // accessories
+    if (semantics.glasses) editZones.push([0.10, 0.28, 0.90, 0.48]); // glasses
+    if (isFemale)          editZones.push([0.10, 0.268, 0.90, 0.278]); // eyelash strip
+    if (chogStyle !== '2') editZones.push([0.25, 0.67, 0.65, 0.76]); // mouth
+    if (editZones.length === 0) editZones.push([0.10, 0.82, 0.90, 0.97]);
+    const maskBuffer = makeMaskPng(IMG_W, IMG_H, editZones);
 
     const cigarettePart = chogStyle === '2' ? ' Keep the cigarette in the mouth exactly as in the base.' : '';
-    const eyelashPart = isFemale ? ' Female reference detected: add only 2-3 tiny thin eyelash strokes at the upper eyelid edge of the existing CHOG eyes. Do not alter eye shape, size, or position.' : '';
-    const editPrompt = `The first image is the CHOG base. Its visual style MUST be followed without exception: thick black outlines, flat solid colors, no gradients, no shading, no texture — this art style overrides everything, including the reference image style. The composition (extreme close-up face, left-heavy framing, head and spikes bleeding off edges) is also locked. NEVER change: the CHOG face outline, cheek blush, head/spike shape, body angle, and framing. The second image is the style reference — extract and apply only its hair color/style, hat, accessories, outfit, and mouth expression onto the CHOG base, rendered in the CHOG art style. Do not adopt the reference art style, face, eyes, nose, composition, or proportions.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
-
-    // Convert user's reference image to buffer for direct submission
-    let userRefBuffer = null;
-    try {
-      if (image.startsWith('data:')) {
-        userRefBuffer = Buffer.from(image.split(',')[1], 'base64');
-      } else {
-        const r = await fetch(image);
-        if (r.ok) userRefBuffer = Buffer.from(await r.arrayBuffer());
-      }
-    } catch (e) { console.warn('[gpt] user ref fetch failed:', e.message); }
+    const eyelashPart = isFemale ? ' Female reference: add only 2-3 tiny thin eyelash strokes at upper eyelid edge. Do not alter eye shape, size, or position.' : '';
+    const editPrompt = `The first image is the CHOG base — reproduce its art style exactly (thick black outlines, flat solid colors, no gradients, no shading) and its composition exactly (extreme close-up face, left-heavy framing, head and spikes bleeding off edges, blue background). The base image defines everything: framing, scale, eye shape, nose, face outline, cheek blush, spike shape, body pose. The second image is the style reference — from it, extract ONLY the visual style elements (hair color, hat, accessories, outfit, mouth expression) and apply them onto the CHOG base character. Do not copy the reference art style, face, composition, background, or proportions. Render all changes in the CHOG flat-color cartoon style.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
     const form = new FormData();
     form.append('model', 'gpt-image-1.5');
@@ -488,7 +457,7 @@ async function _handler(req, res) {
     form.append('input_fidelity', 'high');
     form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
     if (userRefBuffer) form.append('image[]', new Blob([userRefBuffer], { type: 'image/jpeg' }), 'reference.jpg');
-    form.append('mask', new Blob([protectMask], { type: 'image/png' }), 'mask.png'); // eyes+nose locked, rest fully editable
+    form.append('mask', new Blob([maskBuffer], { type: 'image/png' }), 'mask.png');
 
     const genRes = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
