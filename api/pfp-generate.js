@@ -431,7 +431,7 @@ The output is face-centered. There is no neck, chest, or anything below. Do NOT 
 • ART STYLE — thick uneven black outlines, flat solid colors, zero gradients, zero shading, zero texture. Primitive hand-drawn NFT line quality. Match IMAGE 1's art style only.
 • EYES — PIXEL-FOR-PIXEL match with IMAGE 1. Same eye shape, same eye size, same eye position, same large black pupils, same white highlight dot placement, same eye angle. Do NOT enlarge eyes. Do NOT redraw the eyes in any way. If the reference is female or has eyelashes, keep IMAGE 1's eyes completely unchanged and add only 3 thin short line strokes at the upper eyelid edge — decorative only.
 • NOSE — PIXEL-FOR-PIXEL match with IMAGE 1. Same tiny pink dot, same exact size, same exact position. Do NOT enlarge it. Do NOT change its color. Do NOT redraw it.
-• HAIR SILHOUETTE — spike shape of IMAGE 1 is the base and must be maintained. Hair exists ONLY above IMAGE 1's hairline — do NOT generate any hair below the hairline into the face area. If the reference has a clearly distinct major feature (e.g. long hair, twin-tails), reflect only that large-scale silhouette change strictly above the hairline — do NOT add bangs, side strands, or fine detail below the hairline.
+• HAIR SILHOUETTE — spike shape of IMAGE 1 is the base and must be maintained. Hair exists ONLY above IMAGE 1's hairline — do NOT generate any hair below the hairline into the face area. If the reference has a clearly distinct major feature (e.g. long hair, twin-tails), reflect only that large-scale silhouette change strictly above the hairline — do NOT add bangs, side strands, or fine detail below the hairline. For styles that hang downward (twin-tails, long hair, ponytail), the frame crop is ABSOLUTE — do NOT zoom out to show the full length. Hair may be cropped by the frame.
 • FACE — reproduce IMAGE 1's face line, cheeks, forehead, and proportions exactly. Do NOT redesign.
 • MASCOT HANDS — IMAGE 1's small round pink mascot hands. The crossed-arms pose of IMAGE 1 must not be changed.${cigarettePart}
 
@@ -451,7 +451,7 @@ The output is face-centered. There is no neck, chest, or anything below. Do NOT 
 Extracted traits: ${traitParts || 'minimal changes only'}
 • HAIR: borrow ONLY color identity and rough silhouette category. Reduce all hair into simple chunky geometric blocks — flat color shapes with thick black outlines. NO thin anime strands. NO layered anime bangs. NO side hair flow. NO realistic hair detail. NO fine lines. Think 3-5 large blob shapes max, like a primitive mascot.
 • HAT / HEADWEAR: transplant the item shape and color, re-rendered in CHOG flat style. Place it near the hairline area — it does NOT need to fit fully inside the frame. The frame crop is ABSOLUTE — do NOT zoom out under any circumstances to fit the headwear. Partial or full cropping of the headwear is acceptable.
-• HAIR ACCESSORIES (bows, ribbons, clips): transplant shape and color, re-rendered in CHOG flat style.
+• HAIR ACCESSORIES (bows, ribbons, clips): transplant shape and color, re-rendered in CHOG flat style. The frame crop is ABSOLUTE — do NOT zoom out to fit accessories. Partial cropping is acceptable.
 • OUTFIT: transplant garment categories and colors only. Re-render in CHOG flat style — no fabric detail, no folds, no shading.
 • MOUTH: borrow expression category only (smile/grin/fang/etc), re-rendered with CHOG primitive line.
 • Everything transferred MUST be re-rendered in IMAGE 1's primitive CHOG art style — thick uneven outlines, flat colors, no shading.
