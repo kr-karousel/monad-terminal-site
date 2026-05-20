@@ -419,22 +419,26 @@ async function _handler(req, res) {
 
     const editPrompt = `You are performing a CHOG NFT trait transplant — NOT creating a new character.
 
-IMAGE 1 = CHOG base skeleton. This defines the character structure. Reproduce it exactly.
+IMAGE 1 = CHOG base skeleton. This defines the character structure, ANGLE, and COMPOSITION. Reproduce it exactly.
 IMAGES 2–${1 + exampleBuffers.length} = Official CHOG collection NFTs. Study these to learn the consistent line rules, eye rules, face proportions, and hair silhouette style.
 LAST IMAGE = Style reference. Extract ONLY the listed traits from it.
 
+⚠ TOP PRIORITY — ANGLE & COMPOSITION (this rule overrides everything else):
+The head angle, face tilt, body angle, framing, zoom level, and overall composition of IMAGE 1 are LOCKED. The output must look like the same camera shot as IMAGE 1 — same crop, same head rotation, same face direction, same proportions. Do NOT center, do NOT zoom out, do NOT re-frame, do NOT change the head tilt. If the reference image has a different angle or composition, IGNORE it completely — only IMAGE 1's angle and composition matter.
+
 ━━━ PRESERVE EXACTLY (never change these) ━━━
+• ANGLE & COMPOSITION — head angle, face tilt, body angle, framing, zoom, and crop must be identical to IMAGE 1. Extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background.
 • EYES — reproduce IMAGE 1's eyes pixel-perfect: large black circle pupils, white highlight dot, same shape/size/position. Do NOT redesign eyes.
 • NOSE — reproduce IMAGE 1's tiny pink dot nose exactly, same position. Do NOT change it.
 • FACE — reproduce IMAGE 1's face outline, jaw, cheek blush dots, forehead width, face proportions exactly. Do NOT redesign.
-• COMPOSITION — extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background. Identical to IMAGE 1.
 • ART STYLE — thick uneven black outlines, flat solid colors, zero gradients, zero shading, zero texture. Primitive hand-drawn NFT line quality.${cigarettePart}
 
 ━━━ DO NOT ━━━
+• Do NOT change the head angle, face direction, or composition.
 • Do NOT redesign the character.
 • Do NOT modernize, smooth, or refine the linework.
 • Do NOT change anatomy, face structure, or body proportions.
-• Do NOT copy the reference image's eyes, nose, face, or art style.
+• Do NOT copy the reference image's eyes, nose, face, angle, composition, or art style.
 • Do NOT add anime shading, cel shading, or photorealistic detail.
 
 ━━━ ONLY TRANSFER from the LAST image ━━━
