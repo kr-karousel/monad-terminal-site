@@ -448,6 +448,17 @@ async function _handler(req, res) {
     const eyelashPart = isFemale ? ' Female reference: add only 2-3 tiny thin eyelash strokes at upper eyelid edge. Do not alter eye shape, size, or position.' : '';
     const editPrompt = `The first image is the CHOG base — reproduce its art style exactly (thick black outlines, flat solid colors, no gradients, no shading) and its composition exactly (extreme close-up face, left-heavy framing, head and spikes bleeding off edges, blue background). The base image defines everything: framing, scale, eye shape, nose, face outline, cheek blush, spike shape, body pose. The second image is the style reference — from it, extract ONLY the visual style elements (hair color, hat, accessories, outfit, mouth expression) and apply them onto the CHOG base character. Do not copy the reference art style, face, composition, background, or proportions. Render all changes in the CHOG flat-color cartoon style.${eyelashPart}${cigarettePart}${extraPart ? ' ' + extraPart : ''}`;
 
+    // Convert user's reference image to buffer for direct submission
+    let userRefBuffer = null;
+    try {
+      if (image.startsWith('data:')) {
+        userRefBuffer = Buffer.from(image.split(',')[1], 'base64');
+      } else {
+        const r = await fetch(image);
+        if (r.ok) userRefBuffer = Buffer.from(await r.arrayBuffer());
+      }
+    } catch (e) { console.warn('[gpt] user ref fetch failed:', e.message); }
+
     const form = new FormData();
     form.append('model', 'gpt-image-1.5');
     form.append('prompt', editPrompt);
