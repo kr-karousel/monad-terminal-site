@@ -372,7 +372,7 @@ async function _handler(req, res) {
             role: 'user',
             content: [
               { type: 'image_url', image_url: { url: image, detail: 'high' } },
-              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word", "hair_silhouette": "rough silhouette category ONLY: short / medium / long / spiky / twin-tails / ponytail / bob / bald — pick one, no details", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
+              { type: 'text', text: 'Extract abstract traits ONLY — do NOT describe exact appearance details. Return ONLY this JSON (no markdown): {"hair_color": "primary color name only (e.g. pink, black, blonde, brown) — single word, or null if bald", "hair_silhouette": "bald only if the reference has absolutely no hair, otherwise null", "hat": "hat type + color in 1-3 words, or null", "hairpin": "accessory type + color + position in under 8 words, or null", "glasses": "glasses type + color, or null", "mouth_type": "expression category only: smile / grin / smirk / tongue-out / fang / open / neutral — pick one, or null", "outfit": "garment categories + main colors only — no patterns, no rendering details, under 12 words", "accessories": "category list only (e.g. scarf-red, belt-brown), or null", "eyelash": "true if character is clearly female or has prominent eyelashes, otherwise false"}' }
             ]
           }]
         }),
@@ -410,9 +410,11 @@ async function _handler(req, res) {
     // Build trait description for "only transfer" section
     const WEAPON_PATTERN = /\b(sword|swords|katana|blade|knife|knives|dagger|gun|pistol|rifle|weapon|weapons|spear|axe|bow|arrow|arrows|shuriken|kunai|bomb|grenade|cannon)\b/gi;
     const san = str => str ? str.replace(WEAPON_PATTERN, 'prop').replace(/\s{2,}/g, ' ').trim() : str;
-    const hairAbstract = [semantics.hair_color, semantics.hair_silhouette].filter(Boolean).join(' ');
+    const isBald = semantics.hair_silhouette === 'bald';
+    const hairAbstract = semantics.hair_color || null;
     const traitParts = [
-      hairAbstract          ? `hair: ${san(hairAbstract)} (color + silhouette only)`                  : null,
+      hairAbstract          ? `hair color: ${san(hairAbstract)} (recolor spikes only — keep spike shape)`  : null,
+      isBald                ? `hair: BALD — remove spikes, leave scalp bare above hairline`              : null,
       semantics.hat         ? `hat: ${san(semantics.hat)}`                                             : null,
       semantics.hairpin     ? `hair accessory: ${san(semantics.hairpin)}`                              : null,
       semantics.glasses     ? `glasses: ${san(semantics.glasses)}`                                     : null,
@@ -430,7 +432,7 @@ IMAGE 1 = CHOG base model. This IS the only character. Its art style, compositio
 IMAGE 2 = Trait donor only. Treat it as a TEXT LIST of abstract trait names — not a character to draw. Borrow ONLY: color name, accessory category, expression category, garment category. Do NOT reference anything below the chest. Do NOT borrow its art style, rendering, anatomy, pose, or composition in any way.
 
 ⚠ PRIORITY #1 — ANGLE & COMPOSITION (overrides everything else):
-The angle, framing, zoom, crop, and composition of IMAGE 1 are LOCKED. Do NOT adapt to the reference's body size, body angle, zoom level, or framing — even if the reference shows a full body, a different pose, or a different crop. The reference's composition is completely irrelevant. Output must match IMAGE 1's exact crop: extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background, same head tilt and face direction.
+The angle, framing, zoom, crop, and composition of IMAGE 1 are LOCKED. Do NOT adapt to the reference's body size, body angle, zoom level, or framing — even if the reference shows a full body, a different pose, or a different crop. The reference's composition is completely irrelevant. Output must match IMAGE 1's exact crop: extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background, same head tilt and face direction. The head must occupy at least 70% of the frame height. Before finalizing, verify: does the output match IMAGE 1's extreme close-up composition? If not, the output is wrong — redo it.
 
 ⚠ PRIORITY #2 — BASE ART STYLE (overrides reference style):
 The art style of IMAGE 1 is the ONLY allowed art style. Thick uneven hand-drawn black outlines, flat solid colors only, zero gradients, zero shading, zero texture, limited color palette, primitive NFT line quality. The reference image's art style (whether anime, realistic, painterly, 3D, cel-shaded, etc.) must be COMPLETELY IGNORED. Re-render every transferred trait in IMAGE 1's exact art style — do NOT preserve any rendering quality from the reference.
@@ -446,7 +448,7 @@ The output is face-centered. There is no neck, chest, or anything below. Do NOT 
 • ART STYLE — thick uneven black outlines, flat solid colors, zero gradients, zero shading, zero texture. Primitive hand-drawn NFT line quality. Match IMAGE 1's art style only.
 • EYES — PIXEL-FOR-PIXEL match with IMAGE 1. Same eye shape, same eye size, same eye position, same large black pupils, same white highlight dot placement, same eye angle. Do NOT enlarge eyes. Do NOT redraw the eyes in any way. If the reference is female or has eyelashes, keep IMAGE 1's eyes completely unchanged and add only 3 thin short line strokes at the upper eyelid edge — decorative only.
 • NOSE — PIXEL-FOR-PIXEL match with IMAGE 1. Same tiny pink dot, same exact size, same exact position. Do NOT enlarge it. Do NOT change its color. Do NOT redraw it.
-• HAIR SILHOUETTE — spike shape of IMAGE 1 is the base and must be maintained. Hair exists ONLY above IMAGE 1's hairline — do NOT generate any hair below the hairline into the face area. If the reference has a clearly distinct major feature (e.g. long hair, twin-tails), reflect only that large-scale silhouette change strictly above the hairline — do NOT add bangs, side strands, or fine detail below the hairline. For styles that hang downward (twin-tails, long hair, ponytail), the frame crop is ABSOLUTE — do NOT zoom out to show the full length. Hair may be cropped by the frame.
+• HAIR SILHOUETTE — the spiky silhouette of IMAGE 1 is ALWAYS kept regardless of the reference's hair style. Do NOT change the spike shape to match the reference. ONLY transfer the hair color from the reference — recolor the spikes in the reference's hair color, keep the spike shape identical. Exception: if the reference is bald or has no hair, remove the hair above the hairline and leave the scalp bare — do not draw spikes. Hair exists ONLY above IMAGE 1's hairline — do NOT generate any hair below the hairline into the face area.
 • FACE — reproduce IMAGE 1's face line, cheeks, forehead, and proportions exactly. Do NOT redesign.
 • MASCOT HANDS — IMAGE 1's small round pink mascot hands. The crossed-arms pose of IMAGE 1 must not be changed.${cigarettePart}
 
