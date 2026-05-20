@@ -389,15 +389,6 @@ async function _handler(req, res) {
       baseBuffer = rawBaseBuffer;
     }
 
-    // Fetch individual CHOG example images for style consistency
-    const EXAMPLE_FILES = ['1-1.jpg','1-2.jpg','1-3.jfif','1-4.jpg','1-5.jfif','1-6.jfif','1-8.jpg','1-9.jpg'];
-    const exampleBuffers = (await Promise.all(
-      EXAMPLE_FILES.map(f => fetch(`https://monad-terminal.xyz/chog/pfp/examples/${f}`)
-        .then(r => r.ok ? r.arrayBuffer().then(b => ({ buf: Buffer.from(b), name: f })) : null)
-        .catch(() => null))
-    )).filter(Boolean);
-    console.log('[generate] loaded examples:', exampleBuffers.length);
-
     const isFemale = semantics.eyelash === true || semantics.eyelash === 'true';
     const extraPart = customPrompt ? ` ${customPrompt.trim()}.` : '';
 
@@ -424,8 +415,7 @@ async function _handler(req, res) {
     const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG skeleton — you are NOT recreating, redrawing, or adapting the reference character.
 
 IMAGE 1 = CHOG base skeleton. This IS the character. The output IS this character with a few traits swapped. Reproduce it exactly.
-IMAGES 2–${1 + exampleBuffers.length} = Official CHOG collection NFTs. Study them to lock in the line rules, eye rules, face proportions, and hair silhouette style.
-LAST IMAGE = Trait donor only. You only borrow abstract traits from it — color, accessory category, expression category, garment category. You do NOT borrow its appearance, identity, anatomy, eyes, face, hair detail, or art style.
+IMAGE 2 = Trait donor only. You only borrow abstract traits from it — color, accessory category, expression category, garment category. You do NOT borrow its appearance, identity, anatomy, eyes, face, hair detail, or art style.
 
 ⚠ PRIORITY #1 — ANGLE & COMPOSITION (overrides everything else):
 The angle, framing, zoom, crop, and composition of IMAGE 1 are LOCKED. Do NOT adapt to the reference's body size, body angle, zoom level, or framing — even if the reference shows a full body, a different pose, or a different crop. The reference's composition is completely irrelevant. Output must match IMAGE 1's exact crop: extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background, same head tilt and face direction.
@@ -487,11 +477,8 @@ The final result must be indistinguishable from an official CHOG collection NFT 
     form.append('size', '1024x1024');
     form.append('quality', 'medium');
     form.append('input_fidelity', 'high');
-    // Image order: base (1st) → CHOG examples → user reference (last)
+    // Image order: base (1st) → user reference (2nd)
     form.append('image[]', new Blob([baseBuffer], { type: 'image/png' }), 'chog.png');
-    for (const { buf, name } of exampleBuffers) {
-      form.append('image[]', new Blob([buf], { type: 'image/jpeg' }), name);
-    }
     if (userRefBuffer) form.append('image[]', new Blob([userRefBuffer], { type: 'image/jpeg' }), 'reference.jpg');
     // No mask — restriction system prompt controls what changes
 
