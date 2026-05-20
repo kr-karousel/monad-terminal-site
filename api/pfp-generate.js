@@ -410,7 +410,7 @@ async function _handler(req, res) {
 
     const cigarettePart = chogStyle === '2' ? '\n- CIGARETTE: the cigarette hanging from the mouth corner is part of IMAGE 1 — keep it exactly.' : '';
     const beardPart = hasBeard ? `\nBEARD: the reference has facial hair (${san(semantics.beard)}). Draw a simple flat chunky beard/mustache shape near the CHOG mouth/chin area — thick black outline, flat color, primitive shape. Do NOT move the nose. Do NOT redesign the face.` : '';
-    const eyelashPart = isFemale ? '\nFEMALE REFERENCE: the reference character is female. Keep IMAGE 1\'s eyes exactly, but add 3 thin short eyelash lines at the upper eyelid edge only. Do NOT alter eye shape or size.' : '';
+    const eyelashPart = isFemale ? '\nFEMALE REFERENCE: the reference character is female. The CHOG eyes from IMAGE 1 must remain identical (same shape, same size, same position, same pupils). On TOP of the unchanged eyes, draw 2-3 thin short line strokes at the upper eyelid edge only — these are tiny decorative additions, not a redrawing of the eye. The eye underneath must look exactly like IMAGE 1\'s eye.' : '';
 
     const editPrompt = `You are doing a TRAIT TRANSPLANT onto a CHOG skeleton — you are NOT recreating, redrawing, or adapting the reference character.
 
@@ -432,8 +432,9 @@ IMAGE 1 shows the CHOG mascot body — small chunky pink crossed paws/hands visi
 ━━━ PRESERVE EXACTLY (never change these) ━━━
 • ANGLE & COMPOSITION — head angle, face tilt, body angle, framing, zoom, and crop must be identical to IMAGE 1. Extreme close-up, left-heavy framing, head and spikes bleeding off frame edges, blue background.
 • ART STYLE — thick uneven black outlines, flat solid colors, zero gradients, zero shading, zero texture. Primitive hand-drawn NFT line quality. Match IMAGE 1's art style only.
-• EYES — reproduce IMAGE 1's eyes pixel-perfect: large black circle pupils, white highlight dot, same shape/size/position. Do NOT redesign eyes.
-• NOSE — reproduce IMAGE 1's tiny pink dot nose exactly, same position. Do NOT change it.
+• EYES — PIXEL-FOR-PIXEL match with IMAGE 1. Same eye shape, same eye size, same eye position, same large black pupils, same white highlight dot placement, same eye angle. Do NOT enlarge eyes. Do NOT add eyelashes by default (only if FEMALE flag is set, and then only 2-3 thin strokes on top — the eye underneath stays identical). Do NOT redraw the eyes in any way.
+• NOSE — PIXEL-FOR-PIXEL match with IMAGE 1. Same tiny pink dot, same exact size, same exact position. Do NOT enlarge it. Do NOT change its color. Do NOT redraw it.
+• HAIR SILHOUETTE — IMAGE 1's hair/spike shape is the BASE silhouette. Only alter hair when the reference has a clearly different silhouette category (e.g. reference has long hair, base has spikes). Do NOT add bangs, side hair, or strands that are not present in IMAGE 1 unless the reference clearly shows them as a major feature. When in doubt, keep IMAGE 1's exact hair shape.
 • FACE — reproduce IMAGE 1's face outline, jaw, cheek blush dots, forehead width, face proportions exactly. Do NOT redesign.
 • MASCOT PAWS/HANDS — reproduce IMAGE 1's small chunky pink mascot paws/hands at the bottom of the frame exactly. They must be visible in the output.${cigarettePart}
 
